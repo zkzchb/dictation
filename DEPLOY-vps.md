@@ -5,7 +5,7 @@ V1（`v1.dictation.de5.net`）和 V2（`v2.dictation.de5.net`）部署在**同�
 | 版本 | 域名 | 端口 | 特点 |
 |---|---|---|---|
 | V1 | v1.dictation.de5.net | 8888 | 运行时调用有道 TTS 合成音频，需要 ffmpeg |
-| V2 | v2.dictation.de5.net | 8889 | 使用预录切片，无需 TTS/ffmpeg，**需要先运行 gen_slices.py** |
+| V2 | v2.dictation.de5.net | 8889 | 预录切片，含录音工作台（/studio），核心功能不需要 ffmpeg，**切割录音需要 ffmpeg** |
 
 ---
 
@@ -59,7 +59,12 @@ V1 还需要 ffmpeg（pydub 依赖）：
 apt install -y ffmpeg
 ```
 
-V2 **不需要** ffmpeg。
+V2 **核心听写功能不需要 ffmpeg**，但录音工作台的切割功能（`/api/studio/split`）需要。
+建议统一安装，避免录音时报错：
+
+```bash
+apt install -y ffmpeg
+```
 
 ---
 
@@ -93,7 +98,7 @@ adduser --system --group --home /opt/dictation --shell /usr/sbin/nologin dictati
 ```bash
 # 本地：填入有道密钥后执行
 YOUDAO_APP_KEY=你的Key YOUDAO_APP_SECRET=你的Secret \
-  python shared/gen_slices.py
+  python shared/tools/gen_slices.py
 ```
 
 切片生成后铺进 V2 目录：
@@ -134,13 +139,13 @@ cd /opt/dictation/v1 && python3 -m venv venv
 ./venv/bin/python -c "import fastapi, pydantic, requests, pydub; print('V1 依赖 OK')"
 ```
 
-**V2**（不需要 ffmpeg/pydub）：
+**V2**（pydub 仅录音工作台需要，核心功能无需 ffmpeg）：
 
 ```bash
 cd /opt/dictation/v2 && python3 -m venv venv
 ./venv/bin/pip install --upgrade pip
 ./venv/bin/pip install -r requirements.txt
-./venv/bin/python -c "import fastapi, pydantic; print('V2 依赖 OK')"
+./venv/bin/python -c "import fastapi, pydantic, pydub; print('V2 依赖 OK')"
 ```
 
 ---
@@ -444,15 +449,15 @@ chmod +x /usr/local/bin/backup-dictation.sh
 ## 14. 端到端验收
 
 ```bash
-# V1 课程接口
+# V1 课程接口（三年级词表导入后应返回 lesson_seq >= 3100 的课程）
 curl -s https://v1.dictation.de5.net/api/lessons | head -c 150
 
 # V2 课程接口
 curl -s https://v2.dictation.de5.net/api/lessons | head -c 150
 
-# V2 词表（应含 audio_url 字段）
-curl -s "https://v2.dictation.de5.net/api/generate_daily/1?mode=daily" \
-  | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d['data']),'词, 首词:', d['data'][0]['target'], d['data'][0]['audio_url'])"
+# V2 词表（应含 audio_url 和 polyphonic_section 字段）
+curl -s "https://v2.dictation.de5.net/api/generate_daily/3111?mode=daily" \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d['data']),'词,多音字段落:',len(d['polyphonic_section']),'个')"
 
 # V2 切片文件可访问
 curl -sI "https://v2.dictation.de5.net/audio/sys/intro.mp3" | head -3
@@ -464,6 +469,15 @@ V1 音频合成（首次会调用有道 TTS，约30秒）：
 curl -s -X POST https://v1.dictation.de5.net/api/generate_audio \
   -H 'Content-Type: application/json' \
   -d '[{"text":"诗人","pinyin":"shī rén"},{"text":"碧绿","pinyin":"bì lǜ"}]'
+```
+
+V2 录音工作台（需先导入词表，studio 端点在 V2）：
+
+```bash
+# 浏览器访问
+open https://v2.dictation.de5.net/studio
+# 或用 curl 验证页面可达
+curl -sI https://v2.dictation.de5.net/studio | head -3
 ```
 
 ---
