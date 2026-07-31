@@ -11,7 +11,7 @@ import os, json, hashlib, sqlite3, random
 from datetime import datetime, timedelta
 from typing import List
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -336,6 +336,81 @@ def get_dictation_history(start_date: str, end_date: str):
         return {r["d"]: r["s"] for r in rows}
     finally:
         conn.close()
+
+
+# ================= 🎬 录音工作台 =================
+# 切片保存到 shared/web/audio/w/，与 gen_slices.py 输出一致，可互换
+STUDIO_AUDIO_DIR = os.getenv(
+    "STUDIO_AUDIO_DIR",
+    os.path.join(BASE_DIR, "..", "shared", "web", "audio", "w"),
+)
+STUDIO_HTML = os.path.join(BASE_DIR, "..", "shared", "web", "studio.html")
+
+
+@app.get("/studio")
+async def studio_page():
+    from fastapi.responses import HTMLResponse, PlainTextResponse
+    if not os.path.exists(STUDIO_HTML):
+        return PlainTextResponse("studio.html 未找到", status_code=404)
+    with open(STUDIO_HTML, encoding="utf-8") as f:
+        return HTMLResponse(f.read())
+
+
+@app.post("/api/studio/check")
+async def studio_check(payload: dict):
+    """检查哪些 hash 已有录音文件。返回 {hash: bool}。"""
+    hashes = payload.get("hashes", [])
+    return {h: os.path.exists(os.path.join(STUDIO_AUDIO_DIR, f"{h}.mp3"))
+            for h in hashes}
+
+
+@app.post("/api/studio/split")
+async def studio_split(request: Request):
+    """上传录音 → pydub 按静音切割 → 返回各段 base64。
+    需要系统安装 ffmpeg。
+    """
+    from pydub import AudioSegment
+    from pydub.silence import split_on_silence
+    import io, base64 as b64
+
+    form = await request.form()
+    audio_file = form["audio"]
+    word_count = int(form.get("word_count", 0))
+    min_silence_len = int(form.get("min_silence_len", 500))
+    silence_thresh = int(form.get("silence_thresh", -35))
+
+    raw = await audio_file.read()
+    try:
+        seg = AudioSegment.from_file(io.BytesIO(raw))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"音频解码失败: {e}")
+
+    chunks = split_on_silence(
+        seg, min_silence_len=min_silence_len,
+        silence_thresh=silence_thresh, keep_silence=200,
+    )
+    segments = []
+    for c in chunks:
+        buf = io.BytesIO()
+        c.export(buf, format="mp3", bitrate="64k")
+        segments.append({"audio": b64.b64encode(buf.getvalue()).decode(),
+                         "duration": round(len(c) / 1000.0, 2)})
+
+    return {"segments": segments, "count": len(segments),
+            "expected": word_count, "matched": len(segments) == word_count}
+
+
+@app.post("/api/studio/save")
+async def studio_save(payload: dict):
+    """保存已校对的切片。payload: {items: [{hash, audio(base64)}]}。"""
+    import base64 as b64
+    os.makedirs(STUDIO_AUDIO_DIR, exist_ok=True)
+    saved = 0
+    for item in payload.get("items", []):
+        with open(os.path.join(STUDIO_AUDIO_DIR, f"{item['hash']}.mp3"), "wb") as f:
+            f.write(b64.b64decode(item["audio"]))
+        saved += 1
+    return {"status": "success", "saved": saved}
 
 
 if __name__ == "__main__":
