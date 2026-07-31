@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTS试听台</title>
+    <style>
+        body { 
+            font-family: sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            background-color: #f3f4f6; 
+            margin: 0; 
+        }
+        .container { 
+            background: white; 
+            padding: 2rem; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            text-align: center; 
+            max-width: 400px; 
+            width: 100%; 
+        }
+        input { 
+            width: 90%; 
+            padding: 10px; 
+            margin: 15px 0; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 6px; 
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus {
+            border-color: #07C160;
+        }
+        audio { 
+            width: 100%; 
+            margin-top: 15px; 
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 style="margin-top: 0; color: #1f2937;">听写小助手试听台</h2>
+        <p style="color: #6b7280; font-size: 14px; margin-bottom: 5px;">请粘贴音频资源链接：</p>
+        
+        <input type="text" id="audioUrl" placeholder="audio/role_play_d5d4d1.mp3">
+        
+        <audio id="player" controls></audio>
+    </div>
+
+    <script>
+        const input = document.getElementById('audioUrl');
+        const player = document.getElementById('player');
+
+        // 监听输入框，一旦有地址输入，立刻加载到播放器中
+        input.addEventListener('input', function() {
+            const url = this.value.trim();
+            if(url) {
+                player.src = url;
+                // 自动尝试播放
+                player.play().catch(e => console.log("等待用户手动点击播放"));
+            }
+        });
+    </script>
+</body>
+</html>

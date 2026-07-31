@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>听写小助手 V2/V3</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --wechat-green: #07C160; --wechat-light: #E9F9F0; }
+        body { font-family: sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        [x-cloak] { display: none !important; }
+        .pulse-ring { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%   { box-shadow: 0 0 0 0 rgba(7,193,96,.7); }
+            70%  { box-shadow: 0 0 0 20px rgba(7,193,96,0); }
+            100% { box-shadow: 0 0 0 0 rgba(7,193,96,0); }
+        }
+        .btn-wechat {
+            background-color: var(--wechat-green); color: white;
+            font-weight: bold; border-radius: 8px; transition: all .2s;
+        }
+        .btn-wechat:active:not(:disabled) { background-color: #06AD56; transform: scale(.98); }
+        .btn-wechat:disabled { opacity: .5; cursor: not-allowed; }
+        .tianzige-wrap { display: flex; gap: .5rem; justify-content: center; margin-bottom: 2rem; }
+        .tianzige-box  { display: flex; flex-direction: column; align-items: center; }
+        .pinyin-top    { font-family: monospace; font-size: 1.1rem; color: #9ca3af;
+                         margin-bottom: .2rem; text-align: center; height: 1.5rem; }
+        .tianzige {
+            position: relative; width: 4.5rem; height: 4.5rem; border: 2px solid #d1d5db;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Kaiti SC','STKaiti','KaiTi',serif; background: white;
+        }
+        .tianzige::before { content:''; position:absolute; top:50%; left:0;
+                            width:100%; border-top:1px dashed #d1d5db; }
+        .tianzige::after  { content:''; position:absolute; top:0; left:50%;
+                            height:100%; border-left:1px dashed #d1d5db; }
+        .tianzige-char { position:relative; z-index:10; font-size:3rem; color:#1f2937; }
+    </style>
+</head>
+<body class="bg-gray-100 h-[100dvh] w-full flex flex-col items-center justify-center"
+      x-data="dictationApp()">
+<div class="w-full max-w-lg h-full bg-[#F7F7F7] flex flex-col relative shadow-2xl overflow-hidden">
+
+  <!-- 顶栏 -->
+  <header class="bg-[#F7F7F7] p-4 z-20 shrink-0 flex justify-between items-center border-b border-gray-200">
+    <div class="font-bold text-lg text-slate-800 flex items-center gap-2">
+      <i class="fas fa-graduation-cap text-[#07C160]"></i> 小助手V2
+    </div>
+    <div class="text-xs text-gray-400 font-mono" x-text="currentDate"></div>
+  </header>
+
+  <main class="flex-grow overflow-y-auto no-scrollbar relative w-full">
+
+    <!-- Step 0: 模式选择 -->
+    <div x-show="step===0" class="p-6 flex flex-col items-center justify-center min-h-full space-y-6">
+      <div class="text-center mb-4">
+        <h2 class="text-2xl font-bold text-gray-800">Hi, Mia! 👋</h2>
+        <p class="text-gray-400 text-sm mt-2">今天想进行哪项挑战？</p>
+      </div>
+      <button @click="setMode('daily')" class="w-full bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-5 transition-transform active:scale-95">
+        <div class="w-16 h-16 bg-[#E9F9F0] rounded-xl flex items-center justify-center text-[#07C160] text-3xl shrink-0"><i class="fas fa-book-open"></i></div>
+        <div class="text-left flex-grow">
+          <h3 class="text-lg font-bold text-gray-800">生字听写</h3>
+          <p class="text-xs text-gray-400 mt-1">按课文复习，攻克新字词</p>
+        </div>
+        <div class="text-gray-300"><i class="fas fa-chevron-right"></i></div>
+      </button>
+      <button @click="setMode('unit')" class="w-full bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-5 transition-transform active:scale-95">
+        <div class="w-16 h-16 bg-blue-50 rounded-xl flex items-center justify-center text-blue-500 text-3xl shrink-0"><i class="fas fa-layer-group"></i></div>
+        <div class="text-left flex-grow">
+          <h3 class="text-lg font-bold text-gray-800">单元复习</h3>
+          <p class="text-xs text-gray-400 mt-1">单元大满贯，消灭错题本</p>
+        </div>
+        <div class="text-gray-300"><i class="fas fa-chevron-right"></i></div>
+      </button>
+    </div>
+
+    <!-- Step 1: 选课 -->
+    <div x-show="step===1" x-cloak class="p-6 flex flex-col items-center justify-center min-h-full space-y-8">
+      <div class="w-24 h-24 bg-[#E9F9F0] rounded-3xl flex items-center justify-center text-[#07C160] text-4xl mb-2 shadow-sm">
+        <i class="fas fa-book-reader"></i>
+      </div>
+      <div class="text-center">
+        <h2 class="text-2xl font-bold text-gray-800" x-text="dictationMode==='daily'?'准备听写':'单元复习'"></h2>
+        <p class="text-gray-400 text-sm mt-2">请确认今日听写范围</p>
+      </div>
+      <div class="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <label class="text-xs text-gray-400 font-bold uppercase tracking-wider" x-text="dictationMode==='daily'?'选择课程':'选择单元'"></label>
+        <select x-model="selectedLesson" class="w-full mt-2 bg-transparent text-lg font-bold outline-none text-gray-700 appearance-none truncate">
+          <template x-for="lesson in lessons" :key="lesson.lesson_seq">
+            <option :value="lesson.lesson_seq" x-text="`Unit${lesson.unit_seq} - ${lesson.lesson_name}`"></option>
+          </template>
+        </select>
+      </div>
+    </div>
+
+    <!-- Step 2: 词表勾选 -->
+    <div x-show="step===2" x-cloak class="p-4 pb-6">
+      <div class="grid grid-cols-2 gap-3">
+        <template x-for="word in wordList" :key="word.kp_id">
+          <div @click="word.selected=!word.selected"
+               class="relative p-3 rounded-xl border-2 h-20 flex flex-col items-center justify-center transition-all active:scale-95"
+               :class="getCardClass(word)">
+            <div x-show="word.selected" class="absolute top-1 right-1">
+              <i class="fas fa-check-circle text-sm" :class="getIconClass(word.type)"></i>
+            </div>
+            <span class="text-[10px] font-mono opacity-60 mb-0.5" x-text="word.pinyin"></span>
+            <span class="text-lg font-bold tracking-wide" x-text="word.text"></span>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- Step 4: 播放（播放列表驱动，选好词表即可播放，无需等待生成） -->
+    <div x-show="step===4" x-cloak class="flex flex-col items-center justify-center h-full p-6">
+      <audio x-ref="audioPlayer"
+             @play="playerState='playing'"
+             @pause="playerState='paused'"
+             @ended="onAudioEnded()"></audio>
+      <div class="mb-6 text-center h-10">
+        <span class="text-sm text-gray-400" x-show="!currentPlaylistWord">
+          听写任务 共 <span class="text-[#07C160] font-bold" x-text="selectedCount"></span> 词
+        </span>
+      </div>
+      <div class="tianzige-wrap h-28">
+        <template x-if="currentPlaylistWord">
+          <template x-for="(char,idx) in currentPlaylistWord.text.split('')" :key="idx">
+            <div class="tianzige-box">
+              <div class="pinyin-top" x-text="currentPlaylistWord.pinyin.split(' ')[idx]||''"></div>
+              <div class="tianzige"><span class="tianzige-char" x-text="char"></span></div>
+            </div>
+          </template>
+        </template>
+      </div>
+      <div class="relative w-40 h-40 flex items-center justify-center mb-10 mt-6">
+        <div class="absolute inset-0 rounded-full bg-[#E9F9F0] transition-all"
+             :class="playerState==='playing'?'pulse-ring':''"></div>
+        <button @click="togglePlay()"
+                class="relative z-10 w-32 h-32 rounded-full shadow-xl flex items-center justify-center transition-transform active:scale-95 border-4"
+                :class="playerState==='playing'?'bg-white border-[#E9F9F0] text-[#07C160]':'bg-[#07C160] border-white text-white'">
+          <i class="fas fa-3x" :class="playerState==='playing'?'fa-pause':'fa-play pl-2'"></i>
+        </button>
+      </div>
+      <p class="text-gray-500 font-medium"
+         x-text="playerState==='playing'?'正在朗读...':(playerState==='paused'?'已暂停 (点击继续)':'点击开始')"></p>
+    </div>
+
+    <!-- Step 5: 核对 -->
+    <div x-show="step===5" x-cloak class="p-4 pb-6">
+      <div class="mb-4 text-xs text-gray-500 text-center">如有错误请点击卡片标记（默认全对）</div>
+      <div class="space-y-3">
+        <template x-for="word in selectedWords" :key="word.kp_id">
+          <div @click="word.isCorrect=!word.isCorrect"
+               class="bg-white p-4 rounded-xl border flex items-center justify-between shadow-sm transition-all active:scale-[.98]"
+               :class="word.isCorrect?'border-transparent':'border-red-400 bg-red-50'">
+            <div class="flex flex-col">
+              <span class="text-xl font-mono text-gray-400" x-text="word.pinyin"></span>
+              <span class="text-3xl font-black text-gray-800" x-text="word.text"></span>
+            </div>
+            <div class="text-2xl" :class="word.isCorrect?'text-[#07C160]':'text-red-500'">
+              <i class="fas" :class="word.isCorrect?'fa-check-circle':'fa-times-circle'"></i>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- Step 6: 成绩 -->
+    <div x-show="step===6" x-cloak class="flex flex-col items-center pt-10 px-4 h-full overflow-y-auto">
+      <div class="relative w-48 h-48 mb-6">
+        <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90">
+          <path class="text-gray-200" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3"/>
+          <path :class="getScoreColorClass()" :stroke-dasharray="`${score},100`" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center">
+          <span class="text-5xl font-black text-gray-800" x-text="Math.round(score)"></span>
+          <span class="text-xs text-gray-400 uppercase tracking-widest">Score</span>
+        </div>
+      </div>
+      <div class="text-center mb-4">
+        <h3 class="text-xl font-bold" x-text="score>=90?'太棒了！':(score>=80?'继续加油！':'需加强练习')"></h3>
+      </div>
+      <div class="mb-4 text-center text-sm font-medium h-5">
+        <span x-show="mistakesSaved" class="text-[#07C160]"><i class="fas fa-check-circle"></i> 成绩已自动入库</span>
+        <span x-show="saveFailed" class="text-red-500"><i class="fas fa-exclamation-circle"></i> 入库失败
+          <button @click="calculateScore()" class="underline ml-1">重试</button></span>
+      </div>
+      <div x-show="wrongWordsList.length>0" class="w-full bg-white rounded-2xl p-5 border shadow-sm mb-6 text-left">
+        <h4 class="text-orange-500 font-bold text-sm mb-3">
+          <i class="fas fa-exclamation-triangle"></i> 发现 <span x-text="wrongWordsList.length"></span> 个错词
+        </h4>
+        <div class="space-y-3">
+          <template x-for="word in wrongWordsList" :key="word.kp_id">
+            <div class="flex items-baseline border-b border-dashed border-gray-100 pb-2 last:border-0">
+              <span class="text-2xl font-bold text-gray-800 mr-3" x-text="word.text"></span>
+              <span class="text-sm font-mono text-red-400" x-text="word.pinyin"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 7: 日历 -->
+    <div x-show="step===7" x-cloak class="flex flex-col h-full p-6">
+      <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <i class="fas fa-calendar-alt text-[#07C160]"></i> 学习足迹
+      </h2>
+      <div class="grid grid-cols-7 gap-2 mb-2 text-center text-xs text-gray-400 font-bold">
+        <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+      </div>
+      <div class="grid grid-cols-7 gap-2">
+        <template x-for="day in calendarDays" :key="day.fullDate">
+          <div class="aspect-square rounded-lg flex flex-col items-center justify-center relative shadow-sm text-xs font-bold border-2"
+               :class="[getCalColor(day.score),day.isToday?'border-[#07C160]':'border-transparent',day.isOtherMonth?'opacity-40':'']">
+            <span x-text="day.date"></span>
+            <div x-show="day.score!==null" class="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-white opacity-80"></div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 底部按钮栏 -->
+  <footer class="bg-white p-4 border-t z-20 shrink-0 w-full">
+    <button x-show="step===1" x-cloak @click="generateWordList()" class="btn-wechat w-full py-4 text-lg shadow-lg">生成词表</button>
+    <button x-show="step===2" x-cloak @click="confirmAndPlay()" class="btn-wechat w-full py-4 text-lg shadow-lg" :disabled="selectedCount===0">
+      确认听写 (<span x-text="selectedCount"></span>)
+    </button>
+    <button x-show="step===4" x-cloak @click="goToStep(5)" class="btn-wechat w-full py-4 text-lg shadow-lg">核对答案</button>
+    <button x-show="step===5" x-cloak @click="calculateScore()" class="btn-wechat w-full py-4 text-lg shadow-lg">计算分数</button>
+    <button x-show="step===6" x-cloak @click="goToStep(7)"
+            class="w-full py-4 border-2 border-[#07C160] text-[#07C160] rounded-lg font-bold text-lg active:scale-95 transition-all">成长足迹</button>
+    <button x-show="step===7" x-cloak @click="location.reload()"
+            class="w-full py-4 border-2 border-[#07C160] text-[#07C160] rounded-lg font-bold text-lg active:scale-95 transition-all">
+      <i class="fas fa-home"></i> 返回首页
+    </button>
+  </footer>
+</div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('dictationApp', () => ({
+    step: 0, dictationMode: 'daily', currentDate: '',
+    playerState: 'idle', score: 0, calendarDays: [],
+    mistakesSaved: false, saveFailed: false,
+    lessons: [], selectedLesson: null, wordList: [],
+    playlist: [], playlistIndex: 0,
+    currentPlaylistWord: null, _gapTimer: null, _inGap: false,
+    API_BASE: '',
+
+    get selectedWords()  { return this.wordList.filter(w => w.selected); },
+    get selectedCount()  { return this.selectedWords.length; },
+    get wrongWordsList() { return this.selectedWords.filter(w => !w.isCorrect); },
+
+    async init() {
+      const now = new Date();
+      const wd  = ['日','一','二','三','四','五','六'];
+      this.currentDate = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 星期${wd[now.getDay()]}`;
+      this.generateCalendar();
+      try {
+        const res = await fetch(`${this.API_BASE}/api/lessons`);
+        this.lessons = await res.json();
+      } catch(e) { console.error('课程加载失败', e); }
+    },
+
+    setMode(mode) {
+      this.dictationMode = mode;
+      if (this.lessons.length) this.selectedLesson = this.lessons[0].lesson_seq;
+      this.step = 1;
+    },
+
+    async generateWordList() {
+      this.step = 2;
+      try {
+        const res  = await fetch(`${this.API_BASE}/api/generate_daily/${this.selectedLesson}?mode=${this.dictationMode}`);
+        const data = await res.json();
+        this.wordList = data.data.map(item => ({
+          kp_id: item.id, text: item.target, pinyin: item.pinyin || '',
+          type: item.word_type || 'review', audio_url: item.audio_url || '',
+          selected: true, isCorrect: true,
+        }));
+      } catch(e) { console.error('获取词表失败', e); }
+    },
+
+    confirmAndPlay() {
+      if (!this.selectedCount) return;
+      this.playlist        = this.buildPlaylist();
+      this.playlistIndex   = 0;
+      this.currentPlaylistWord = null;
+      this.playerState     = 'idle';
+      this._gapTimer       = null;
+      this._inGap          = false;
+      this.goToStep(4);
+    },
+
+    buildPlaylist() {
+      const items = [], words = this.selectedWords;
+      items.push({ url: '/audio/sys/intro.mp3', word: null, gapMs: 0 });
+      for (let i = 0; i < words.length; i += 3) {
+        const group = words.slice(i, i + 3);
+        const gNum  = Math.floor(i / 3) + 1;
+        items.push({ url: `/audio/sys/g${gNum}.mp3`, word: null, gapMs: 1000 });
+        for (const gapMs of [8000, 5000, 2000])
+          for (const w of group)
+            items.push({ url: w.audio_url || null, word: w, gapMs });
+        items.push({ url: null, word: null, gapMs: 4000 });  // 组间停顿
+      }
+      items.push({ url: '/audio/sys/outro.mp3', word: null, gapMs: 0 });
+      return items;
+    },
+
+    async playNextItem() {
+      if (this.playlistIndex >= this.playlist.length) {
+        this.playerState = 'ended'; this.currentPlaylistWord = null; return;
+      }
+      const item = this.playlist[this.playlistIndex];
+      this.currentPlaylistWord = item.word || null;
+      if (!item.url) {
+        // 纯间隔（无音频文件，如组间停顿）
+        this._gapTimer = setTimeout(() => {
+          this._gapTimer = null;
+          this.playlistIndex++;
+          this.playNextItem();
+        }, item.gapMs);
+        return;
+      }
+      const audio = this.$refs.audioPlayer;
+      audio.src   = item.url;
+      try { await audio.play(); }
+      catch(e) { this.playerState = 'paused'; }  // 自动播放被阻止
+    },
+
+    onAudioEnded() {
+      const item = this.playlist[this.playlistIndex];
+      if (!item) return;
+      if (item.gapMs > 0) {
+        // 保持当前词显示（孩子正在写），等停顿结束再推进
+        this._gapTimer = setTimeout(() => {
+          this._gapTimer = null;
+          this.playlistIndex++;
+          this.playNextItem();
+        }, item.gapMs);
+      } else {
+        this.playlistIndex++;
+        this.playNextItem();
+      }
+    },
+
+    togglePlay() {
+      const audio = this.$refs.audioPlayer;
+      if (this.playerState === 'playing') {
+        if (this._gapTimer) {
+          // 停顿中暂停：清除计时器，标记状态
+          clearTimeout(this._gapTimer); this._gapTimer = null;
+          this._inGap = true; this.playerState = 'paused';
+        } else {
+          audio.pause();  // @pause 事件自动设 playerState='paused'
+        }
+      } else if (this.playerState === 'paused') {
+        if (this._inGap) {
+          // 停顿中恢复：跳过剩余停顿，直接播下一词
+          this._inGap = false; this.playerState = 'playing';
+          this.playlistIndex++; this.playNextItem();
+        } else {
+          audio.play();  // @play 事件自动设 playerState='playing'
+        }
+      } else {
+        // idle 或 ended：从头开始
+        this.playlistIndex = 0; this.currentPlaylistWord = null;
+        this.playerState = 'playing'; this.playNextItem();
+      }
+    },
+
+    async calculateScore() {
+      const results = this.selectedWords.map(w => ({ kp_id: w.kp_id, is_correct: w.isCorrect }));
+      const total = results.length, correct = results.filter(r => r.is_correct).length;
+      this.score = total ? (correct / total) * 100 : 0;
+      this.mistakesSaved = false; this.saveFailed = false;
+      this.goToStep(6);
+      try {
+        const res = await fetch(`${this.API_BASE}/api/submit_dictation`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: 1, dictation_type: this.dictationMode,
+                                 scope_id: this.selectedLesson, results }),
+        });
+        if (!res.ok) throw new Error('API failed');
+        const data = await res.json();
+        this.score = data.score; this.mistakesSaved = true;
+      } catch(e) { console.error('入库失败', e); this.saveFailed = true; }
+    },
+
+    goToStep(s) {
+      if (this.step === 4) {
+        const audio = this.$refs.audioPlayer;
+        if (audio) { audio.pause(); audio.src = ''; }
+        if (this._gapTimer) { clearTimeout(this._gapTimer); this._gapTimer = null; }
+        this._inGap = false; this.playerState = 'paused';
+      }
+      this.step = s;
+      const m = document.querySelector('main');
+      if (m) m.scrollTop = 0;
+    },
+
+    generateCalendar() {
+      const days = [], today = new Date(); today.setHours(0, 0, 0, 0);
+      const start = new Date(today);
+      start.setDate(today.getDate() - today.getDay() - 14);
+      for (let i = 0; i < 35; i++) {
+        const d = new Date(start); d.setDate(start.getDate() + i);
+        const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        days.push({ date: d.getDate(), fullDate: ds,
+          isToday: d.getTime() === today.getTime(),
+          isOtherMonth: d.getMonth() !== today.getMonth(), score: null });
+      }
+      this.calendarDays = days; this.fetchHistoryData();
+    },
+
+    async fetchHistoryData() {
+      try {
+        const s = this.calendarDays[0].fullDate, e = this.calendarDays[34].fullDate;
+        const res = await fetch(`${this.API_BASE}/api/dictation_history?start_date=${s}&end_date=${e}`);
+        const map = await res.json();
+        this.calendarDays.forEach(d => { if (map[d.fullDate] !== undefined) d.score = map[d.fullDate]; });
+      } catch(e) { /* 未连接后端时静默忽略 */ }
+    },
+
+    getCardClass(word) {
+      if (!word.selected) return 'bg-gray-50 opacity-50 grayscale border-transparent text-gray-400';
+      return { new_char: 'bg-blue-50 border-blue-200 text-blue-800',
+               new_word: 'bg-[#E9F9F0] border-[#07C160]/30 text-[#07C160]',
+               wrong:    'bg-orange-50 border-orange-200 text-orange-800',
+               review:   'bg-orange-50 border-orange-200 text-orange-800' }[word.type] || 'bg-white border-gray-200';
+    },
+    getIconClass(type) {
+      return { new_char: 'text-blue-500', new_word: 'text-[#07C160]',
+               wrong: 'text-orange-500', review: 'text-orange-500' }[type] || 'text-gray-400';
+    },
+    getScoreColorClass() {
+      return this.score >= 90 ? 'text-[#07C160]' : this.score >= 80 ? 'text-[#91ED61]' : 'text-[#EE5E5E]';
+    },
+    getCalColor(s) {
+      if (s === null) return 'bg-white text-gray-300 border border-gray-100';
+      return s >= 90 ? 'bg-[#07C160] text-white border-[#07C160]'
+           : s >= 80 ? 'bg-[#91ED61] text-white border-[#91ED61]'
+                     : 'bg-[#EE5E5E] text-white border-[#EE5E5E]';
+    },
+  }))
+})
+</script>
+</body>
+</html>
+
+
+
