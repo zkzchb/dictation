@@ -10,6 +10,7 @@ __pycache__/
 *.pyo
 venv/
 _testenv/
+_build_venv/
 *.egg-info/
 .venv/
 
@@ -56,3 +57,7 @@ _inspect*.py
 # ── 操作系统杂项 ───────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+
+# Excel 临时文件
+~$*.xlsx
+~$*.xls

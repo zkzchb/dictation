@@ -18,9 +18,10 @@ from datetime import datetime, timedelta
 from typing import List
 
 import requests
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import random
 
 # ================= ⚙️ 配置（环境变量优先，默认值本机可跑）=================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -81,8 +82,8 @@ class SubmitPayload(BaseModel):
 def extract_word_info(target, options_json):
     """从 options_json 中提取可听写的组词与拼音。
 
-    题库里 target 常常是单个生字（如“诗”），真正要听写的是它的组词
-    （如“诗人”）。这里取第一个组词的 text/pinyin；解析失败则回退到 target。
+    题库里 target 常常是单个生字（如"诗"），真正要听写的是它的组词
+    （如"诗人"）。这里取第一个组词的 text/pinyin；解析失败则回退到 target。
     """
     word_text, word_pinyin = target, ""
     try:
@@ -104,90 +105,177 @@ def _next_review(days: int) -> str:
 # ================= 📡 出题接口 =================
 @app.get("/api/lessons")
 def get_lessons():
-    """课程目录（供前端下拉菜单）。lesson_seq=0 是上学期复习包，不展示。"""
+    """课程目录（供前端下拉菜单）。lesson_seq >= 3100 为正式课。"""
     conn = get_db()
     try:
         rows = conn.execute("""
             SELECT lesson_seq, unit_id AS unit_seq, unit_name, lesson_name
-            FROM lessons WHERE lesson_seq > 0 ORDER BY lesson_seq ASC
+            FROM lessons WHERE lesson_seq >= 3100 ORDER BY lesson_seq ASC
         """).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
 
 
+def _select_opt(row):
+    """生字随机取组词，其他类型取第一个。"""
+    opts_json = row["options_json"]
+    if row["category"] == "生字":
+        try:
+            opts = json.loads(opts_json)
+            if isinstance(opts, str):
+                opts = json.loads(opts)
+            valid = [o for o in opts if isinstance(o, dict) and o.get("text")]
+            if valid:
+                return random.choice(valid)
+        except Exception:
+            pass
+    text, pinyin = extract_word_info(row["target"], opts_json)
+    return {"text": text, "pinyin": pinyin}
+
+
 @app.get("/api/generate_daily/{lesson_seq}")
 def generate_daily(lesson_seq: int, mode: str = "daily"):
-    """生成词表。
+    """生成词表（五梯队漏斗算法，含末尾多音字段落）。
 
-    daily 模式：当前课新字词优先，剩余名额用到期错词补足（漏斗算法）。
-    unit  模式：整单元错词优先，随机补足，用于单元大复习。
-    两种模式都排除“易混淆字”，并按 text 去重。
+    daily 模式优先级（总上限 DAILY_TARGET=30）：
+      梯队1 昨天的错字（全部保证进入）
+      梯队2 当前课生字（随机取 word1/word2）
+      梯队3 当前课词语/成语/易错字等
+      梯队4 最近其他到期错词（next_review_date<=今天，非昨天）
+      梯队5 lesson3000 冷启动兜底（词库尚薄时才出现）
+    附加  当前课多音字（末尾独立段落，不占30词槽位）
+
+    unit 模式：整单元错词优先，随机补足。
     """
     conn = get_db()
     try:
+        today     = datetime.now().strftime("%Y-%m-%d")
+        yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
         final_words, seen_texts = [], set()
+        polyphonic_section      = []
 
         def push(row, word_type):
-            text, pinyin = extract_word_info(row["target"], row["options_json"])
+            opt    = _select_opt(row)
+            text   = opt.get("text") or row["target"]
+            pinyin = opt.get("pinyin", "")
             if text not in seen_texts:
-                final_words.append({
-                    "id": row["id"], "target": text,
-                    "pinyin": pinyin, "word_type": word_type,
-                })
+                final_words.append({"id": row["id"], "target": text,
+                                    "pinyin": pinyin, "word_type": word_type})
                 seen_texts.add(text)
 
         if mode == "daily":
-            new_words = conn.execute("""
-                SELECT id, target, category, options_json FROM knowledge_points
-                WHERE lesson_seq = ? AND category != ?
-            """, (lesson_seq, EXCLUDE_CATEGORY)).fetchall()
-            new_ids = set()
-            for row in new_words:
-                w_type = "new_char" if "生字" in row["category"] else "new_word"
-                push(row, w_type)
-                new_ids.add(row["id"])
+            # ── 梯队1：昨天的错字（全部保证）──────────────────────────
+            t1 = conn.execute("""
+                SELECT kp.id, kp.target, kp.category, kp.options_json
+                FROM user_memory um JOIN knowledge_points kp ON um.kp_id = kp.id
+                WHERE um.user_id=? AND um.last_tested_date=? AND um.status=0
+                  AND kp.category NOT IN ('易混淆字','多音字')
+            """, (USER_ID, yesterday)).fetchall()
+            yesterday_ids = {r["id"] for r in t1}
+            for row in t1:
+                push(row, "wrong")
 
-            quota = DAILY_TARGET - len(final_words)
-            if quota > 0:
-                review = conn.execute("""
+            # ── 梯队2：当前课生字 ──────────────────────────────────────
+            new_rows = conn.execute("""
+                SELECT id, target, category, options_json FROM knowledge_points
+                WHERE lesson_seq=? AND category NOT IN ('易混淆字','多音字')
+            """, (lesson_seq,)).fetchall()
+            new_ids = set()
+            for row in [r for r in new_rows if r["category"] == "生字"]:
+                if len(final_words) >= DAILY_TARGET:
+                    break
+                if row["id"] not in yesterday_ids:
+                    push(row, "new_char")
+                    new_ids.add(row["id"])
+
+            # ── 梯队3：当前课其他词语 ───────────────────────────────────
+            for row in [r for r in new_rows if r["category"] != "生字"]:
+                if len(final_words) >= DAILY_TARGET:
+                    break
+                if row["id"] not in yesterday_ids:
+                    push(row, "new_word")
+                    new_ids.add(row["id"])
+
+            # ── 梯队4：最近其他到期错词 ────────────────────────────────
+            if len(final_words) < DAILY_TARGET:
+                excl = yesterday_ids | new_ids
+                t4 = conn.execute("""
                     SELECT kp.id, kp.target, kp.category, kp.options_json
-                    FROM user_memory um
-                    JOIN knowledge_points kp ON um.kp_id = kp.id
-                    WHERE um.user_id = ? AND um.error_count > 0
-                      AND um.status = 0 AND kp.category != ?
+                    FROM user_memory um JOIN knowledge_points kp ON um.kp_id = kp.id
+                    WHERE um.user_id=? AND um.status=0 AND um.error_count>0
+                      AND um.next_review_date<=? AND um.last_tested_date!=?
+                      AND kp.lesson_seq!=3000
+                      AND kp.category NOT IN ('易混淆字','多音字')
                     ORDER BY um.next_review_date ASC, um.error_count DESC
                     LIMIT ?
-                """, (USER_ID, EXCLUDE_CATEGORY, quota + 20)).fetchall()
-                for row in review:
+                """, (USER_ID, today, yesterday,
+                      DAILY_TARGET - len(final_words) + 10)).fetchall()
+                for row in t4:
                     if len(final_words) >= DAILY_TARGET:
                         break
-                    if row["id"] not in new_ids:
+                    if row["id"] not in excl:
                         push(row, "wrong")
-        else:
+                        excl.add(row["id"])
+
+            # ── 梯队5：lesson 3000 冷启动兜底 ─────────────────────────
+            if len(final_words) < DAILY_TARGET:
+                done_ids = {w["id"] for w in final_words}
+                t5 = conn.execute("""
+                    SELECT kp.id, kp.target, kp.category, kp.options_json
+                    FROM user_memory um JOIN knowledge_points kp ON um.kp_id = kp.id
+                    WHERE um.user_id=? AND um.status=0 AND kp.lesson_seq=3000
+                      AND kp.category NOT IN ('易混淆字','多音字')
+                    ORDER BY um.next_review_date ASC
+                    LIMIT ?
+                """, (USER_ID, DAILY_TARGET - len(final_words) + 5)).fetchall()
+                for row in t5:
+                    if len(final_words) >= DAILY_TARGET:
+                        break
+                    if row["id"] not in done_ids:
+                        push(row, "wrong")
+
+            # ── 附加：多音字末尾段落（不占槽位）─────────────────────────
+            for row in conn.execute("""
+                SELECT id, target, options_json FROM knowledge_points
+                WHERE lesson_seq=? AND category='多音字'
+            """, (lesson_seq,)).fetchall():
+                try:
+                    opts = json.loads(row["options_json"])
+                    if isinstance(opts, str):
+                        opts = json.loads(opts)
+                    readings = [{"pron": o.get("pron", ""),
+                                 "example_word": o.get("text", ""),
+                                 "example_pinyin": o.get("pinyin", "")}
+                                for o in opts if isinstance(o, dict)]
+                except Exception:
+                    readings = []
+                polyphonic_section.append(
+                    {"character": row["target"], "readings": readings})
+
+        else:  # unit 模式
             seqs = [r[0] for r in conn.execute(
-                "SELECT lesson_seq FROM lessons WHERE unit_id = ?", (lesson_seq,)
+                "SELECT lesson_seq FROM lessons WHERE unit_id=?", (lesson_seq,)
             ).fetchall()]
             if seqs:
                 ph = ",".join("?" * len(seqs))
-                rows = conn.execute(f"""
-                    SELECT kp.id, kp.target, kp.category, kp.options_json, um.error_count
+                for row in conn.execute(f"""
+                    SELECT kp.id, kp.target, kp.category, kp.options_json,
+                           COALESCE(um.error_count,0) AS error_count
                     FROM knowledge_points kp
-                    LEFT JOIN user_memory um
-                      ON kp.id = um.kp_id AND um.user_id = ?
-                    WHERE kp.lesson_seq IN ({ph}) AND kp.category != ?
-                    ORDER BY um.error_count DESC NULLS LAST, RANDOM()
-                    LIMIT 60
-                """, (USER_ID, *seqs, EXCLUDE_CATEGORY)).fetchall()
-                for row in rows:
+                    LEFT JOIN user_memory um ON kp.id=um.kp_id AND um.user_id=?
+                    WHERE kp.lesson_seq IN ({ph})
+                      AND kp.category NOT IN ('易混淆字','多音字')
+                    ORDER BY COALESCE(um.error_count,0) DESC, RANDOM() LIMIT 60
+                """, (USER_ID, *seqs)).fetchall():
                     if len(final_words) >= DAILY_TARGET:
                         break
-                    w_type = "wrong" if row["error_count"] else "review"
-                    push(row, w_type)
+                    push(row, "wrong" if row["error_count"] else "review")
 
-        return {"data": final_words}
+        return {"data": final_words, "polyphonic_section": polyphonic_section}
     finally:
         conn.close()
+
 
 
 # ================= 📝 提交批改 + 间隔重复引擎 =================
@@ -197,7 +285,7 @@ def submit_dictation(payload: SubmitPayload):
 
     分数 = 正确数 / 总数 * 100，由后端计算并写入 dictation_history —— 前端
     只上报每题对错，无法伪造分数。记忆库按间隔重复更新：
-      * 答对：correct_streak+1，连对满 3 次判定为“已掌握”(status=1)，
+      * 答对：correct_streak+1，连对满 3 次判定为"已掌握"(status=1)，
               下次复习日按 2^streak 天指数后延；
       * 答错：error_count+1，streak 归零，status 回到 0，明天就要复习。
     整个提交在单个事务内完成，出错则整体回滚。
@@ -381,6 +469,97 @@ async def api_generate_audio(word_list: List[WordItem]):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"语音生成失败: {e}")
     return {"audio_url": f"/audio/{filename}", "timeline": timeline}
+
+
+# ================= 🎬 录音工作台（本地开发工具）=================
+# 切片保存目录：shared/web/audio/w/（与 gen_slices.py 输出一致，两条线可互换）
+STUDIO_AUDIO_DIR = os.getenv(
+    "STUDIO_AUDIO_DIR",
+    os.path.join(BASE_DIR, "..", "shared", "web", "audio", "w"),
+)
+STUDIO_HTML = os.path.join(BASE_DIR, "..", "shared", "web", "studio.html")
+
+
+@app.get("/studio")
+async def studio_page():
+    """本地录音工作台页面。"""
+    from fastapi.responses import HTMLResponse, PlainTextResponse
+    if not os.path.exists(STUDIO_HTML):
+        return PlainTextResponse("studio.html 未找到", status_code=404)
+    with open(STUDIO_HTML, encoding="utf-8") as f:
+        return HTMLResponse(f.read())
+
+
+@app.post("/api/studio/check")
+async def studio_check(payload: dict):
+    """检查哪些 hash 已有录音文件。返回 {hash: bool}。"""
+    hashes = payload.get("hashes", [])
+    result = {}
+    for h in hashes:
+        result[h] = os.path.exists(os.path.join(STUDIO_AUDIO_DIR, f"{h}.mp3"))
+    return result
+
+
+@app.post("/api/studio/split")
+async def studio_split(request: Request):
+    """接收一段录音 + 期望词数，按静音切割，返回各段 base64。
+
+    form 参数：
+      word_count       期望切出的段数
+      min_silence_len  静音判定时长(ms)，默认 500
+      silence_thresh   静音判定阈值(dBFS)，默认 -35
+    """
+    from pydub import AudioSegment
+    from pydub.silence import split_on_silence
+    import io, base64 as b64
+
+    form = await request.form()
+    audio_file = form["audio"]
+    word_count = int(form.get("word_count", 0))
+    min_silence_len = int(form.get("min_silence_len", 500))
+    silence_thresh = int(form.get("silence_thresh", -35))
+
+    raw = await audio_file.read()
+    try:
+        seg = AudioSegment.from_file(io.BytesIO(raw))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"音频解码失败: {e}")
+
+    chunks = split_on_silence(
+        seg, min_silence_len=min_silence_len,
+        silence_thresh=silence_thresh, keep_silence=200,
+    )
+
+    segments = []
+    for c in chunks:
+        buf = io.BytesIO()
+        c.export(buf, format="mp3", bitrate="64k")
+        segments.append({
+            "audio": b64.b64encode(buf.getvalue()).decode(),
+            "duration": round(len(c) / 1000.0, 2),
+        })
+
+    return {
+        "segments": segments,
+        "count": len(segments),
+        "expected": word_count,
+        "matched": len(segments) == word_count,
+    }
+
+
+@app.post("/api/studio/save")
+async def studio_save(payload: dict):
+    """保存已校对的切片。payload: {items: [{hash, audio(base64)}]}。"""
+    import base64 as b64
+    os.makedirs(STUDIO_AUDIO_DIR, exist_ok=True)
+    saved = 0
+    for item in payload.get("items", []):
+        h = item["hash"]
+        data = b64.b64decode(item["audio"])
+        with open(os.path.join(STUDIO_AUDIO_DIR, f"{h}.mp3"), "wb") as f:
+            f.write(data)
+        saved += 1
+    return {"status": "success", "saved": saved}
 
 
 if __name__ == "__main__":

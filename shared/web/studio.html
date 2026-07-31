@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>录音工作台 · 听写小助手</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root { --green: #07C160; --amber: #F59E0B; }
+    body { font-family: sans-serif; background: #0f172a; color: #e2e8f0; }
+    [x-cloak] { display: none !important; }
+    .word-card {
+      transition: all .25s ease; border: 3px solid transparent;
+      background: #1e293b; opacity: .35; transform: scale(.95);
+    }
+    .word-card.active {
+      opacity: 1; transform: scale(1.08);
+      border-color: var(--amber); background: #334155;
+      box-shadow: 0 0 30px rgba(245,158,11,.5);
+    }
+    .word-card.done { opacity: .7; border-color: var(--green); }
+    .word-card.retry { opacity: .9; border-color: #ef4444; background: #3f1d1d; }
+    .pulse { animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    canvas { background: #020617; border-radius: 8px; }
+  </style>
+</head>
+<body x-data="studio()" x-init="init()" class="min-h-screen">
+<div class="max-w-4xl mx-auto p-6">
+
+  <!-- 顶栏 -->
+  <header class="flex items-center justify-between mb-6">
+    <h1 class="text-xl font-bold flex items-center gap-2">
+      <i class="fas fa-microphone text-[#07C160]"></i> 录音工作台
+    </h1>
+    <div class="text-sm text-slate-400" x-show="manifest.length">
+      进度 <span class="text-[#07C160] font-bold" x-text="totalRecorded"></span> / <span x-text="manifest.length"></span>
+      · 第 <span x-text="currentBatch+1"></span>/<span x-text="batches.length"></span> 组
+    </div>
+  </header>
+
+  <!-- 加载清单 -->
+  <div x-show="state==='idle'" class="bg-slate-800 rounded-2xl p-8 text-center">
+    <i class="fas fa-file-audio text-5xl text-slate-600 mb-4"></i>
+    <p class="text-slate-400 mb-6">加载 studio_manifest.json 开始录音</p>
+    <input type="file" accept=".json" @change="loadManifest($event)"
+           class="block mx-auto text-sm text-slate-400
+                  file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0
+                  file:bg-[#07C160] file:text-white file:font-bold">
+    <div class="mt-6 grid grid-cols-3 gap-4 text-left text-sm max-w-md mx-auto">
+      <label class="block">
+        <span class="text-slate-500">每词朗读秒数</span>
+        <input type="number" step="0.5" x-model.number="wordSeconds"
+               class="w-full mt-1 bg-slate-700 rounded px-2 py-1 text-white">
+      </label>
+      <label class="block">
+        <span class="text-slate-500">静音阈值 dBFS</span>
+        <input type="number" x-model.number="silenceThresh"
+               class="w-full mt-1 bg-slate-700 rounded px-2 py-1 text-white">
+      </label>
+      <label class="block">
+        <span class="text-slate-500">每组词数</span>
+        <input type="number" x-model.number="batchSize"
+               class="w-full mt-1 bg-slate-700 rounded px-2 py-1 text-white">
+      </label>
+    </div>
+  </div>
+
+  <!-- 主工作区 -->
+  <div x-show="state!=='idle' && state!=='complete'" x-cloak>
+    <!-- 词语卡片区（提词器）-->
+    <div class="flex gap-3 justify-center mb-8 flex-wrap" style="min-height:140px">
+      <template x-for="(w, i) in currentWords" :key="w.hash">
+        <div class="word-card rounded-2xl p-5 flex flex-col items-center justify-center min-w-[120px]"
+             :class="cardClass(i)"
+             @click="state==='verifying' && toggleWord(i)"
+             :style="state==='verifying' ? 'cursor:pointer' : ''">
+          <span class="text-xs font-mono text-slate-400 mb-1" x-text="w.pinyin"></span>
+          <span class="text-3xl font-bold" x-text="w.text"></span>
+          <div x-show="state==='verifying'" class="mt-2 flex items-center gap-2">
+            <span x-show="segStatus[i]==='ok'" class="text-[#07C160]"><i class="fas fa-check-circle"></i></span>
+            <span x-show="segStatus[i]==='retry'" class="text-red-400"><i class="fas fa-times-circle"></i></span>
+            <button @click.stop="replayWord(i)" class="text-slate-400 hover:text-white"><i class="fas fa-volume-up"></i></button>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- 波形/倒计时 -->
+    <div class="flex flex-col items-center mb-6">
+      <div x-show="state==='countdown'" class="text-7xl font-black text-[#F59E0B]" x-text="countdown"></div>
+      <canvas x-show="state==='recording'" x-ref="wave" width="600" height="80"></canvas>
+      <div x-show="state==='splitting'" class="text-slate-400 py-6">
+        <i class="fas fa-spinner fa-spin mr-2"></i> 正在切割音频…
+      </div>
+    </div>
+
+    <!-- 控制按钮 -->
+    <div class="text-center flex gap-3 justify-center flex-wrap">
+      <button x-show="state==='ready'" @click="startCountdown()"
+              class="bg-[#07C160] text-white font-bold py-3 px-8 rounded-xl text-lg active:scale-95 transition">
+        <i class="fas fa-microphone"></i> 开始录音
+      </button>
+      <button x-show="state==='recording'" @click="stopRecording()"
+              class="bg-red-500 text-white font-bold py-3 px-8 rounded-xl text-lg active:scale-95 transition">
+        <i class="fas fa-stop"></i> 提前停止
+      </button>
+      <template x-if="state==='verifying'">
+        <div class="flex gap-3">
+          <button @click="saveGroup()"
+                  class="bg-[#07C160] text-white font-bold py-3 px-8 rounded-xl text-lg active:scale-95 transition">
+            <i class="fas fa-save"></i> 全部正确，保存
+          </button>
+          <button @click="enterReady()"
+                  class="bg-slate-600 text-white font-bold py-3 px-8 rounded-xl text-lg active:scale-95 transition">
+            <i class="fas fa-redo"></i> 重录本组
+          </button>
+        </div>
+      </template>
+    </div>
+    <p class="text-center text-slate-500 text-sm mt-4" x-text="hint"></p>
+  </div>
+
+  <!-- 完成 -->
+  <div x-show="state==='complete'" x-cloak class="bg-slate-800 rounded-2xl p-8 text-center">
+    <i class="fas fa-trophy text-5xl text-[#F59E0B] mb-4"></i>
+    <h2 class="text-2xl font-bold mb-2">全部录制完成！</h2>
+    <p class="text-slate-400">共 <span x-text="totalRecorded"></span> 个词条已保存到 shared/web/audio/w/</p>
+  </div>
+
+</div>
+<script>
+function studio() {
+  return {
+    // ── 配置 ──
+    wordSeconds: 2.5,      // 每词朗读时长（提词器停留）
+    silenceThresh: -35,    // 静音阈值 dBFS
+    batchSize: 5,          // 每组词数
+    API: '',               // 同源
+
+    // ── 状态 ──
+    state: 'idle',         // idle|ready|countdown|recording|splitting|verifying|saving|done_group|complete
+    manifest: [],          // 全部待录词条 [{text,pinyin,hash}]
+    batches: [],           // 分组后的二维数组
+    currentBatch: 0,
+    activeIdx: -1,         // 提词器当前高亮词
+    countdown: 3,
+    totalRecorded: 0,
+    hint: '',
+
+    // ── 校对 ──
+    segments: [],          // 切割结果 [{audio(base64),duration}]
+    segStatus: [],         // 每词状态 'pending'|'ok'|'retry'
+    verifyIdx: -1,
+
+    // ── 内部引用 ──
+    _rec: null, _chunks: [], _actx: null, _analyser: null, _raf: null, _timer: null,
+
+    get currentWords() { return this.batches[this.currentBatch] || []; },
+
+    async init() {
+      // 尝试自动加载同目录 manifest（V1 静态服务时）
+      try {
+        const r = await fetch('/studio_manifest.json');
+        if (r.ok) { await this.ingest(await r.json()); }
+      } catch(e) { /* 手动加载 */ }
+    },
+
+    async loadManifest(ev) {
+      const file = ev.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      await this.ingest(JSON.parse(text));
+    },
+
+    async ingest(words) {
+      // 过滤掉已录音的词
+      let pending = words;
+      try {
+        const r = await fetch(`${this.API}/api/studio/check`, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({hashes: words.map(w=>w.hash)})
+        });
+        if (r.ok) {
+          const done = await r.json();
+          pending = words.filter(w => !done[w.hash]);
+          this.totalRecorded = words.length - pending.length;
+        }
+      } catch(e) { console.warn('check 失败，全部视为待录', e); }
+
+      this.manifest = words;
+      this.batches = [];
+      for (let i=0; i<pending.length; i+=this.batchSize)
+        this.batches.push(pending.slice(i, i+this.batchSize));
+
+      if (!this.batches.length) { this.state='complete'; return; }
+      this.currentBatch = 0;
+      this.enterReady();
+    },
+
+    enterReady() {
+      this.state = 'ready';
+      this.activeIdx = -1;
+      this.segments = [];
+      this.segStatus = this.currentWords.map(()=>'pending');
+      this.hint = '点击开始，按提词器高亮依次朗读，每词之间停顿约1秒';
+    },
+    // ── 录音流程 ──
+    async startCountdown() {
+      this.state = 'countdown';
+      this.countdown = 3;
+      const tick = () => {
+        this.countdown--;
+        if (this.countdown > 0) { this._timer = setTimeout(tick, 800); }
+        else { this.beginRecording(); }
+      };
+      this._timer = setTimeout(tick, 800);
+    },
+
+    async beginRecording() {
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({audio:true});
+      } catch(e) {
+        this.hint = '无法访问麦克风：' + e.message;
+        this.state = 'ready';
+        return;
+      }
+      this._chunks = [];
+      this._rec = new MediaRecorder(stream);
+      this._rec.ondataavailable = e => { if (e.data.size) this._chunks.push(e.data); };
+      this._rec.onstop = () => {
+        stream.getTracks().forEach(t=>t.stop());
+        this.splitAudio();
+      };
+      this._rec.start();
+      this.state = 'recording';
+      this.setupWaveform(stream);
+      this.runTeleprompter();
+    },
+
+    runTeleprompter() {
+      this.activeIdx = 0;
+      const step = () => {
+        if (this.activeIdx >= this.currentWords.length - 1) {
+          // 最后一词读完，多留半个间隔再停
+          this._timer = setTimeout(() => this.stopRecording(), this.wordSeconds*1000);
+          return;
+        }
+        this._timer = setTimeout(() => { this.activeIdx++; step(); }, this.wordSeconds*1000);
+      };
+      step();
+    },
+
+    stopRecording() {
+      clearTimeout(this._timer);
+      this.activeIdx = -1;
+      if (this._raf) cancelAnimationFrame(this._raf);
+      if (this._actx) { this._actx.close(); this._actx=null; }
+      if (this._rec && this._rec.state !== 'inactive') this._rec.stop();
+    },
+
+    setupWaveform(stream) {
+      this._actx = new (window.AudioContext||window.webkitAudioContext)();
+      const src = this._actx.createMediaStreamSource(stream);
+      this._analyser = this._actx.createAnalyser();
+      this._analyser.fftSize = 256;
+      src.connect(this._analyser);
+      const data = new Uint8Array(this._analyser.frequencyBinCount);
+      const cv = this.$refs.wave, ctx = cv.getContext('2d');
+      const draw = () => {
+        this._raf = requestAnimationFrame(draw);
+        this._analyser.getByteFrequencyData(data);
+        ctx.clearRect(0,0,cv.width,cv.height);
+        const bw = cv.width/data.length;
+        for (let i=0;i<data.length;i++){
+          const h = data[i]/255*cv.height;
+          ctx.fillStyle = `rgb(7,193,96)`;
+          ctx.fillRect(i*bw, cv.height-h, bw-1, h);
+        }
+      };
+      draw();
+    },
+    // ── 切割 ──
+    async splitAudio() {
+      this.state = 'splitting';
+      const blob = new Blob(this._chunks, {type: this._chunks[0]?.type || 'audio/webm'});
+      const fd = new FormData();
+      fd.append('audio', blob, 'rec.webm');
+      fd.append('word_count', this.currentWords.length);
+      fd.append('silence_thresh', this.silenceThresh);
+      try {
+        const r = await fetch(`${this.API}/api/studio/split`, {method:'POST', body: fd});
+        if (!r.ok) throw new Error(await r.text());
+        const data = await r.json();
+        this.segments = data.segments;
+        if (!data.matched) {
+          this.hint = `⚠ 切出 ${data.count} 段，期望 ${data.expected} 段。可调整"静音阈值"后重录本组。`;
+          this.state = 'ready';
+          return;
+        }
+        this.startVerify();
+      } catch(e) {
+        this.hint = '切割失败：' + e.message + '（V1 需装 ffmpeg/pydub）';
+        this.state = 'ready';
+      }
+    },
+
+    // ── 校对（依次播放，人工确认）──
+    startVerify() {
+      this.state = 'verifying';
+      this.segStatus = this.currentWords.map(()=>'pending');
+      this.verifyIdx = -1;
+      this.hint = '依次播放各词，核对发音是否正确';
+      this.playNext();
+    },
+
+    playNext() {
+      this.verifyIdx++;
+      if (this.verifyIdx >= this.segments.length) {
+        this.activeIdx = -1;
+        this.hint = '全部播放完毕。全部正确则保存，或点单词标记重录';
+        return;
+      }
+      this.activeIdx = this.verifyIdx;
+      const seg = this.segments[this.verifyIdx];
+      const audio = new Audio('data:audio/mp3;base64,'+seg.audio);
+      audio.onended = () => {
+        if (this.segStatus[this.verifyIdx]==='pending')
+          this.segStatus[this.verifyIdx]='ok';
+        setTimeout(()=>this.playNext(), 400);
+      };
+      audio.play();
+    },
+
+    toggleWord(i) {
+      if (this.state!=='verifying') return;
+      this.segStatus[i] = this.segStatus[i]==='retry' ? 'ok' : 'retry';
+    },
+
+    replayWord(i) {
+      const seg = this.segments[i];
+      if (seg) new Audio('data:audio/mp3;base64,'+seg.audio).play();
+    },
+
+    // ── 保存 ──
+    async saveGroup() {
+      const retries = this.segStatus.filter(s=>s==='retry').length;
+      if (retries) {
+        this.hint = `有 ${retries} 个词标记重录，请重录本组`;
+        this.enterReady();
+        return;
+      }
+      this.state = 'saving';
+      const items = this.currentWords.map((w,i)=>({hash:w.hash, audio:this.segments[i].audio}));
+      try {
+        const r = await fetch(`${this.API}/api/studio/save`, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({items})
+        });
+        if (!r.ok) throw new Error(await r.text());
+        this.totalRecorded += items.length;
+        this.nextGroup();
+      } catch(e) {
+        this.hint = '保存失败：' + e.message;
+        this.state = 'verifying';
+      }
+    },
+
+    nextGroup() {
+      this.currentBatch++;
+      if (this.currentBatch >= this.batches.length) { this.state='complete'; return; }
+      this.enterReady();
+    },
+
+    // ── UI 辅助 ──
+    cardClass(i) {
+      if (this.state==='verifying') {
+        if (this.segStatus[i]==='retry') return 'retry';
+        if (i===this.activeIdx) return 'active';
+        if (this.segStatus[i]==='ok') return 'done';
+        return '';
+      }
+      return i===this.activeIdx ? 'active' : '';
+    },
+
+  };
+}
+</script></script>
+</body>
+</html>

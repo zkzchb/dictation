@@ -35,7 +35,7 @@ def main():
     # ── lessons ──────────────────────────────────────────────────────────
     lessons_file = os.path.join(DATA_DIR, "lessons_2b.json")
     if not os.path.exists(lessons_file):
-        print(f"❌ 找不到课程文件: {lessons_file}")
+        print(f"[X] 找不到课程文件: {lessons_file}")
         return
     with open(lessons_file, encoding="utf-8") as f:
         lessons = json.load(f)
@@ -55,7 +55,7 @@ def main():
     lines.append("-- knowledge_points")
     for kp_file in kp_files:
         if not os.path.exists(kp_file):
-            print(f"⚠  找不到题库文件: {kp_file}")
+            print(f"[!]  找不到题库文件: {kp_file}")
             continue
         with open(kp_file, encoding="utf-8") as f:
             kps = json.load(f)
@@ -81,7 +81,7 @@ def main():
     with open(OUT, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
 
-    print(f"\n✓  写入 {OUT}")
+    print(f"\n[OK]  写入 {OUT}")
     print(f"   包含 {len(lessons)} 条课程 + {total_kp} 条知识点")
     print(f"\n下一步（D1 建库后执行）：")
     print(f"  npx wrangler d1 migrations apply dictation-v3")

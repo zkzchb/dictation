@@ -2,7 +2,7 @@ import sqlite3
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 
 BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR     = os.path.join(BASE_DIR, "..", "shared", "data")
@@ -109,18 +109,22 @@ def init_database():
     # 3. 初始化 MVP 种子用户
     cursor.execute("INSERT INTO user_progress (user_id, current_lesson_seq) VALUES (1, 1)")
 
-    # 4. 冷启动注入（修复版逻辑，直接将第0课错词标记为今天需复习）
-    cursor.execute("SELECT id FROM knowledge_points WHERE lesson_seq = 0 AND category = '词语表'")
+    # 4. 冷启动注入：将 lesson 3000 (高频易错字) 注入用户记忆库
+    #    next_review_date = today+3，避免第一天就与真实错词竞争
+    cursor.execute("""
+        SELECT id FROM knowledge_points
+        WHERE lesson_seq = 3000 AND category NOT IN ('易混淆字', '多音字')
+    """)
     cold_start_kps = cursor.fetchall()
-    
-    today = datetime.now().strftime("%Y-%m-%d")
+
+    cold_start_date = (datetime.now() + timedelta(days=3)).strftime("%Y-%m-%d")
     for kp in cold_start_kps:
         cursor.execute("""
-        INSERT INTO user_memory (user_id, kp_id, status, error_count, next_review_date)
+        INSERT OR IGNORE INTO user_memory (user_id, kp_id, status, error_count, next_review_date)
         VALUES (1, ?, 0, 1, ?)
-        """, (kp[0], today))
+        """, (kp[0], cold_start_date))
 
-    print(f"🌟 成功注入 {len(cold_start_kps)} 个第 0 课冷启动易错词至用户记忆库！")
+    print(f"成功注入 {len(cold_start_kps)} 个冷启动易错词（next_review={cold_start_date}）")
 
     conn.commit()
     conn.close()

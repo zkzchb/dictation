@@ -7,7 +7,7 @@
   * /api/generate_audio 接口已移除；
   * 前端用播放列表驱动 <audio>，选好词表即可直接播放。
 """
-import os, json, hashlib, sqlite3
+import os, json, hashlib, sqlite3, random
 from datetime import datetime, timedelta
 from typing import List
 
@@ -74,15 +74,141 @@ def get_lessons():
     try:
         rows = conn.execute(
             "SELECT lesson_seq, unit_id AS unit_seq, unit_name, lesson_name "
-            "FROM lessons WHERE lesson_seq > 0 ORDER BY lesson_seq"
+            "FROM lessons WHERE lesson_seq >= 3100 ORDER BY lesson_seq"
         ).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
 
 
+def _select_opt(row):
+    """生字随机取组词，其他取第一个。"""
+    if row["category"] == "生字":
+        try:
+            opts = json.loads(row["options_json"])
+            if isinstance(opts, str):
+                opts = json.loads(opts)
+            valid = [o for o in opts if isinstance(o, dict) and o.get("text")]
+            if valid:
+                return random.choice(valid)
+        except Exception:
+            pass
+    text, pinyin = extract_word_info(row["target"], row["options_json"])
+    return {"text": text, "pinyin": pinyin}
+
+
 @app.get("/api/generate_daily/{lesson_seq}")
 def generate_daily(lesson_seq: int, mode: str = "daily"):
+    """生成词表（五梯队漏斗算法，含末尾多音字段落，每词附 audio_url）。"""
+    conn = get_db()
+    try:
+        today     = datetime.now().strftime("%Y-%m-%d")
+        yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+        final_words, seen_texts = [], set()
+        polyphonic_section      = []
+
+        def push(row, word_type):
+            opt    = _select_opt(row)
+            text   = opt.get("text") or row["target"]
+            pinyin = opt.get("pinyin", "")
+            if text not in seen_texts:
+                final_words.append({"id": row["id"], "target": text,
+                                    "pinyin": pinyin, "word_type": word_type,
+                                    "audio_url": audio_url_for(text)})
+                seen_texts.add(text)
+
+        if mode == "daily":
+            t1 = conn.execute("""
+                SELECT kp.id, kp.target, kp.category, kp.options_json
+                FROM user_memory um JOIN knowledge_points kp ON um.kp_id = kp.id
+                WHERE um.user_id=? AND um.last_tested_date=? AND um.status=0
+                  AND kp.category NOT IN ('易混淆字','多音字')
+            """, (USER_ID, yesterday)).fetchall()
+            yesterday_ids = {r["id"] for r in t1}
+            for row in t1:
+                push(row, "wrong")
+
+            new_rows = conn.execute("""
+                SELECT id, target, category, options_json FROM knowledge_points
+                WHERE lesson_seq=? AND category NOT IN ('易混淆字','多音字')
+            """, (lesson_seq,)).fetchall()
+            new_ids = set()
+            for row in [r for r in new_rows if r["category"] == "生字"]:
+                if len(final_words) >= DAILY_TARGET: break
+                if row["id"] not in yesterday_ids:
+                    push(row, "new_char"); new_ids.add(row["id"])
+            for row in [r for r in new_rows if r["category"] != "生字"]:
+                if len(final_words) >= DAILY_TARGET: break
+                if row["id"] not in yesterday_ids:
+                    push(row, "new_word"); new_ids.add(row["id"])
+
+            if len(final_words) < DAILY_TARGET:
+                excl = yesterday_ids | new_ids
+                for row in conn.execute("""
+                    SELECT kp.id, kp.target, kp.category, kp.options_json
+                    FROM user_memory um JOIN knowledge_points kp ON um.kp_id = kp.id
+                    WHERE um.user_id=? AND um.status=0 AND um.error_count>0
+                      AND um.next_review_date<=? AND um.last_tested_date!=?
+                      AND kp.lesson_seq!=3000
+                      AND kp.category NOT IN ('易混淆字','多音字')
+                    ORDER BY um.next_review_date ASC, um.error_count DESC
+                    LIMIT ?
+                """, (USER_ID, today, yesterday,
+                      DAILY_TARGET - len(final_words) + 10)).fetchall():
+                    if len(final_words) >= DAILY_TARGET: break
+                    if row["id"] not in excl:
+                        push(row, "wrong"); excl.add(row["id"])
+
+            if len(final_words) < DAILY_TARGET:
+                done_ids = {w["id"] for w in final_words}
+                for row in conn.execute("""
+                    SELECT kp.id, kp.target, kp.category, kp.options_json
+                    FROM user_memory um JOIN knowledge_points kp ON um.kp_id = kp.id
+                    WHERE um.user_id=? AND um.status=0 AND kp.lesson_seq=3000
+                      AND kp.category NOT IN ('易混淆字','多音字')
+                    ORDER BY um.next_review_date ASC LIMIT ?
+                """, (USER_ID, DAILY_TARGET - len(final_words) + 5)).fetchall():
+                    if len(final_words) >= DAILY_TARGET: break
+                    if row["id"] not in done_ids: push(row, "wrong")
+
+            for row in conn.execute("""
+                SELECT id, target, options_json FROM knowledge_points
+                WHERE lesson_seq=? AND category='多音字'
+            """, (lesson_seq,)).fetchall():
+                try:
+                    opts = json.loads(row["options_json"])
+                    if isinstance(opts, str): opts = json.loads(opts)
+                    readings = [{"pron": o.get("pron",""),
+                                 "example_word": o.get("text",""),
+                                 "example_pinyin": o.get("pinyin","")}
+                                for o in opts if isinstance(o, dict)]
+                except Exception:
+                    readings = []
+                polyphonic_section.append(
+                    {"character": row["target"], "readings": readings})
+
+        else:
+            seqs = [r[0] for r in conn.execute(
+                "SELECT lesson_seq FROM lessons WHERE unit_id=?", (lesson_seq,)
+            ).fetchall()]
+            if seqs:
+                ph = ",".join("?" * len(seqs))
+                for row in conn.execute(f"""
+                    SELECT kp.id, kp.target, kp.category, kp.options_json,
+                           COALESCE(um.error_count,0) AS error_count
+                    FROM knowledge_points kp
+                    LEFT JOIN user_memory um ON kp.id=um.kp_id AND um.user_id=?
+                    WHERE kp.lesson_seq IN ({ph})
+                      AND kp.category NOT IN ('易混淆字','多音字')
+                    ORDER BY COALESCE(um.error_count,0) DESC, RANDOM() LIMIT 60
+                """, (USER_ID, *seqs)).fetchall():
+                    if len(final_words) >= DAILY_TARGET: break
+                    push(row, "wrong" if row["error_count"] else "review")
+
+        return {"data": final_words, "polyphonic_section": polyphonic_section}
+    finally:
+        conn.close()
+
     conn = get_db()
     try:
         final, seen = [], set()
