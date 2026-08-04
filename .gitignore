@@ -62,3 +62,7 @@ Thumbs.db
 # Excel 临时文件
 ~$*.xlsx
 ~$*.xls
+
+# 原始词表 Excel 不入库
+*.xlsx
+*.xlsx.bak*
