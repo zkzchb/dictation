@@ -69,3 +69,17 @@ Thumbs.db
 
 # 设计文档不入库（本地保留）
 docs/
+
+# 一次性/过期工具（本地保留，不入库）
+tools/add_lesson_cols.py
+shared/tools/fill_word2write.py
+shared/tools/import_wordlist.py
+shared/tools/wordlist_template.csv
+
+# 二年级遗留数据（已换全新三年级库，不迁移历史）
+shared/data/kp_part*.json
+shared/data/lessons_2b.json
+
+# 过期的分版本建库脚本（已由 shared/init_db.py 统一取代）
+v1/init_db.py
+v2/init_db.py

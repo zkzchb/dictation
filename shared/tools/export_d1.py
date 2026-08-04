@@ -33,7 +33,7 @@ def main():
     ]
 
     # ── lessons ──────────────────────────────────────────────────────────
-    lessons_file = os.path.join(DATA_DIR, "lessons_2b.json")
+    lessons_file = os.path.join(DATA_DIR, "lessons_grade3.json")
     if not os.path.exists(lessons_file):
         print(f"[X] 找不到课程文件: {lessons_file}")
         return
@@ -50,7 +50,7 @@ def main():
     lines.append(f"-- {len(lessons)} 条课程记录\n")
 
     # ── knowledge_points ─────────────────────────────────────────────────
-    kp_files = [os.path.join(DATA_DIR, f"kp_part{i}.json") for i in range(4)]
+    kp_files = [os.path.join(DATA_DIR, "kp_grade3.json")]
     total_kp = 0
     lines.append("-- knowledge_points")
     for kp_file in kp_files:

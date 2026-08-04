@@ -26,7 +26,7 @@ HERE      = os.path.dirname(os.path.abspath(__file__))
 AUDIO_DIR = os.path.join(HERE, "web", "audio")
 SYS_DIR   = os.path.join(AUDIO_DIR, "sys")
 WORD_DIR  = os.path.join(AUDIO_DIR, "w")
-KP_FILES  = [os.path.join(HERE, "data", f"kp_part{i}.json") for i in range(4)]
+KP_FILES  = [os.path.join(HERE, "data", "kp_grade3.json")]
 
 APP_KEY    = os.getenv("YOUDAO_APP_KEY",    "REPLACE_WITH_YOUDAO_APP_KEY")
 APP_SECRET = os.getenv("YOUDAO_APP_SECRET", "REPLACE_WITH_YOUDAO_APP_SECRET")
