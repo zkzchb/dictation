@@ -91,3 +91,6 @@ v1/dictation_www/play.html
 
 # export_d1.py 生成物（部署前重新生成）
 v3/migrations/0002_seed.sql
+
+# 本地部署脚本（不入库）
+deploy-local.sh
