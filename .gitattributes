@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Shell 脚本强制 LF —— CRLF 会导致 Linux 上 "bad interpreter" 失败
+*.sh text eol=lf
