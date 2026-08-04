@@ -83,3 +83,11 @@ shared/data/lessons_2b.json
 # 过期的分版本建库脚本（已由 shared/init_db.py 统一取代）
 v1/init_db.py
 v2/init_db.py
+
+# stage.py 生成物（母本在 shared/web/，部署前运行 stage 重新生成）
+v2/dictation_www/
+v2/audio/
+v1/dictation_www/play.html
+
+# export_d1.py 生成物（部署前重新生成）
+v3/migrations/0002_seed.sql

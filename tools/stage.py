@@ -22,16 +22,37 @@ SHARED_WEB = os.path.join(ROOT, "shared", "web")
 
 
 def stage_v2():
+    ok = True
+
+    # 前端：shared/web/index.html 是唯一母本，V2 的副本由此生成
+    html_src = os.path.join(SHARED_WEB, "index.html")
+    html_dst = os.path.join(ROOT, "v2", "dictation_www", "index.html")
+    if os.path.exists(html_src):
+        os.makedirs(os.path.dirname(html_dst), exist_ok=True)
+        shutil.copy(html_src, html_dst)
+        print(f"[OK]  V2: index.html → {html_dst}")
+    else:
+        print(f"[!]  找不到前端母本: {html_src}")
+        ok = False
+
+    # 播放参数配置（前端按 /playback_config.json 加载）
+    cfg_src = os.path.join(SHARED_WEB, "playback_config.json")
+    cfg_dst = os.path.join(ROOT, "v2", "dictation_www", "playback_config.json")
+    if os.path.exists(cfg_src):
+        shutil.copy(cfg_src, cfg_dst)
+        print(f"[OK]  V2: playback_config.json → {cfg_dst}")
+
+    # 音频切片
     src = os.path.join(SHARED_WEB, "audio")
     dst = os.path.join(ROOT, "v2", "audio")
     if not os.path.isdir(src):
-        print(f"⚠  源目录不存在: {src}")
+        print(f"[!]  音频目录不存在: {src}")
         print("   请先运行: python shared/gen_slices.py")
         return False
     shutil.copytree(src, dst, dirs_exist_ok=True)
     n = sum(len(files) for _, _, files in os.walk(dst))
-    print(f"✓  V2: audio/  ({n} 个文件) → {dst}")
-    return True
+    print(f"[OK]  V2: audio/  ({n} 个文件) → {dst}")
+    return ok
 
 
 def stage_v3():
@@ -45,17 +66,23 @@ def stage_v3():
     os.makedirs(dst, exist_ok=True)
 
     if not os.path.exists(html_src):
-        print(f"⚠  找不到前端: {html_src}")
+        print(f"[!]  找不到前端: {html_src}")
         return False
     shutil.copy(html_src, html_dst)
-    print(f"✓  V3: index.html → {html_dst}")
+    print(f"[OK]  V3: index.html → {html_dst}")
+
+    # 播放参数配置（前端按 /playback_config.json 加载）
+    cfg_src = os.path.join(src, "playback_config.json")
+    if os.path.exists(cfg_src):
+        shutil.copy(cfg_src, os.path.join(dst, "playback_config.json"))
+        print(f"[OK]  V3: playback_config.json → {dst}")
 
     if os.path.isdir(audio_src):
         shutil.copytree(audio_src, audio_dst, dirs_exist_ok=True)
         n = sum(len(files) for _, _, files in os.walk(audio_dst))
-        print(f"✓  V3: audio/   ({n} 个文件) → {audio_dst}")
+        print(f"[OK]  V3: audio/   ({n} 个文件) → {audio_dst}")
     else:
-        print(f"⚠  音频目录不存在: {audio_src}")
+        print(f"[!]  音频目录不存在: {audio_src}")
         print("   请先运行: python shared/gen_slices.py")
         print("   (index.html 已复制，待音频生成后再次运行 stage)")
     return True
