@@ -1,244 +1,227 @@
 #!/usr/bin/env python3
-"""shared/tools/convert_wordlist.py — 读取6表xlsx，生成JSON并补全拼音
+"""shared/tools/convert_wordlist.py — 词表 xlsx → JSON
 
-依赖：pip install openpyxl pypinyin
+按设计文档 §3/§4：
+  * category 只存 4 种粗类 {生字, 词语, 易错字, 多音字}
+  * vocab 的细分 vtype、typo 的配对 pair_id 一并放进 options_json
+  * 多音字按 ppid 分组，每组一条 kp，options_json 含各读音
+  * 生字保留 word1/word2 两个候选，出题时随机取一个
 
-用法：
-  python shared/tools/convert_wordlist.py wordlist_grade3s1.xlsx
+用法:
+  python shared/tools/convert_wordlist.py [wordlist_template.xlsx]
 
-输出：
-  shared/data/lessons_<base>.json   课程目录
-  shared/data/kp_<base>.json        知识点列表
-  shared/web/studio_manifest.json   录音工作台清单（待录音词条）
+产出:
+  shared/data/lessons_grade3.json
+  shared/data/kp_grade3.json
+  shared/web/studio_manifest.json   录音/TTS 清单（去重后唯一词条）
 """
-import json, os, sys, hashlib, re
-import openpyxl
-from pypinyin import lazy_pinyin, Style
+import os
+import sys
+import json
+import hashlib
+import collections
+
+from openpyxl import load_workbook
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.join(HERE, "..", "..")
-DATA_DIR = os.path.join(HERE, "..", "data")
-WEB_DIR  = os.path.join(HERE, "..", "web")
+ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
+DATA_DIR = os.path.join(ROOT, "shared", "data")
+WEB_DIR = os.path.join(ROOT, "shared", "web")
+
+CAT_CHAR = "生字"
+CAT_WORD = "词语"
+CAT_TYPO = "易错字"
+CAT_POLY = "多音字"
 
 
-# ── 拼音工具 ──────────────────────────────────────────────────────────────
-
-def auto_pinyin(text: str) -> str:
-    """用 pypinyin 生成带声调的拼音，空格分隔。"""
-    if not text:
-        return ""
-    return " ".join(lazy_pinyin(text, style=Style.TONE3, neutral_tone_with_five=True))
-
-
-def infer_pron(pw: str, word: str, word_py: str) -> str:
-    """从组词和其拼音反推多音字的当前读音。
-    例：pw=好, word=爱好, word_py='ài hào' -> 返回 'hào'
-    """
-    if not word or not word_py:
-        return auto_pinyin(pw).split()[0] if pw else ""
-    try:
-        idx = word.index(pw)
-        syllables = word_py.split()
-        if idx < len(syllables):
-            return syllables[idx]
-    except (ValueError, IndexError):
-        pass
-    return auto_pinyin(pw).split()[0] if pw else ""
-
-
-def word_hash(text: str) -> str:
-    return hashlib.md5(text.encode("utf-8")).hexdigest()[:12]
-
-
-# ── xlsx 读取 ──────────────────────────────────────────────────────────────
-
-def read_sheet(wb, sheet_name: str) -> list[dict]:
-    """读取一个工作表，过滤非数据行，返回行字典列表。"""
-    ws = wb[sheet_name]
+def read_sheet(wb, name):
+    """读一张表，过滤空行与注释行（首列非纯数字）。"""
+    ws = wb[name]
     rows = list(ws.iter_rows(values_only=True))
     if not rows:
         return []
-
     header = [str(c).strip() if c is not None else "" for c in rows[0]]
-    result = []
-    for row in rows[1:]:
-        # 过滤空行和注释行（第一列不是数字）
-        if not row or row[0] is None:
+    out = []
+    for raw in rows[1:]:
+        if raw is None or raw[0] is None:
             continue
-        first = str(row[0]).strip()
-        if not first or not re.match(r"^\d+$", first):
+        first = str(raw[0]).strip()
+        if not first.isdigit():
             continue
-        d = {}
-        for i, col in enumerate(header):
-            val = row[i] if i < len(row) else None
-            d[col] = str(val).strip() if val is not None else ""
-        result.append(d)
-    return result
+        rec = {}
+        for i, key in enumerate(header):
+            if not key:
+                continue
+            val = raw[i] if i < len(raw) else None
+            rec[key] = str(val).strip() if val is not None else ""
+        out.append(rec)
+    return out
 
 
-# ── 主转换逻辑 ────────────────────────────────────────────────────────────
+def word_hash(text):
+    return hashlib.md5(text.encode("utf-8")).hexdigest()[:12]
+
 
 def main():
-    if len(sys.argv) < 2:
-        print("用法: python convert_wordlist.py <词表.xlsx>")
+    xlsx = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "wordlist_template.xlsx")
+    xlsx = os.path.abspath(xlsx)
+    if not os.path.exists(xlsx):
+        print(f"[X] 找不到词表: {xlsx}")
         sys.exit(1)
 
-    xlsx_path = sys.argv[1]
-    if not os.path.isabs(xlsx_path) and not os.path.exists(xlsx_path):
-        xlsx_path = os.path.join(ROOT, xlsx_path)
-    if not os.path.exists(xlsx_path):
-        print(f"[X] 找不到文件: {xlsx_path}")
-        sys.exit(1)
+    wb = load_workbook(xlsx, data_only=True)
+    units = read_sheet(wb, "unit")
+    lessons = read_sheet(wb, "lesson")
+    w2w = read_sheet(wb, "word2write")
+    vocab = read_sheet(wb, "vocab")
+    typo = read_sheet(wb, "typo")
+    poly = read_sheet(wb, "polyphonic")
 
-    wb = openpyxl.load_workbook(xlsx_path, data_only=True)
+    print(f"读取: {len(units)} 单元 / {len(lessons)} 课 / {len(w2w)} 生字 / "
+          f"{len(vocab)} 词语 / {len(typo)} 易错 / {len(poly)} 多音字行")
 
-    units      = read_sheet(wb, "unit")
-    lessons    = read_sheet(wb, "lesson")
-    word2write = read_sheet(wb, "word2write")
-    vocab      = read_sheet(wb, "vocab")
-    typo       = read_sheet(wb, "typo")
-    polyphonic = read_sheet(wb, "polyphonic")
-
-    print(f"读取完毕: {len(units)} 单元, {len(lessons)} 课, "
-          f"{len(word2write)} 生字, {len(vocab)} 词语, "
-          f"{len(typo)} 易错字, {len(polyphonic)} 多音字行")
-
-    # ── 建索引 ───────────────────────────────────────────────────────────
-    unit_map = {int(r["uid"]): r["utitle"] for r in units}  # 311 -> "第一单元"
-    lesson_map = {int(r["lid"]): r for r in lessons}
-
-    # lesson_seq -> unit_id: lid // 10
-    # unit_id -> unit_name: unit_map[uid]
-    def get_unit_info(lid: int):
-        uid = lid // 10
-        return uid, unit_map.get(uid, f"单元{uid}")
-
-    # ── 构建 lessons JSON ─────────────────────────────────────────────────
+    # ── 课程目录 ────────────────────────────────────────────────────────
+    unit_name = {int(u["uid"]): u.get("utitle", "") for u in units if u.get("uid")}
     lessons_out = []
     for r in lessons:
         lid = int(r["lid"])
-        uid, uname = get_unit_info(lid)
+        uid = lid // 10
         lessons_out.append({
-            "lesson_seq":  lid,
-            "unit_id":     uid,
-            "unit_name":   uname,
-            "lesson_name": r.get("lname", ""),
+            "lesson_seq": lid,
+            "unit_id": uid,
+            "unit_name": unit_name.get(uid, f"单元{uid}"),
+            "lesson_name": r.get("lname", "") or r.get("ltitle", ""),
         })
+    lessons_out.sort(key=lambda x: x["lesson_seq"])
 
-    # ── 构建 knowledge_points ─────────────────────────────────────────────
     kps = []
-    seen_for_manifest = {}   # text -> pinyin (for studio manifest)
+    # text -> pinyin，用于录音清单（去重）
+    audio_needed = {}
 
-    # 1. 生字 (word2write)
-    for r in word2write:
-        wid = int(r["wid"])
-        lesson_seq = wid // 100
-        bw = r.get("basic_word", "")
-        if not bw:
+    def need_audio(text, pinyin):
+        if text and text not in audio_needed:
+            audio_needed[text] = pinyin or ""
+
+    # ── 生字：保留两个组词候选 ───────────────────────────────────────────
+    for r in w2w:
+        lid = int(r.get("lid") or (int(r["wid"]) // 100))
+        char = r.get("basic_word", "")
+        if not char:
             continue
         opts = []
         for i in (1, 2):
-            w   = r.get(f"word{i}", "").strip()
-            py  = r.get(f"word{i}py", "").strip() or auto_pinyin(w)
+            w = r.get(f"word{i}", "")
+            p = r.get(f"word{i}py", "")
             if w:
-                opts.append({"text": w, "pinyin": py})
-                seen_for_manifest[w] = py
+                opts.append({"text": w, "pinyin": p})
+                need_audio(w, p)
         if not opts:
-            # 没有组词时用字本身
-            py = auto_pinyin(bw)
-            opts = [{"text": bw, "pinyin": py}]
-            seen_for_manifest[bw] = py
-        kps.append({"lesson_seq": lesson_seq, "target": bw,
-                    "category": "生字", "options_json": opts})
+            # 兜底：没有组词就听写单字本身
+            opts = [{"text": char, "pinyin": ""}]
+            need_audio(char, "")
+        kps.append({
+            "lesson_seq": lid, "target": char,
+            "category": CAT_CHAR, "options_json": opts,
+        })
 
-    # 2. 词语/成语/四字词语 (vocab)
+    # ── 词语：vtype 需向下继承（分组只标首行）───────────────────────────
+    cur_vtype = ""
     for r in vocab:
-        vid = int(r["vid"])
-        lesson_seq = vid // 100
-        vw = r.get("vword", "").strip()
-        if not vw:
+        vt = r.get("vtype", "")
+        if vt:
+            cur_vtype = vt
+        word = r.get("vword", "")
+        if not word:
             continue
-        py = r.get("vpy", "").strip() or auto_pinyin(vw)
-        opts = [{"text": vw, "pinyin": py}]
-        seen_for_manifest[vw] = py
-        cat = r.get("vtype", "词语") or "词语"
-        kps.append({"lesson_seq": lesson_seq, "target": vw,
-                    "category": cat, "options_json": opts})
+        lid = int(r.get("lid") or (int(r["vid"]) // 100))
+        py = r.get("vpy", "")
+        need_audio(word, py)
+        kps.append({
+            "lesson_seq": lid, "target": word,
+            "category": CAT_WORD,
+            "options_json": [{"text": word, "pinyin": py, "vtype": cur_vtype or "词语"}],
+        })
 
-    # 3. 易错字 (typo) — tw1 和 tw2 各建一条
+    # ── 易错字：tw1/tw2 各成一条，用 pair_id 保持配对 ────────────────────
     for r in typo:
-        tid = int(r["tid"])
-        lesson_seq = tid // 100
-        for slot in (("tw1", "tw1py"), ("tw2", "tw2py")):
-            w  = r.get(slot[0], "").strip()
-            py = r.get(slot[1], "").strip() or auto_pinyin(w)
-            if w:
-                opts = [{"text": w, "pinyin": py}]
-                seen_for_manifest[w] = py
-                kps.append({"lesson_seq": lesson_seq, "target": w,
-                             "category": "易错字", "options_json": opts})
+        tid = r.get("tid", "")
+        lid = int(r.get("lid") or (int(tid) // 100))
+        for slot, wcol, pcol in (("tw1", "tw1", "tw1py"), ("tw2", "tw2", "tw2py")):
+            word = r.get(wcol, "")
+            py = r.get(pcol, "")
+            if not word:
+                continue
+            need_audio(word, py)
+            kps.append({
+                "lesson_seq": lid, "target": word,
+                "category": CAT_TYPO,
+                "options_json": [{
+                    "text": word, "pinyin": py,
+                    "pair_id": tid, "role": slot,
+                    "confuse_char": r.get("typo_word", ""),
+                }],
+            })
 
-    # 4. 多音字 (polyphonic) — 按 ppid 分组，每组一条
-    poly_groups: dict[int, list] = {}
-    for r in polyphonic:
-        ppid = int(r["ppid"])
-        poly_groups.setdefault(ppid, []).append(r)
-
-    for ppid, rows in poly_groups.items():
-        lesson_seq = ppid // 100
-        pw = rows[0].get("pw", "")
-        if not pw:
+    # ── 多音字：按 ppid 分组，一组一条 kp ────────────────────────────────
+    groups = collections.OrderedDict()
+    for r in poly:
+        ppid = r.get("ppid", "")
+        if ppid:
+            groups.setdefault(ppid, []).append(r)
+    for ppid, rows in groups.items():
+        char = rows[0].get("pw", "")
+        if not char:
             continue
+        lid = int(rows[0].get("lid") or (int(ppid) // 100))
         opts = []
         for r in rows:
-            w  = r.get("word", "").strip()
-            py = r.get("word_py", "").strip() or auto_pinyin(w)
-            pron = r.get("pron", "").strip() or infer_pron(pw, w, py)
-            if w:
-                opts.append({"text": w, "pinyin": py, "pron": pron})
-                seen_for_manifest[w] = py
-        if opts:
-            kps.append({"lesson_seq": lesson_seq, "target": pw,
-                         "category": "多音字", "options_json": opts})
+            w = r.get("word", "")
+            if not w:
+                continue
+            opts.append({
+                "text": w,
+                "pinyin": r.get("word_py", ""),
+                "pron": r.get("pron", ""),
+            })
+        if not opts:
+            continue
+        # 多音字只需播报"字"本身的音频，例词仅作参考不进清单
+        need_audio(char, "")
+        kps.append({
+            "lesson_seq": lid, "target": char,
+            "category": CAT_POLY, "options_json": opts,
+        })
 
-    # ── Studio manifest ───────────────────────────────────────────────────
+    # ── 录音清单 ────────────────────────────────────────────────────────
     audio_dir = os.path.join(WEB_DIR, "audio", "w")
     recorded = set()
     if os.path.isdir(audio_dir):
-        for f in os.listdir(audio_dir):
-            if f.endswith(".mp3"):
-                recorded.add(f[:-4])
+        recorded = {f[:-4] for f in os.listdir(audio_dir) if f.endswith(".mp3")}
 
     manifest = [{"text": t, "pinyin": p, "hash": word_hash(t)}
-                for t, p in seen_for_manifest.items()]
-    pending  = [w for w in manifest if w["hash"] not in recorded]
+                for t, p in audio_needed.items()]
+    manifest.sort(key=lambda x: x["text"])
+    pending = [m for m in manifest if m["hash"] not in recorded]
 
-    # ── 写出文件 ──────────────────────────────────────────────────────────
+    # ── 写出 ────────────────────────────────────────────────────────────
     os.makedirs(DATA_DIR, exist_ok=True)
-    os.makedirs(WEB_DIR,  exist_ok=True)
+    os.makedirs(WEB_DIR, exist_ok=True)
+    p_lessons = os.path.join(DATA_DIR, "lessons_grade3.json")
+    p_kp = os.path.join(DATA_DIR, "kp_grade3.json")
+    p_manifest = os.path.join(WEB_DIR, "studio_manifest.json")
 
-    base = os.path.splitext(os.path.basename(xlsx_path))[0]
-    lessons_path  = os.path.join(DATA_DIR, f"lessons_{base}.json")
-    kp_path       = os.path.join(DATA_DIR, f"kp_{base}.json")
-    manifest_path = os.path.join(WEB_DIR,  "studio_manifest.json")
-
-    with open(lessons_path,  "w", encoding="utf-8") as f:
+    with open(p_lessons, "w", encoding="utf-8") as f:
         json.dump(lessons_out, f, ensure_ascii=False, indent=2)
-    print(f"[OK] {lessons_path}  ({len(lessons_out)} 课)")
-
-    with open(kp_path, "w", encoding="utf-8") as f:
+    with open(p_kp, "w", encoding="utf-8") as f:
         json.dump(kps, f, ensure_ascii=False, indent=2)
-    print(f"[OK] {kp_path}  ({len(kps)} 知识点)")
-
-    with open(manifest_path, "w", encoding="utf-8") as f:
+    with open(p_manifest, "w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
-    print(f"[OK] {manifest_path}  ({len(manifest)} 词条, {len(pending)} 待录音)")
 
-    print("\n下一步：")
-    print(f"  python shared/tools/import_wordlist_xlsx.py {xlsx_path}")
-    print(f"  python shared/tools/export_d1.py")
-    if pending:
-        print(f"  访问 http://localhost:8888/studio  录制 {len(pending)} 个切片")
+    by_cat = collections.Counter(k["category"] for k in kps)
+    print(f"[OK] {p_lessons}  ({len(lessons_out)} 课)")
+    print(f"[OK] {p_kp}  ({len(kps)} 知识点: " +
+          ", ".join(f"{c}={n}" for c, n in by_cat.items()) + ")")
+    print(f"[OK] {p_manifest}  ({len(manifest)} 唯一词条, {len(pending)} 待录音)")
 
 
 if __name__ == "__main__":

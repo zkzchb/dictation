@@ -23,6 +23,41 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import random
 
+# 共用选词引擎与播放参数（shared/）
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "shared"))
+import selector  # noqa: E402
+
+PLAYBACK_CFG_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "shared", "web", "playback_config.json")
+PLAYBACK_DEFAULTS = {
+    "group_size": 3, "repeat_times": 3,
+    "gap_intro_ms": 2000, "gap_group_head_ms": 1000,
+    "gap_between_words_ms": 1000, "gap_between_groups_ms": 2000,
+    "base_gap_ms": [6500, 6000, 2500],
+    "per_char_gap_ms": [1500, 1000, 300],
+    "max_write_gap_ms": 14000,
+    "gap_polyphonic_ms": 8000, "playback_rate": 1.0,
+}
+
+def load_playback_cfg():
+    cfg = dict(PLAYBACK_DEFAULTS)
+    try:
+        with open(PLAYBACK_CFG_PATH, encoding="utf-8") as f:
+            for k, v in json.load(f).items():
+                if k in cfg:
+                    cfg[k] = v
+    except Exception:
+        pass
+    return cfg
+
+def write_gap_ms(cfg, pass_idx, text):
+    """书写停顿按字数缩放: min(base + (字数-1)*perChar, max)"""
+    chars = max(1, len(text or ""))
+    base = cfg["base_gap_ms"][pass_idx]
+    per = cfg["per_char_gap_ms"][pass_idx]
+    return min(base + (chars - 1) * per, cfg["max_write_gap_ms"])
+
 # ================= ⚙️ 配置（环境变量优先，默认值本机可跑）=================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.getenv("DICTATION_DB", os.path.join(BASE_DIR, "dictation.db"))
@@ -136,146 +171,21 @@ def _select_opt(row):
 
 @app.get("/api/generate_daily/{lesson_seq}")
 def generate_daily(lesson_seq: int, mode: str = "daily"):
-    """生成词表（五梯队漏斗算法，含末尾多音字段落）。
+    """生成词表（梯队算法见 shared/selector.py 与设计文档 §5）。
 
-    daily 模式优先级（总上限 DAILY_TARGET=30）：
-      梯队1 昨天的错字（全部保证进入）
-      梯队2 当前课生字（随机取 word1/word2）
-      梯队3 当前课词语/成语/易错字等
-      梯队4 最近其他到期错词（next_review_date<=今天，非昨天）
-      梯队5 lesson3000 冷启动兜底（词库尚薄时才出现）
-    附加  当前课多音字（末尾独立段落，不占30词槽位）
-
-    unit 模式：整单元错词优先，随机补足。
+    V1 不返回 audio_url —— 音频由 /api/generate_audio 实时合成。
     """
     conn = get_db()
     try:
-        today     = datetime.now().strftime("%Y-%m-%d")
-        yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-        final_words, seen_texts = [], set()
-        polyphonic_section      = []
-
-        def push(row, word_type):
-            opt    = _select_opt(row)
-            text   = opt.get("text") or row["target"]
-            pinyin = opt.get("pinyin", "")
-            if text not in seen_texts:
-                final_words.append({"id": row["id"], "target": text,
-                                    "pinyin": pinyin, "word_type": word_type})
-                seen_texts.add(text)
-
-        if mode == "daily":
-            # ── 梯队1：昨天的错字（全部保证）──────────────────────────
-            t1 = conn.execute("""
-                SELECT kp.id, kp.target, kp.category, kp.options_json
-                FROM user_memory um JOIN knowledge_points kp ON um.kp_id = kp.id
-                WHERE um.user_id=? AND um.last_tested_date=? AND um.status=0
-                  AND kp.category NOT IN ('易混淆字','多音字')
-            """, (USER_ID, yesterday)).fetchall()
-            yesterday_ids = {r["id"] for r in t1}
-            for row in t1:
-                push(row, "wrong")
-
-            # ── 梯队2：当前课生字 ──────────────────────────────────────
-            new_rows = conn.execute("""
-                SELECT id, target, category, options_json FROM knowledge_points
-                WHERE lesson_seq=? AND category NOT IN ('易混淆字','多音字')
-            """, (lesson_seq,)).fetchall()
-            new_ids = set()
-            for row in [r for r in new_rows if r["category"] == "生字"]:
-                if len(final_words) >= DAILY_TARGET:
-                    break
-                if row["id"] not in yesterday_ids:
-                    push(row, "new_char")
-                    new_ids.add(row["id"])
-
-            # ── 梯队3：当前课其他词语 ───────────────────────────────────
-            for row in [r for r in new_rows if r["category"] != "生字"]:
-                if len(final_words) >= DAILY_TARGET:
-                    break
-                if row["id"] not in yesterday_ids:
-                    push(row, "new_word")
-                    new_ids.add(row["id"])
-
-            # ── 梯队4：最近其他到期错词 ────────────────────────────────
-            if len(final_words) < DAILY_TARGET:
-                excl = yesterday_ids | new_ids
-                t4 = conn.execute("""
-                    SELECT kp.id, kp.target, kp.category, kp.options_json
-                    FROM user_memory um JOIN knowledge_points kp ON um.kp_id = kp.id
-                    WHERE um.user_id=? AND um.status=0 AND um.error_count>0
-                      AND um.next_review_date<=? AND um.last_tested_date!=?
-                      AND kp.lesson_seq!=3000
-                      AND kp.category NOT IN ('易混淆字','多音字')
-                    ORDER BY um.next_review_date ASC, um.error_count DESC
-                    LIMIT ?
-                """, (USER_ID, today, yesterday,
-                      DAILY_TARGET - len(final_words) + 10)).fetchall()
-                for row in t4:
-                    if len(final_words) >= DAILY_TARGET:
-                        break
-                    if row["id"] not in excl:
-                        push(row, "wrong")
-                        excl.add(row["id"])
-
-            # ── 梯队5：lesson 3000 冷启动兜底 ─────────────────────────
-            if len(final_words) < DAILY_TARGET:
-                done_ids = {w["id"] for w in final_words}
-                t5 = conn.execute("""
-                    SELECT kp.id, kp.target, kp.category, kp.options_json
-                    FROM user_memory um JOIN knowledge_points kp ON um.kp_id = kp.id
-                    WHERE um.user_id=? AND um.status=0 AND kp.lesson_seq=3000
-                      AND kp.category NOT IN ('易混淆字','多音字')
-                    ORDER BY um.next_review_date ASC
-                    LIMIT ?
-                """, (USER_ID, DAILY_TARGET - len(final_words) + 5)).fetchall()
-                for row in t5:
-                    if len(final_words) >= DAILY_TARGET:
-                        break
-                    if row["id"] not in done_ids:
-                        push(row, "wrong")
-
-            # ── 附加：多音字末尾段落（不占槽位）─────────────────────────
-            for row in conn.execute("""
-                SELECT id, target, options_json FROM knowledge_points
-                WHERE lesson_seq=? AND category='多音字'
-            """, (lesson_seq,)).fetchall():
-                try:
-                    opts = json.loads(row["options_json"])
-                    if isinstance(opts, str):
-                        opts = json.loads(opts)
-                    readings = [{"pron": o.get("pron", ""),
-                                 "example_word": o.get("text", ""),
-                                 "example_pinyin": o.get("pinyin", "")}
-                                for o in opts if isinstance(o, dict)]
-                except Exception:
-                    readings = []
-                polyphonic_section.append(
-                    {"character": row["target"], "readings": readings})
-
-        else:  # unit 模式
-            seqs = [r[0] for r in conn.execute(
-                "SELECT lesson_seq FROM lessons WHERE unit_id=?", (lesson_seq,)
-            ).fetchall()]
-            if seqs:
-                ph = ",".join("?" * len(seqs))
-                for row in conn.execute(f"""
-                    SELECT kp.id, kp.target, kp.category, kp.options_json,
-                           COALESCE(um.error_count,0) AS error_count
-                    FROM knowledge_points kp
-                    LEFT JOIN user_memory um ON kp.id=um.kp_id AND um.user_id=?
-                    WHERE kp.lesson_seq IN ({ph})
-                      AND kp.category NOT IN ('易混淆字','多音字')
-                    ORDER BY COALESCE(um.error_count,0) DESC, RANDOM() LIMIT 60
-                """, (USER_ID, *seqs)).fetchall():
-                    if len(final_words) >= DAILY_TARGET:
-                        break
-                    push(row, "wrong" if row["error_count"] else "review")
-
-        return {"data": final_words, "polyphonic_section": polyphonic_section}
+        words, poly = selector.build_word_list(conn, lesson_seq, user_id=USER_ID)
     finally:
         conn.close()
 
+    data = [{
+        "id": w["id"], "target": w["target"],
+        "pinyin": w["pinyin"], "word_type": w["word_type"],
+    } for w in words]
+    return {"data": data, "polyphonic_section": poly}
 
 
 # ================= 📝 提交批改 + 间隔重复引擎 =================
@@ -420,38 +330,44 @@ def get_audio_segment(text: str):
 
 
 def build_dictation_audio(word_list: List[WordItem]):
-    """把词表拼成一份完整听写音频：三词一组、每组报三遍、停顿递减。
+    """按 playback_config.json 拼成完整听写音频，返回 (文件名, 时间轴)。
 
-    同时构建时间轴 timeline（每个词的起止秒数），供前端播放时逐词高亮田字格。
+    停顿规则与 V2/V3 前端一致：三遍分工（写汉字/写拼音/检查），
+    每遍的书写停顿按词的字数线性缩放。
     """
     from pydub import AudioSegment
+    cfg = load_playback_cfg()
+    gs, rt = cfg["group_size"], cfg["repeat_times"]
+
     final_audio = AudioSegment.empty()
     timeline, t_ms = [], 0
-    sil = {s: AudioSegment.silent(duration=s * 1000) for s in (1, 2, 4)}
 
     intro = get_audio_segment("准备听写。每三个词为一组，报三遍。")
-    final_audio += intro + sil[2]
-    t_ms += len(intro) + 2000
+    final_audio += intro + AudioSegment.silent(duration=cfg["gap_intro_ms"])
+    t_ms += len(intro) + cfg["gap_intro_ms"]
 
-    for i in range(0, len(word_list), 3):
-        group = word_list[i:i + 3]
-        head = get_audio_segment(f"第{i // 3 + 1}组。")
-        final_audio += head + sil[1]
-        t_ms += len(head) + 1000
+    for i in range(0, len(word_list), gs):
+        group = word_list[i:i + gs]
+        head = get_audio_segment(f"第{i // gs + 1}组。")
+        final_audio += head + AudioSegment.silent(duration=cfg["gap_group_head_ms"])
+        t_ms += len(head) + cfg["gap_group_head_ms"]
 
-        # 三遍朗读，停顿从 8s → 5s → 2s 递减（第一遍留足书写时间）
-        for gap_ms in (8000, 5000, 2000):
-            for w in group:
+        for pass_idx in range(rt):
+            longest = max((len(w.text or "") for w in group), default=1)
+            for k, w in enumerate(group):
                 start = t_ms
                 seg = get_audio_segment(f"{w.text}。")
-                final_audio += seg + AudioSegment.silent(duration=gap_ms)
-                t_ms += len(seg) + gap_ms
+                is_last = (k == len(group) - 1)
+                gap = (write_gap_ms(cfg, pass_idx, "x" * longest)
+                       if is_last else cfg["gap_between_words_ms"])
+                final_audio += seg + AudioSegment.silent(duration=gap)
+                t_ms += len(seg) + gap
                 timeline.append({
                     "text": w.text, "pinyin": w.pinyin,
                     "start": start / 1000.0, "end": t_ms / 1000.0,
                 })
-        final_audio += sil[4]
-        t_ms += 4000
+        final_audio += AudioSegment.silent(duration=cfg["gap_between_groups_ms"])
+        t_ms += cfg["gap_between_groups_ms"]
 
     final_audio += get_audio_segment("听写完毕，请检查后交卷。")
     filename = f"dictation_{datetime.now():%Y%m%d_%H%M%S}_{uuid.uuid4().hex[:6]}.mp3"

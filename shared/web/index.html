@@ -121,11 +121,71 @@
              @play="playerState='playing'"
              @pause="playerState='paused'"
              @ended="onAudioEnded()"></audio>
-      <div class="mb-6 text-center h-10">
+      <div class="mb-2 text-center h-10">
         <span class="text-sm text-gray-400" x-show="!currentPlaylistWord">
           听写任务 共 <span class="text-[#07C160] font-bold" x-text="selectedCount"></span> 词
+          <span x-show="polyphonic.length" class="text-gray-300">
+            + <span x-text="polyphonic.length"></span> 多音字
+          </span>
+          · 预计 <span x-text="estMinutes"></span>
         </span>
       </div>
+
+      <!-- 节奏设置：调参后立即生效，无需重新生成 -->
+      <div class="w-full mb-3">
+        <button @click="showCfgPanel = !showCfgPanel"
+                class="text-xs text-gray-400 underline">
+          <i class="fas fa-sliders-h"></i> 节奏设置
+        </button>
+        <div x-show="showCfgPanel" x-cloak
+             class="mt-2 bg-white rounded-xl border p-3 text-xs text-left space-y-2">
+          <div class="grid grid-cols-3 gap-2">
+            <label>每组词数
+              <input type="number" min="1" max="6" x-model.number="cfg.group_size"
+                     class="w-full border rounded px-1 py-0.5"></label>
+            <label>重复遍数
+              <input type="number" min="1" max="5" x-model.number="cfg.repeat_times"
+                     class="w-full border rounded px-1 py-0.5"></label>
+            <label>词间隔ms
+              <input type="number" step="100" x-model.number="cfg.gap_between_words_ms"
+                     class="w-full border rounded px-1 py-0.5"></label>
+          </div>
+          <div class="text-gray-500 pt-1">基础书写停顿 ms（写汉字 / 写拼音 / 检查）</div>
+          <div class="grid grid-cols-3 gap-2">
+            <template x-for="i in [0,1,2]" :key="'b'+i">
+              <input type="number" step="500" x-model.number="cfg.base_gap_ms[i]"
+                     class="w-full border rounded px-1 py-0.5">
+            </template>
+          </div>
+          <div class="text-gray-500 pt-1">每字增量 ms（同上三遍）</div>
+          <div class="grid grid-cols-3 gap-2">
+            <template x-for="i in [0,1,2]" :key="'p'+i">
+              <input type="number" step="100" x-model.number="cfg.per_char_gap_ms[i]"
+                     class="w-full border rounded px-1 py-0.5">
+            </template>
+          </div>
+          <div class="grid grid-cols-3 gap-2 pt-1">
+            <label>停顿上限
+              <input type="number" step="1000" x-model.number="cfg.max_write_gap_ms"
+                     class="w-full border rounded px-1 py-0.5"></label>
+            <label>组间隔
+              <input type="number" step="500" x-model.number="cfg.gap_between_groups_ms"
+                     class="w-full border rounded px-1 py-0.5"></label>
+            <label>多音字间隔
+              <input type="number" step="1000" x-model.number="cfg.gap_polyphonic_ms"
+                     class="w-full border rounded px-1 py-0.5"></label>
+          </div>
+          <div class="flex items-center justify-between pt-2">
+            <span class="text-gray-500">预计总时长 <b x-text="estMinutes"></b></span>
+            <span class="space-x-2">
+              <button @click="saveCfgLocal()" class="px-2 py-1 bg-[#07C160] text-white rounded">记住</button>
+              <button @click="resetCfg()" class="px-2 py-1 bg-gray-200 rounded">恢复默认</button>
+            </span>
+          </div>
+          <p class="text-gray-400 pt-1">改完点播放即按新节奏；V1 需重新生成音频才生效。</p>
+        </div>
+      </div>
+
       <div class="tianzige-wrap h-28">
         <template x-if="currentPlaylistWord">
           <template x-for="(char,idx) in currentPlaylistWord.text.split('')" :key="idx">
@@ -253,6 +313,64 @@ document.addEventListener('alpine:init', () => {
     currentPlaylistWord: null, _gapTimer: null, _inGap: false,
     API_BASE: '',
 
+    // 多音字段落（仅播报，不判分、核对页不列出）
+    polyphonic: [],
+
+    // 播放节奏参数：默认值来自 playback_config.json，可被面板临时覆盖
+    showCfgPanel: false,
+    cfg: {
+      group_size: 3, repeat_times: 3,
+      gap_intro_ms: 2000, gap_group_head_ms: 1000,
+      gap_between_words_ms: 1000, gap_between_groups_ms: 2000,
+      base_gap_ms: [6500, 6000, 2500],
+      per_char_gap_ms: [1500, 1000, 300],
+      max_write_gap_ms: 14000,
+      gap_polyphonic_ms: 8000, playback_rate: 1.0,
+    },
+
+    async loadConfig() {
+      // 1) 默认值文件
+      try {
+        const r = await fetch('/playback_config.json');
+        if (r.ok) {
+          const j = await r.json();
+          for (const k in this.cfg) if (k in j) this.cfg[k] = j[k];
+        }
+      } catch (e) { /* 用内置默认值 */ }
+      // 2) 本机覆盖值优先
+      try {
+        const saved = localStorage.getItem('playbackCfg');
+        if (saved) Object.assign(this.cfg, JSON.parse(saved));
+      } catch (e) { /* 忽略损坏的本地值 */ }
+    },
+
+    saveCfgLocal() {
+      localStorage.setItem('playbackCfg', JSON.stringify(this.cfg));
+    },
+
+    resetCfg() {
+      localStorage.removeItem('playbackCfg');
+      location.reload();
+    },
+
+    // 估算总时长，便于调参时即时看到影响
+    get estMinutes() {
+      const c = this.cfg, n = this.selectedCount || 30;
+      const groups = Math.ceil(n / c.group_size);
+      let ms = 2000 + c.gap_intro_ms;
+      for (let g = 0; g < groups; g++) {
+        ms += 1200 + c.gap_group_head_ms;
+        for (let p = 0; p < c.repeat_times; p++) {
+          ms += c.group_size * (2 * 550 + c.gap_between_words_ms);
+          ms += Math.min(c.base_gap_ms[p] + 1 * c.per_char_gap_ms[p], c.max_write_gap_ms);
+        }
+        ms += c.gap_between_groups_ms;
+      }
+      ms += this.polyphonic.length * (900 + c.gap_polyphonic_ms) + 2000;
+      const s = Math.round(ms / 1000);
+      return `${Math.floor(s / 60)}分${String(s % 60).padStart(2, '0')}秒`;
+    },
+
     get selectedWords()  { return this.wordList.filter(w => w.selected); },
     get selectedCount()  { return this.selectedWords.length; },
     get wrongWordsList() { return this.selectedWords.filter(w => !w.isCorrect); },
@@ -261,6 +379,7 @@ document.addEventListener('alpine:init', () => {
       const now = new Date();
       const wd  = ['日','一','二','三','四','五','六'];
       this.currentDate = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 星期${wd[now.getDay()]}`;
+      await this.loadConfig();
       this.generateCalendar();
       try {
         const res = await fetch(`${this.API_BASE}/api/lessons`);
@@ -284,6 +403,7 @@ document.addEventListener('alpine:init', () => {
           type: item.word_type || 'review', audio_url: item.audio_url || '',
           selected: true, isCorrect: true,
         }));
+        this.polyphonic = data.polyphonic_section || [];
       } catch(e) { console.error('获取词表失败', e); }
     },
 
@@ -298,18 +418,53 @@ document.addEventListener('alpine:init', () => {
       this.goToStep(4);
     },
 
+    // 书写停顿按字数缩放：min(base + (字数-1)*perChar, max)
+    writeGap(passIdx, text) {
+      const c = this.cfg;
+      const chars = (text || '').length || 1;
+      const base = c.base_gap_ms[passIdx] ?? 5000;
+      const per  = c.per_char_gap_ms[passIdx] ?? 0;
+      return Math.min(base + (chars - 1) * per, c.max_write_gap_ms);
+    },
+
     buildPlaylist() {
-      const items = [], words = this.selectedWords;
-      items.push({ url: '/audio/sys/intro.mp3', word: null, gapMs: 0 });
-      for (let i = 0; i < words.length; i += 3) {
-        const group = words.slice(i, i + 3);
-        const gNum  = Math.floor(i / 3) + 1;
-        items.push({ url: `/audio/sys/g${gNum}.mp3`, word: null, gapMs: 1000 });
-        for (const gapMs of [8000, 5000, 2000])
-          for (const w of group)
+      const c = this.cfg, items = [], words = this.selectedWords;
+      const gs = c.group_size, rt = c.repeat_times;
+
+      items.push({ url: '/audio/sys/intro.mp3', word: null, gapMs: c.gap_intro_ms });
+
+      for (let i = 0; i < words.length; i += gs) {
+        const group = words.slice(i, i + gs);
+        const gNum  = Math.floor(i / gs) + 1;
+        items.push({ url: `/audio/sys/g${gNum}.mp3`, word: null, gapMs: c.gap_group_head_ms });
+
+        for (let pass = 0; pass < rt; pass++) {
+          group.forEach((w, k) => {
+            // 组内词间用固定小间隔；每组最后一个词后给"书写停顿"（按字数缩放）
+            const isLast = (k === group.length - 1);
+            const longest = group.reduce((a, x) =>
+              Math.max(a, (x.text || '').length), 1);
+            const gapMs = isLast
+              ? this.writeGap(pass, 'x'.repeat(longest))
+              : c.gap_between_words_ms;
             items.push({ url: w.audio_url || null, word: w, gapMs });
-        items.push({ url: null, word: null, gapMs: 4000 });  // 组间停顿
+          });
+        }
+        items.push({ url: null, word: null, gapMs: c.gap_between_groups_ms });
       }
+
+      // 多音字：仅语音播报 + 长间隔，不判分、核对页不列出
+      if (this.polyphonic.length) {
+        items.push({ url: '/audio/sys/poly_intro.mp3', word: null, gapMs: c.gap_group_head_ms });
+        for (const p of this.polyphonic) {
+          items.push({
+            url: p.audio_url || null,
+            word: { text: p.character, pinyin: '', polyphonic: true },
+            gapMs: c.gap_polyphonic_ms,
+          });
+        }
+      }
+
       items.push({ url: '/audio/sys/outro.mp3', word: null, gapMs: 0 });
       return items;
     },

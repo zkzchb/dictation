@@ -12,6 +12,7 @@ from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from typing import List
 import json, hashlib, asgi
+import selector_d1  # 选词引擎(D1异步版)
 from datetime import datetime, timedelta
 
 USER_ID = 1
@@ -71,59 +72,21 @@ async def get_lessons(req: Request):
 
 @app.get("/api/generate_daily/{lesson_seq}")
 async def generate_daily(lesson_seq: int, req: Request, mode: str = "daily"):
+    """生成词表。梯队算法见 selector_d1.py 与设计文档 §5。
+
+    正式课 30 词 + 2 多音字；复习课（lid 末位 0）50 词、无多音字。
+    """
     env = req.scope["env"]
-    final, seen = [], set()
+    words, poly = await selector_d1.build_word_list(env.DB, lesson_seq, user_id=USER_ID)
 
-    def push(row, word_type):
-        text, pinyin = extract_word_info(row["target"], row["options_json"])
-        if text not in seen:
-            final.append({
-                "id": row["id"], "target": text, "pinyin": pinyin,
-                "word_type": word_type, "audio_url": audio_url_for(text),
-            })
-            seen.add(text)
+    data = [{
+        "id": w["id"], "target": w["target"], "pinyin": w["pinyin"],
+        "word_type": w["word_type"], "audio_url": audio_url_for(w["target"]),
+    } for w in words]
+    for p in poly:
+        p["audio_url"] = audio_url_for(p["character"])
 
-    if mode == "daily":
-        rows = (await env.DB.prepare(
-            "SELECT id, target, category, options_json FROM knowledge_points "
-            "WHERE lesson_seq = ? AND category != ?"
-        ).bind(lesson_seq, EXCLUDE_CATEGORY).run()).results.to_py()
-        for row in rows:
-            push(row, "new_char" if "生字" in row["category"] else "new_word")
-
-        new_ids = {w["id"] for w in final}
-        quota   = DAILY_TARGET - len(final)
-        if quota > 0:
-            review_rows = (await env.DB.prepare(
-                "SELECT kp.id, kp.target, kp.category, kp.options_json "
-                "FROM user_memory um JOIN knowledge_points kp ON um.kp_id = kp.id "
-                "WHERE um.user_id = ? AND um.error_count > 0 AND um.status = 0 "
-                "  AND kp.category != ? "
-                "ORDER BY um.next_review_date ASC, um.error_count DESC LIMIT ?"
-            ).bind(USER_ID, EXCLUDE_CATEGORY, quota + 20).run()).results.to_py()
-            for row in review_rows:
-                if len(final) >= DAILY_TARGET: break
-                if row["id"] not in new_ids: push(row, "wrong")
-    else:
-        seqs_result = await env.DB.prepare(
-            "SELECT lesson_seq FROM lessons WHERE unit_id = ?"
-        ).bind(lesson_seq).run()
-        seqs = [r["lesson_seq"] for r in seqs_result.results.to_py()]
-        if seqs:
-            ph   = ",".join("?" * len(seqs))
-            rows = (await env.DB.prepare(
-                f"SELECT kp.id, kp.target, kp.category, kp.options_json, "
-                f"COALESCE(um.error_count,0) AS error_count "
-                f"FROM knowledge_points kp "
-                f"LEFT JOIN user_memory um ON kp.id = um.kp_id AND um.user_id = ? "
-                f"WHERE kp.lesson_seq IN ({ph}) AND kp.category != ? "
-                f"ORDER BY COALESCE(um.error_count,0) DESC, RANDOM() LIMIT 60"
-            ).bind(USER_ID, *seqs, EXCLUDE_CATEGORY).run()).results.to_py()
-            for row in rows:
-                if len(final) >= DAILY_TARGET: break
-                push(row, "wrong" if row["error_count"] else "review")
-
-    return {"data": final}
+    return {"data": data, "polyphonic_section": poly}
 
 
 @app.post("/api/submit_dictation")

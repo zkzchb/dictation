@@ -1,0 +1,10958 @@
+[
+  {
+    "lesson_seq": 3111,
+    "target": "坡",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "山坡",
+        "pinyin": "shān pō"
+      },
+      {
+        "text": "坡地",
+        "pinyin": "pō dì"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "球",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "星球",
+        "pinyin": "xīng qiú"
+      },
+      {
+        "text": "球体",
+        "pinyin": "qiú tǐ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "招",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "招引",
+        "pinyin": "zhāo yǐn"
+      },
+      {
+        "text": "招呼",
+        "pinyin": "zhāo hū"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "呼",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "呼吸",
+        "pinyin": "hū xī"
+      },
+      {
+        "text": "呼唤",
+        "pinyin": "hū huàn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "飘",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "飘扬",
+        "pinyin": "piāo yáng"
+      },
+      {
+        "text": "飘动",
+        "pinyin": "piāo dòng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "扬",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "飞扬",
+        "pinyin": "fēi yáng"
+      },
+      {
+        "text": "扬帆",
+        "pinyin": "yáng fān"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "读",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "阅读",
+        "pinyin": "yuè dú"
+      },
+      {
+        "text": "朗读",
+        "pinyin": "lǎng dú"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "热",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "热闹",
+        "pinyin": "rè nao"
+      },
+      {
+        "text": "热情",
+        "pinyin": "rè qíng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "闹",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "闹市",
+        "pinyin": "nào shì"
+      },
+      {
+        "text": "吵闹",
+        "pinyin": "chǎo nào"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "粗",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "粗壮",
+        "pinyin": "cū zhuàng"
+      },
+      {
+        "text": "粗枝大叶",
+        "pinyin": "cū zhī dà yè"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "壮",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "强壮",
+        "pinyin": "qiáng zhuàng"
+      },
+      {
+        "text": "壮观",
+        "pinyin": "zhuàng guān"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "洁",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "洁白",
+        "pinyin": "jié bái"
+      },
+      {
+        "text": "洁净",
+        "pinyin": "jié jìng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "轰",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "轰响",
+        "pinyin": "hōng xiǎng"
+      },
+      {
+        "text": "轰隆隆",
+        "pinyin": "hōng lōng lóng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "湿",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "湿润",
+        "pinyin": "shī rùn"
+      },
+      {
+        "text": "潮湿",
+        "pinyin": "cháo shī"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "润",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "润滑",
+        "pinyin": "rùn huá"
+      },
+      {
+        "text": "利润",
+        "pinyin": "lì rùn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "笛",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "风笛",
+        "pinyin": "fēng dí"
+      },
+      {
+        "text": "笛声",
+        "pinyin": "dí shēng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "狂",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "狂欢",
+        "pinyin": "kuáng huān"
+      },
+      {
+        "text": "狂喜",
+        "pinyin": "kuáng xǐ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "功",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "功课",
+        "pinyin": "gōng kè"
+      },
+      {
+        "text": "用功",
+        "pinyin": "yòng gōng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "罚",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "惩罚",
+        "pinyin": "chéng fá"
+      },
+      {
+        "text": "赏罚分明",
+        "pinyin": "shǎng fá fēn míng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "互",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "互相",
+        "pinyin": "hù xiāng"
+      },
+      {
+        "text": "互助",
+        "pinyin": "hù zhù"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "碰",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "碰触",
+        "pinyin": "pèng chù"
+      },
+      {
+        "text": "碰杯",
+        "pinyin": "pèng bēi"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "黄",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "黄色",
+        "pinyin": "huáng sè"
+      },
+      {
+        "text": "金黄",
+        "pinyin": "jīn huáng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "急",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "急急忙忙",
+        "pinyin": "jí jí máng máng"
+      },
+      {
+        "text": "急切",
+        "pinyin": "jí qiè"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3121,
+    "target": "庭",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "家庭",
+        "pinyin": "jiā tíng"
+      },
+      {
+        "text": "法庭",
+        "pinyin": "fǎ tíng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3121,
+    "target": "相",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "相当",
+        "pinyin": "xiāng dāng"
+      },
+      {
+        "text": "好言相劝",
+        "pinyin": "hǎo yán xiāng quàn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3121,
+    "target": "未",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "未免",
+        "pinyin": "wèi miǎn"
+      },
+      {
+        "text": "未知",
+        "pinyin": "wèi zhī"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3121,
+    "target": "寒",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "寒冷",
+        "pinyin": "hán lěng"
+      },
+      {
+        "text": "寒风",
+        "pinyin": "hán fēng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3121,
+    "target": "径",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "山径",
+        "pinyin": "shān jìng"
+      },
+      {
+        "text": "捷径",
+        "pinyin": "jié jìng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3121,
+    "target": "斜",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "斜阳",
+        "pinyin": "xié yáng"
+      },
+      {
+        "text": "倾斜",
+        "pinyin": "qīng xié"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3121,
+    "target": "枫",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "枫树",
+        "pinyin": "fēng shù"
+      },
+      {
+        "text": "枫叶",
+        "pinyin": "fēng yè"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3121,
+    "target": "霜",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "冰霜",
+        "pinyin": "bīng shuāng"
+      },
+      {
+        "text": "霜冻",
+        "pinyin": "shuāng dòng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3121,
+    "target": "挑",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "挑战",
+        "pinyin": "tiǎo zhàn"
+      },
+      {
+        "text": "挑拨",
+        "pinyin": "tiǎo bō"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3121,
+    "target": "深",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "深夜",
+        "pinyin": "shēn yè"
+      },
+      {
+        "text": "深秋",
+        "pinyin": "shēn qiū"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3121,
+    "target": "落",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "飘落",
+        "pinyin": "piāo luò"
+      },
+      {
+        "text": "落日",
+        "pinyin": "luò rì"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "朗",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "明朗",
+        "pinyin": "míng lǎng"
+      },
+      {
+        "text": "晴朗",
+        "pinyin": "qíng lǎng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "晶",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "亮晶晶",
+        "pinyin": "liàng jīng jīng"
+      },
+      {
+        "text": "晶莹",
+        "pinyin": "jīng yíng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "珠",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "水珠",
+        "pinyin": "shuǐ zhū"
+      },
+      {
+        "text": "露珠",
+        "pinyin": "lù zhū"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "粘",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "粘住",
+        "pinyin": "zhān zhù"
+      },
+      {
+        "text": "粘贴",
+        "pinyin": "zhān tiē"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "印",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "印刷",
+        "pinyin": "yìn shuā"
+      },
+      {
+        "text": "印刻",
+        "pinyin": "yìn kè"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "案",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "图案",
+        "pinyin": "tú àn"
+      },
+      {
+        "text": "案件",
+        "pinyin": "àn jiàn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "展",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "平展",
+        "pinyin": "píng zhǎn"
+      },
+      {
+        "text": "展出",
+        "pinyin": "zhǎn chū"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "列",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "排列",
+        "pinyin": "pái liè"
+      },
+      {
+        "text": "列队",
+        "pinyin": "liè duì"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "规",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "规则",
+        "pinyin": "guī zé"
+      },
+      {
+        "text": "规划",
+        "pinyin": "guī huà"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "则",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "细则",
+        "pinyin": "xì zé"
+      },
+      {
+        "text": "法则",
+        "pinyin": "fǎ zé"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "凌",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "凌乱",
+        "pinyin": "líng luàn"
+      },
+      {
+        "text": "凌晨",
+        "pinyin": "líng chén"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "乱",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "杂乱",
+        "pinyin": "zá luàn"
+      },
+      {
+        "text": "混乱",
+        "pinyin": "hùn luàn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "凉",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "清凉",
+        "pinyin": "qīng liáng"
+      },
+      {
+        "text": "凉快",
+        "pinyin": "liáng kuài"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "杏",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "杏树",
+        "pinyin": "xìng shù"
+      },
+      {
+        "text": "银杏",
+        "pinyin": "yín xìng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "枚",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "一枚",
+        "pinyin": "yī méi"
+      },
+      {
+        "text": "枚举",
+        "pinyin": "méi jǔ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "邮",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "邮票",
+        "pinyin": "yóu piào"
+      },
+      {
+        "text": "邮局",
+        "pinyin": "yóu jú"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "票",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "车票",
+        "pinyin": "chē piào"
+      },
+      {
+        "text": "彩票",
+        "pinyin": "cǎi piào"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "爽",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "凉爽",
+        "pinyin": "liáng shuǎng"
+      },
+      {
+        "text": "清爽",
+        "pinyin": "qīng shuǎng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "挤",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "拥挤",
+        "pinyin": "yōng jǐ"
+      },
+      {
+        "text": "挤压",
+        "pinyin": "jǐ yā"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "争",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "争夺",
+        "pinyin": "zhēng duó"
+      },
+      {
+        "text": "争先",
+        "pinyin": "zhēng xiān"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "菊",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "菊花",
+        "pinyin": "jú huā"
+      },
+      {
+        "text": "秋菊",
+        "pinyin": "qiū jú"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "频",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "频频",
+        "pinyin": "pín pín"
+      },
+      {
+        "text": "频次",
+        "pinyin": "pín cì"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "勾",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "勾住",
+        "pinyin": "gōu zhù"
+      },
+      {
+        "text": "勾销",
+        "pinyin": "gōu xiāo"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "挖",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "挖苦",
+        "pinyin": "wā kǔ"
+      },
+      {
+        "text": "挖空心思",
+        "pinyin": "wā kōng xīn sī"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "油",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "油亮",
+        "pinyin": "yóu liàng"
+      },
+      {
+        "text": "香油",
+        "pinyin": "xiāng yóu"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "屋",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "屋子",
+        "pinyin": "wū zi"
+      },
+      {
+        "text": "屋顶",
+        "pinyin": "wū dǐng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "板",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "门板",
+        "pinyin": "mén bǎn"
+      },
+      {
+        "text": "黑板",
+        "pinyin": "hēi bǎn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "准",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "准备",
+        "pinyin": "zhǔn bèi"
+      },
+      {
+        "text": "准许",
+        "pinyin": "zhǔn xǔ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "备",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "备课",
+        "pinyin": "bèi kè"
+      },
+      {
+        "text": "装备",
+        "pinyin": "zhuāng bèi"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "等",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "等待",
+        "pinyin": "děng dài"
+      },
+      {
+        "text": "等候",
+        "pinyin": "děng hòu"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "暴",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "暴风雨",
+        "pinyin": "bào fēng yǔ"
+      },
+      {
+        "text": "暴力",
+        "pinyin": "bào lì"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "哦",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "哦呵",
+        "pinyin": "ó hē"
+      },
+      {
+        "text": "哦呀",
+        "pinyin": "ó ya"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "钻",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "钻心",
+        "pinyin": "zuān xīn"
+      },
+      {
+        "text": "钻入",
+        "pinyin": "zuān rù"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "爬",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "爬行",
+        "pinyin": "pá xíng"
+      },
+      {
+        "text": "爬树",
+        "pinyin": "pá shù"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "漂",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "漂亮",
+        "pinyin": "piào liang"
+      },
+      {
+        "text": "漂亮话",
+        "pinyin": "piào liang huà"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "晒",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "晒太阳",
+        "pinyin": "shài tài yáng"
+      },
+      {
+        "text": "日晒",
+        "pinyin": "rì shài"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3134,
+    "target": "恒",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "恒心",
+        "pinyin": "héng xīn"
+      },
+      {
+        "text": "永恒",
+        "pinyin": "yǒng héng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3134,
+    "target": "圣",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "神圣",
+        "pinyin": "shén shèng"
+      },
+      {
+        "text": "圣明",
+        "pinyin": "shèng míng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3134,
+    "target": "萌",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "萌发",
+        "pinyin": "méng fā"
+      },
+      {
+        "text": "萌芽",
+        "pinyin": "méng yá"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3134,
+    "target": "妥",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "妥当",
+        "pinyin": "tuǒ dàng"
+      },
+      {
+        "text": "稳妥",
+        "pinyin": "wěn tuǒ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3134,
+    "target": "轴",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "车轴",
+        "pinyin": "chē zhóu"
+      },
+      {
+        "text": "卷轴",
+        "pinyin": "juàn zhóu"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3134,
+    "target": "阁",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "阁楼",
+        "pinyin": "gé lóu"
+      },
+      {
+        "text": "楼阁",
+        "pinyin": "lóu gé"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3134,
+    "target": "培",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "培植",
+        "pinyin": "péi zhí"
+      },
+      {
+        "text": "培育",
+        "pinyin": "péi yù"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3134,
+    "target": "厘",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "厘米",
+        "pinyin": "lí mǐ"
+      },
+      {
+        "text": "毫厘",
+        "pinyin": "háo lí"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "葫",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "葫芦",
+        "pinyin": "hú lú"
+      },
+      {
+        "text": "糖葫芦",
+        "pinyin": "táng hú lú"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "芦",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "芦花",
+        "pinyin": "lú huā"
+      },
+      {
+        "text": "芦苇",
+        "pinyin": "lú wěi"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "错",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "错误",
+        "pinyin": "cuò wù"
+      },
+      {
+        "text": "不错",
+        "pinyin": "bù cuò"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "普",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "普通",
+        "pinyin": "pǔ tōng"
+      },
+      {
+        "text": "普遍",
+        "pinyin": "pǔ biàn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "宫",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "天宫",
+        "pinyin": "tiān gōng"
+      },
+      {
+        "text": "迷宫",
+        "pinyin": "mí gōng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "肯",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "肯定",
+        "pinyin": "kěn dìng"
+      },
+      {
+        "text": "不肯",
+        "pinyin": "bù kěn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "冒",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "冒泡",
+        "pinyin": "mào pào"
+      },
+      {
+        "text": "冒雨",
+        "pinyin": "mào yǔ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "式",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "公式",
+        "pinyin": "gōng shì"
+      },
+      {
+        "text": "格式",
+        "pinyin": "gé shì"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "怜",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "可怜",
+        "pinyin": "kě lián"
+      },
+      {
+        "text": "怜惜",
+        "pinyin": "lián xī"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "旅",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "旅行",
+        "pinyin": "lǚ xíng"
+      },
+      {
+        "text": "旅游",
+        "pinyin": "lǚ yóu"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "另",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "另外",
+        "pinyin": "lìng wài"
+      },
+      {
+        "text": "另说",
+        "pinyin": "lìng shuō"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "睛",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "眼睛",
+        "pinyin": "yǎn jīng"
+      },
+      {
+        "text": "目不转睛",
+        "pinyin": "mù bù zhuǎn jīng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "及",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "来得及",
+        "pinyin": "lái de jí"
+      },
+      {
+        "text": "及时",
+        "pinyin": "jí shí"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "卷",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "卷起",
+        "pinyin": "juǎn qǐ"
+      },
+      {
+        "text": "卷进",
+        "pinyin": "juǎn jìn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "救",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "救命",
+        "pinyin": "jiù mìng"
+      },
+      {
+        "text": "抢救",
+        "pinyin": "qiǎng jiù"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "命",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "拼命",
+        "pinyin": "pīn mìng"
+      },
+      {
+        "text": "命令",
+        "pinyin": "mìng lìng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "尾",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "尾巴",
+        "pinyin": "wěi ba"
+      },
+      {
+        "text": "追尾",
+        "pinyin": "zhuī wěi"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "齿",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "牙齿",
+        "pinyin": "yá chǐ"
+      },
+      {
+        "text": "启齿",
+        "pinyin": "qǐ chǐ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "胃",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "胃口",
+        "pinyin": "wèi kǒu"
+      },
+      {
+        "text": "开胃",
+        "pinyin": "kāi wèi"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "管",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "管理",
+        "pinyin": "guǎn lǐ"
+      },
+      {
+        "text": "管家",
+        "pinyin": "guǎn jiā"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "刚",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "刚才",
+        "pinyin": "gāng cái"
+      },
+      {
+        "text": "刚好",
+        "pinyin": "gāng hǎo"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "咬",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "咬合",
+        "pinyin": "yǎo hé"
+      },
+      {
+        "text": "撕咬",
+        "pinyin": "sī yǎo"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3144,
+    "target": "申",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "申请",
+        "pinyin": "shēn qǐng"
+      },
+      {
+        "text": "申时",
+        "pinyin": "shēn shí"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3144,
+    "target": "介",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "中介",
+        "pinyin": "zhōng jiè"
+      },
+      {
+        "text": "介意",
+        "pinyin": "jiè yì"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3144,
+    "target": "绍",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "介绍",
+        "pinyin": "jiè shào"
+      },
+      {
+        "text": "绍兴",
+        "pinyin": "shào xīng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3144,
+    "target": "宗",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "祖宗",
+        "pinyin": "zǔ zōng"
+      },
+      {
+        "text": "同宗",
+        "pinyin": "tóng zōng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3144,
+    "target": "旨",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "主旨",
+        "pinyin": "zhǔ zhǐ"
+      },
+      {
+        "text": "宗旨",
+        "pinyin": "zōng zhǐ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3144,
+    "target": "占",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "占领",
+        "pinyin": "zhàn lǐng"
+      },
+      {
+        "text": "占有",
+        "pinyin": "zhàn yǒu"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3144,
+    "target": "乏",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "乏力",
+        "pinyin": "fá lì"
+      },
+      {
+        "text": "缺乏",
+        "pinyin": "quē fá"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "搭",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "搭船",
+        "pinyin": "dā chuán"
+      },
+      {
+        "text": "搭乘",
+        "pinyin": "dā chéng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "亲",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "母亲",
+        "pinyin": "mǔ qīn"
+      },
+      {
+        "text": "亲人",
+        "pinyin": "qīn rén"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "祖",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "外祖父",
+        "pinyin": "wài zǔ fù"
+      },
+      {
+        "text": "祖国",
+        "pinyin": "zǔ guó"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "披",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "披风",
+        "pinyin": "pī fēng"
+      },
+      {
+        "text": "披肩",
+        "pinyin": "pī jiān"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "摇",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "摇晃",
+        "pinyin": "yáo huàng"
+      },
+      {
+        "text": "摇摆",
+        "pinyin": "yáo bǎi"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "停",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "停止",
+        "pinyin": "tíng zhǐ"
+      },
+      {
+        "text": "停车",
+        "pinyin": "tíng chē"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "羽",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "羽毛",
+        "pinyin": "yǔ máo"
+      },
+      {
+        "text": "羽扇",
+        "pinyin": "yǔ shàn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "翠",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "翠绿",
+        "pinyin": "cuì lǜ"
+      },
+      {
+        "text": "翠鸟",
+        "pinyin": "cuì niǎo"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "蓝",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "蓝色",
+        "pinyin": "lán sè"
+      },
+      {
+        "text": "瓦蓝",
+        "pinyin": "wǎ lán"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "静",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "安静",
+        "pinyin": "ān jìng"
+      },
+      {
+        "text": "清静",
+        "pinyin": "qīng jìng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "悄",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "静悄悄",
+        "pinyin": "jìng qiāo qiāo"
+      },
+      {
+        "text": "悄悄话",
+        "pinyin": "qiāo qiāo huà"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "吞",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "吞食",
+        "pinyin": "tūn shí"
+      },
+      {
+        "text": "吞咽",
+        "pinyin": "tūn yàn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "捕",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "捕鱼",
+        "pinyin": "bǔ yú"
+      },
+      {
+        "text": "捕获",
+        "pinyin": "bǔ huò"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3152,
+    "target": "蒲",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "蒲公英",
+        "pinyin": "pú gōng yīng"
+      },
+      {
+        "text": "蒲草",
+        "pinyin": "pú cǎo"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3152,
+    "target": "英",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "落英",
+        "pinyin": "luò yīng"
+      },
+      {
+        "text": "英明",
+        "pinyin": "yīng míng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3152,
+    "target": "盛",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "盛开",
+        "pinyin": "shèng kāi"
+      },
+      {
+        "text": "盛装",
+        "pinyin": "shèng zhuāng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3152,
+    "target": "耍",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "玩耍",
+        "pinyin": "wán shuǎ"
+      },
+      {
+        "text": "耍花招",
+        "pinyin": "shuǎ huā zhāo"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3152,
+    "target": "使",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "使劲",
+        "pinyin": "shǐ jìn"
+      },
+      {
+        "text": "使用",
+        "pinyin": "shǐ yòng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3152,
+    "target": "劲",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "劲头",
+        "pinyin": "jìn tóu"
+      },
+      {
+        "text": "干劲",
+        "pinyin": "gàn jìn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3152,
+    "target": "脸",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "笑脸",
+        "pinyin": "xiào liǎn"
+      },
+      {
+        "text": "脸蛋",
+        "pinyin": "liǎn dàn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3152,
+    "target": "欠",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "哈欠",
+        "pinyin": "hā qiàn"
+      },
+      {
+        "text": "欠缺",
+        "pinyin": "qiàn quē"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "朝",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "朝向",
+        "pinyin": "cháo xiàng"
+      },
+      {
+        "text": "朝着",
+        "pinyin": "cháo zhe"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "钓",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "垂钓",
+        "pinyin": "chuí diào"
+      },
+      {
+        "text": "钓鱼",
+        "pinyin": "diào yú"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "察",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "察觉",
+        "pinyin": "chá jué"
+      },
+      {
+        "text": "观察",
+        "pinyin": "guān chá"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "拢",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "合拢",
+        "pinyin": "hé lǒng"
+      },
+      {
+        "text": "并拢",
+        "pinyin": "bìng lǒng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "喜",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "喜爱",
+        "pinyin": "xǐ ài"
+      },
+      {
+        "text": "喜欢",
+        "pinyin": "xǐ huān"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "景",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "风景",
+        "pinyin": "fēng jǐng"
+      },
+      {
+        "text": "景色",
+        "pinyin": "jǐng sè"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "优",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "优美",
+        "pinyin": "yōu měi"
+      },
+      {
+        "text": "优良",
+        "pinyin": "yōu liáng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "淡",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "淡青",
+        "pinyin": "dàn qīng"
+      },
+      {
+        "text": "淡水",
+        "pinyin": "dàn shuǐ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "浅",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "浅绿",
+        "pinyin": "qiǎn lǜ"
+      },
+      {
+        "text": "深浅",
+        "pinyin": "shēn qiǎn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "底",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "海底",
+        "pinyin": "hǎi dǐ"
+      },
+      {
+        "text": "月底",
+        "pinyin": "yuè dǐ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "岩",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "岩石",
+        "pinyin": "yán shí"
+      },
+      {
+        "text": "岩浆",
+        "pinyin": "yán jiāng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "鹿",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "鹿角",
+        "pinyin": "lù jiǎo"
+      },
+      {
+        "text": "驯鹿",
+        "pinyin": "xùn lù"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "划",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "划船",
+        "pinyin": "huá chuán"
+      },
+      {
+        "text": "划水",
+        "pinyin": "huà shuǐ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "布",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "布满",
+        "pinyin": "bù mǎn"
+      },
+      {
+        "text": "散布",
+        "pinyin": "sàn bù"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "茂",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "茂密",
+        "pinyin": "mào mì"
+      },
+      {
+        "text": "茂盛",
+        "pinyin": "mào shèng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "密",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "亲密",
+        "pinyin": "qīn mì"
+      },
+      {
+        "text": "密密麻麻",
+        "pinyin": "mì mì má má"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "厚",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "厚实",
+        "pinyin": "hòu shí"
+      },
+      {
+        "text": "厚纸",
+        "pinyin": "hòu zhǐ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "料",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "肥料",
+        "pinyin": "féi liào"
+      },
+      {
+        "text": "原料",
+        "pinyin": "yuán liào"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "滨",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "海滨",
+        "pinyin": "hǎi bīn"
+      },
+      {
+        "text": "湖滨",
+        "pinyin": "hú bīn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "棕",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "棕色",
+        "pinyin": "zōng sè"
+      },
+      {
+        "text": "棕毛",
+        "pinyin": "zōng máo"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "帆",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "机帆船",
+        "pinyin": "jī fān chuán"
+      },
+      {
+        "text": "风帆",
+        "pinyin": "fēng fān"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "灰",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "浅灰",
+        "pinyin": "qiǎn huī"
+      },
+      {
+        "text": "灰尘",
+        "pinyin": "huī chén"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "跟",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "跟随",
+        "pinyin": "gēn suí"
+      },
+      {
+        "text": "跟风",
+        "pinyin": "gēn fēng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "渔",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "渔民",
+        "pinyin": "yú mín"
+      },
+      {
+        "text": "渔船",
+        "pinyin": "yú chuán"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "壳",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "贝壳",
+        "pinyin": "bèi ké"
+      },
+      {
+        "text": "外壳",
+        "pinyin": "wài ké"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "院",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "庭院",
+        "pinyin": "tíng yuàn"
+      },
+      {
+        "text": "医院",
+        "pinyin": "yī yuàn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "亚",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "亚热带",
+        "pinyin": "yà rè dài"
+      },
+      {
+        "text": "亚军",
+        "pinyin": "yà jūn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "透",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "透气",
+        "pinyin": "tòu qì"
+      },
+      {
+        "text": "透风",
+        "pinyin": "tòu fēng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "除",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "除非",
+        "pinyin": "chú fēi"
+      },
+      {
+        "text": "除了",
+        "pinyin": "chú le"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "踩",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "踩沙",
+        "pinyin": "cǎi shā"
+      },
+      {
+        "text": "踩雷",
+        "pinyin": "cǎi léi"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "抽",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "抽芽",
+        "pinyin": "chōu yá"
+      },
+      {
+        "text": "抽出",
+        "pinyin": "chōu chū"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "封",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "封口",
+        "pinyin": "fēng kǒu"
+      },
+      {
+        "text": "封存",
+        "pinyin": "fēng cún"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "严",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "严严实实",
+        "pinyin": "yán yán shí shí"
+      },
+      {
+        "text": "严密",
+        "pinyin": "yán mì"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "挡",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "阻挡",
+        "pinyin": "zǔ dǎng"
+      },
+      {
+        "text": "挡住",
+        "pinyin": "dǎng zhù"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "坛",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "花坛",
+        "pinyin": "huā tán"
+      },
+      {
+        "text": "坛子",
+        "pinyin": "tán zi"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "显",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "显得",
+        "pinyin": "xiǎn de"
+      },
+      {
+        "text": "显现",
+        "pinyin": "xiǎn xiàn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "苍",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "苍翠",
+        "pinyin": "cāng cuì"
+      },
+      {
+        "text": "苍老",
+        "pinyin": "cāng lǎo"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "药",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "药材",
+        "pinyin": "yào cái"
+      },
+      {
+        "text": "药丸",
+        "pinyin": "yào wán"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "材",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "材料",
+        "pinyin": "cái liào"
+      },
+      {
+        "text": "木材",
+        "pinyin": "mù cái"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "软",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "松软",
+        "pinyin": "sōng ruǎn"
+      },
+      {
+        "text": "柔软",
+        "pinyin": "róu ruǎn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "刮",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "刮风",
+        "pinyin": "guā fēng"
+      },
+      {
+        "text": "刮倒",
+        "pinyin": "guā dào"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "捉",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "捕捉",
+        "pinyin": "bǔ zhuō"
+      },
+      {
+        "text": "捉弄",
+        "pinyin": "zhuō nòng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3171,
+    "target": "返",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "返程",
+        "pinyin": "fǎn chéng"
+      },
+      {
+        "text": "返还",
+        "pinyin": "fǎn huán"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3171,
+    "target": "望",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "一望无际",
+        "pinyin": "yí wàng wú jì"
+      },
+      {
+        "text": "希望",
+        "pinyin": "xī wàng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3171,
+    "target": "断",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "中断",
+        "pinyin": "zhōng duàn"
+      },
+      {
+        "text": "打断",
+        "pinyin": "dǎ duàn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3171,
+    "target": "楚",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "楚国",
+        "pinyin": "chǔ guó"
+      },
+      {
+        "text": "苦楚",
+        "pinyin": "kǔ chǔ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3171,
+    "target": "至",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "至今",
+        "pinyin": "zhì jīn"
+      },
+      {
+        "text": "至于",
+        "pinyin": "zhì yú"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3171,
+    "target": "岸",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "对岸",
+        "pinyin": "duì àn"
+      },
+      {
+        "text": "隔岸观火",
+        "pinyin": "gé àn guān huǒ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3171,
+    "target": "孤",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "孤舟",
+        "pinyin": "gū zhōu"
+      },
+      {
+        "text": "孤独",
+        "pinyin": "gū dú"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3171,
+    "target": "饮",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "饮用",
+        "pinyin": "yǐn yòng"
+      },
+      {
+        "text": "冷饮",
+        "pinyin": "lěng yǐn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3171,
+    "target": "亦",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "人云亦云",
+        "pinyin": "rén yún yì yún"
+      },
+      {
+        "text": "不亦乐乎",
+        "pinyin": "bù yì lè hū"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3171,
+    "target": "欲",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "欲望",
+        "pinyin": "yù wàng"
+      },
+      {
+        "text": "畅所欲言",
+        "pinyin": "chàng suǒ yù yán"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3171,
+    "target": "抹",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "涂抹",
+        "pinyin": "tú mǒ"
+      },
+      {
+        "text": "抹药",
+        "pinyin": "mǒ yào"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3171,
+    "target": "宜",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "适宜",
+        "pinyin": "shì yí"
+      },
+      {
+        "text": "便宜",
+        "pinyin": "pián yi"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "妙",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "美妙",
+        "pinyin": "měi miào"
+      },
+      {
+        "text": "巧妙",
+        "pinyin": "qiǎo miào"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "奏",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "合奏",
+        "pinyin": "hé zòu"
+      },
+      {
+        "text": "演奏",
+        "pinyin": "yǎn zòu"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "琴",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "手风琴",
+        "pinyin": "shǒu fēng qín"
+      },
+      {
+        "text": "钢琴",
+        "pinyin": "gāng qín"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "柔",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "温柔",
+        "pinyin": "wēn róu"
+      },
+      {
+        "text": "轻柔",
+        "pinyin": "qīng róu"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "感",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "感受",
+        "pinyin": "gǎn shòu"
+      },
+      {
+        "text": "感觉",
+        "pinyin": "gǎn jué"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "充",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "充满",
+        "pinyin": "chōng mǎn"
+      },
+      {
+        "text": "充实",
+        "pinyin": "chōng shí"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "威",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "威力",
+        "pinyin": "wēi lì"
+      },
+      {
+        "text": "威望",
+        "pinyin": "wēi wàng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "器",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "乐器",
+        "pinyin": "yuè qì"
+      },
+      {
+        "text": "机器",
+        "pinyin": "jī qì"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "汇",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "汇集",
+        "pinyin": "huì jí"
+      },
+      {
+        "text": "词汇",
+        "pinyin": "cí huì"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "鸣",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "鸣叫",
+        "pinyin": "míng jiào"
+      },
+      {
+        "text": "虫鸣",
+        "pinyin": "chóng míng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "塘",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "水塘",
+        "pinyin": "shuǐ táng"
+      },
+      {
+        "text": "池塘",
+        "pinyin": "chí táng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "虾",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "龙虾",
+        "pinyin": "lóng xiā"
+      },
+      {
+        "text": "虾米",
+        "pinyin": "xiā mǐ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "昆",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "昆虫",
+        "pinyin": "kūn chóng"
+      },
+      {
+        "text": "昆仑",
+        "pinyin": "kūn lún"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "仅",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "仅仅",
+        "pinyin": "jǐn jǐn"
+      },
+      {
+        "text": "不仅",
+        "pinyin": "bù jǐn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "序",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "井然有序",
+        "pinyin": "jǐng rán yǒu xù"
+      },
+      {
+        "text": "顺序",
+        "pinyin": "shùn xù"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "荣",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "繁荣",
+        "pinyin": "fán róng"
+      },
+      {
+        "text": "荣誉",
+        "pinyin": "róng yù"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "枯",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "干枯",
+        "pinyin": "gān kū"
+      },
+      {
+        "text": "枯草",
+        "pinyin": "kū cǎo"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "姿",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "千姿百态",
+        "pinyin": "qiān zī bǎi tài"
+      },
+      {
+        "text": "姿势",
+        "pinyin": "zī shì"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "态",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "形态",
+        "pinyin": "xíng tài"
+      },
+      {
+        "text": "状态",
+        "pinyin": "zhuàng tài"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "刺",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "鱼刺",
+        "pinyin": "yú cì"
+      },
+      {
+        "text": "刺耳",
+        "pinyin": "cì ěr"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "梨",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "梨树",
+        "pinyin": "lí shù"
+      },
+      {
+        "text": "鸭梨",
+        "pinyin": "yā lí"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "部",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "一部",
+        "pinyin": "yī bù"
+      },
+      {
+        "text": "部分",
+        "pinyin": "bù fen"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "奥",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "奥秘",
+        "pinyin": "ào mì"
+      },
+      {
+        "text": "奥妙",
+        "pinyin": "ào miào"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "秘",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "秘密",
+        "pinyin": "mì mì"
+      },
+      {
+        "text": "秘诀",
+        "pinyin": "mì jué"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3174,
+    "target": "螺",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "田螺",
+        "pinyin": "tián luó"
+      },
+      {
+        "text": "海螺",
+        "pinyin": "hǎi luó"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3174,
+    "target": "螃",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "螃蟹",
+        "pinyin": "páng xiè"
+      },
+      {
+        "text": "捉螃蟹",
+        "pinyin": "zhuō páng xiè"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3174,
+    "target": "蟹",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "蟹黄",
+        "pinyin": "xiè huáng"
+      },
+      {
+        "text": "蟹肉",
+        "pinyin": "xiè ròu"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3174,
+    "target": "鲤",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "鲤鱼",
+        "pinyin": "lǐ yú"
+      },
+      {
+        "text": "锦鲤",
+        "pinyin": "jǐn lǐ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3174,
+    "target": "鲫",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "鲫鱼",
+        "pinyin": "jì yú"
+      },
+      {
+        "text": "过江之鲫",
+        "pinyin": "guò jiāng zhī jì"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3174,
+    "target": "鲨",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "鲨鱼",
+        "pinyin": "shā yú"
+      },
+      {
+        "text": "大白鲨",
+        "pinyin": "dà bái shā"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3181,
+    "target": "司",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "司机",
+        "pinyin": "sī jī"
+      },
+      {
+        "text": "司法",
+        "pinyin": "sī fǎ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3181,
+    "target": "登",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "登高",
+        "pinyin": "dēng gāo"
+      },
+      {
+        "text": "登山",
+        "pinyin": "dēng shān"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3181,
+    "target": "跌",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "跌倒",
+        "pinyin": "diē dǎo"
+      },
+      {
+        "text": "跌落",
+        "pinyin": "diē luò"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3181,
+    "target": "皆",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "尽皆",
+        "pinyin": "jǐn jiē"
+      },
+      {
+        "text": "皆大欢喜",
+        "pinyin": "jiē dà huān xǐ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3181,
+    "target": "弃",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "丢弃",
+        "pinyin": "diū qì"
+      },
+      {
+        "text": "抛弃",
+        "pinyin": "pāo qì"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3181,
+    "target": "持",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "持笔",
+        "pinyin": "chí bǐ"
+      },
+      {
+        "text": "坚持",
+        "pinyin": "jiān chí"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3181,
+    "target": "击",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "击打",
+        "pinyin": "jī dǎ"
+      },
+      {
+        "text": "打击",
+        "pinyin": "dǎ jī"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "念",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "念书",
+        "pinyin": "niàn shū"
+      },
+      {
+        "text": "思念",
+        "pinyin": "sī niàn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "差",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "差评",
+        "pinyin": "chà píng"
+      },
+      {
+        "text": "差劲",
+        "pinyin": "chà jìn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "考",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "考试",
+        "pinyin": "kǎo shì"
+      },
+      {
+        "text": "备考",
+        "pinyin": "bèi kǎo"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "试",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "测试",
+        "pinyin": "cè shì"
+      },
+      {
+        "text": "试题",
+        "pinyin": "shì tí"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "均",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "均匀",
+        "pinyin": "jūn yún"
+      },
+      {
+        "text": "平均",
+        "pinyin": "píng jūn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "退",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "退学",
+        "pinyin": "tuì xué"
+      },
+      {
+        "text": "退步",
+        "pinyin": "tuì bù"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "努",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "努力",
+        "pinyin": "nǔ lì"
+      },
+      {
+        "text": "努嘴",
+        "pinyin": "nǔ zuǐ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "单",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "单据",
+        "pinyin": "dān jù"
+      },
+      {
+        "text": "传单",
+        "pinyin": "chuán dān"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "留",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "留学",
+        "pinyin": "liú xué"
+      },
+      {
+        "text": "停留",
+        "pinyin": "tíng liú"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "度",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "难度",
+        "pinyin": "nán dù"
+      },
+      {
+        "text": "制度",
+        "pinyin": "zhì dù"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "奋",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "兴奋",
+        "pinyin": "xīng fèn"
+      },
+      {
+        "text": "奋斗",
+        "pinyin": "fèn dòu"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "棒",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "棍棒",
+        "pinyin": "gùn bàng"
+      },
+      {
+        "text": "指挥棒",
+        "pinyin": "zhǐ huī bàng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "伤",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "伤员",
+        "pinyin": "shāng yuán"
+      },
+      {
+        "text": "受伤",
+        "pinyin": "shòu shāng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "陆",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "陆续",
+        "pinyin": "lù xù"
+      },
+      {
+        "text": "陆地",
+        "pinyin": "lù dì"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "血",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "血丝",
+        "pinyin": "xuè sī"
+      },
+      {
+        "text": "鲜血",
+        "pinyin": "xiān xuè"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "取",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "取出",
+        "pinyin": "qǔ chū"
+      },
+      {
+        "text": "取得",
+        "pinyin": "qǔ dé"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "盘",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "盘子",
+        "pinyin": "pán zi"
+      },
+      {
+        "text": "托盘",
+        "pinyin": "tuō pán"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "匆",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "匆匆",
+        "pinyin": "cōng cōng"
+      },
+      {
+        "text": "匆忙",
+        "pinyin": "cōng máng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "医",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "医生",
+        "pinyin": "yī shēng"
+      },
+      {
+        "text": "名医",
+        "pinyin": "míng yī"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "迅",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "迅速",
+        "pinyin": "xùn sù"
+      },
+      {
+        "text": "迅猛",
+        "pinyin": "xùn měng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "速",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "速度",
+        "pinyin": "sù dù"
+      },
+      {
+        "text": "急速",
+        "pinyin": "jí sù"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "夺",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "争分夺秒",
+        "pinyin": "zhēng fēn duó miǎo"
+      },
+      {
+        "text": "夺冠",
+        "pinyin": "duó guàn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "秒",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "秒针",
+        "pinyin": "miǎo zhēn"
+      },
+      {
+        "text": "秒表",
+        "pinyin": "miǎo biǎo"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3185,
+    "target": "睁",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "怒目圆睁",
+        "pinyin": "nù mù yuán zhēng"
+      },
+      {
+        "text": "睁眼",
+        "pinyin": "zhēng yǎn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3185,
+    "target": "眨",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "眨眼",
+        "pinyin": "zhǎ yǎn"
+      },
+      {
+        "text": "眨巴",
+        "pinyin": "zhǎ ba"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3185,
+    "target": "瞪",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "目瞪口呆",
+        "pinyin": "mù dèng kǒu dāi"
+      },
+      {
+        "text": "瞪眼",
+        "pinyin": "dèng yǎn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3185,
+    "target": "瞅",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "瞅见",
+        "pinyin": "chǒu jiàn"
+      },
+      {
+        "text": "瞅空",
+        "pinyin": "chǒu kōng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3185,
+    "target": "怒",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "发怒",
+        "pinyin": "fā nù"
+      },
+      {
+        "text": "恼怒",
+        "pinyin": "nǎo nù"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3185,
+    "target": "眶",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "眼眶",
+        "pinyin": "yǎn kuàng"
+      },
+      {
+        "text": "热泪盈眶",
+        "pinyin": "rè lèi yíng kuàng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3185,
+    "target": "呆",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "发呆",
+        "pinyin": "fā dāi"
+      },
+      {
+        "text": "呆板",
+        "pinyin": "dāi bǎn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3185,
+    "target": "睹",
+    "category": "生字",
+    "options_json": [
+      {
+        "text": "耳闻目睹",
+        "pinyin": "ěr wén mù dǔ"
+      },
+      {
+        "text": "熟视无睹",
+        "pinyin": "shú shì wú dǔ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "山坡",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "山坡",
+        "pinyin": "shān pō",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "学校",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "学校",
+        "pinyin": "xué xiào",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "飘扬",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "飘扬",
+        "pinyin": "piāo yáng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "课文",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "课文",
+        "pinyin": "kè wén",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "声音",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "声音",
+        "pinyin": "shēng yīn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "招引",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "招引",
+        "pinyin": "zhāo yǐn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "热闹",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "热闹",
+        "pinyin": "rè nao",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "古老",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "古老",
+        "pinyin": "gǔ lǎo",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "粗壮",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "粗壮",
+        "pinyin": "cū zhuàng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "枝干",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "枝干",
+        "pinyin": "zhī gàn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3111,
+    "target": "洁白",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "洁白",
+        "pinyin": "jié bái",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "轰响",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "轰响",
+        "pinyin": "hōng xiǎng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "阵雨",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "阵雨",
+        "pinyin": "zhèn yǔ",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "湿润",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "湿润",
+        "pinyin": "shī rùn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "风笛",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "风笛",
+        "pinyin": "fēng dí",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "狂欢",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "狂欢",
+        "pinyin": "kuáng huān",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "觉得",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "觉得",
+        "pinyin": "jué de",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "功课",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "功课",
+        "pinyin": "gōng kè",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "放学",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "放学",
+        "pinyin": "fàng xué",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "老师",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "老师",
+        "pinyin": "lǎo shī",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "急急忙忙",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "急急忙忙",
+        "pinyin": "jí jí máng máng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "秋风",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "秋风",
+        "pinyin": "qiū fēng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "放晴",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "放晴",
+        "pinyin": "fàng qíng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "明朗",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "明朗",
+        "pinyin": "míng lǎng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "地面",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "地面",
+        "pinyin": "dì miàn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "亮晶晶",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "亮晶晶",
+        "pinyin": "liàng jīng jīng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "落叶",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "落叶",
+        "pinyin": "luò yè",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "图案",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "图案",
+        "pinyin": "tú àn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "闪闪发光",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "闪闪发光",
+        "pinyin": "shǎn shǎn fā guāng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "尽头",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "尽头",
+        "pinyin": "jìn tóu",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "排列",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "排列",
+        "pinyin": "pái liè",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "规则",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "规则",
+        "pinyin": "guī zé",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "凌乱",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "凌乱",
+        "pinyin": "líng luàn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "歌唱",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "歌唱",
+        "pinyin": "gē chàng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3122,
+    "target": "迟到",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "迟到",
+        "pinyin": "chí dào",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "秋天",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "秋天",
+        "pinyin": "qiū tiān",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "清凉",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "清凉",
+        "pinyin": "qīng liáng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "炎热",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "炎热",
+        "pinyin": "yán rè",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "枫树",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "枫树",
+        "pinyin": "fēng shù",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "邮票",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "邮票",
+        "pinyin": "yóu piào",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "凉爽",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "凉爽",
+        "pinyin": "liáng shuǎng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "果树",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "果树",
+        "pinyin": "guǒ shù",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "菊花",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "菊花",
+        "pinyin": "jú huā",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "仙子",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "仙子",
+        "pinyin": "xiān zǐ",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "频频",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "频频",
+        "pinyin": "pín pín",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "气味",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "气味",
+        "pinyin": "qì wèi",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "香甜",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "香甜",
+        "pinyin": "xiāng tián",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "松果",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "松果",
+        "pinyin": "sōng guǒ",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3123,
+    "target": "丰收",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "丰收",
+        "pinyin": "fēng shōu",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "门板",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "门板",
+        "pinyin": "mén bǎn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "准备",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "准备",
+        "pinyin": "zhǔn bèi",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "旁边",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "旁边",
+        "pinyin": "páng biān",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "暴风雨",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "暴风雨",
+        "pinyin": "bào fēng yǔ",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "安心",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "安心",
+        "pinyin": "ān xīn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "低头",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "低头",
+        "pinyin": "dī tóu",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "吃力",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "吃力",
+        "pinyin": "chī lì",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "再见",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "再见",
+        "pinyin": "zài jiàn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "母鸡",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "母鸡",
+        "pinyin": "mǔ jī",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "注意",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "注意",
+        "pinyin": "zhù yì",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "屋子",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "屋子",
+        "pinyin": "wū zi",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "漂亮",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "漂亮",
+        "pinyin": "piào liang",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "意思",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "意思",
+        "pinyin": "yì si",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "因此",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "因此",
+        "pinyin": "yīn cǐ",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3134,
+    "target": "恒心",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "恒心",
+        "pinyin": "héng xīn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3134,
+    "target": "神圣",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "神圣",
+        "pinyin": "shén shèng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3134,
+    "target": "萌发",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "萌发",
+        "pinyin": "méng fā",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3134,
+    "target": "妥当",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "妥当",
+        "pinyin": "tuǒ dàng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3134,
+    "target": "车轴",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "车轴",
+        "pinyin": "chē zhóu",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3134,
+    "target": "阁楼",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "阁楼",
+        "pinyin": "gé lóu",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3134,
+    "target": "培植",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "培植",
+        "pinyin": "péi zhí",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3134,
+    "target": "厘米",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "厘米",
+        "pinyin": "lí mǐ",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "声明",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "声明",
+        "pinyin": "shēng míng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "神仙",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "神仙",
+        "pinyin": "shén xiān",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "普通",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "普通",
+        "pinyin": "pǔ tōng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "让步",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "让步",
+        "pinyin": "ràng bù",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "条件",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "条件",
+        "pinyin": "tiáo jiàn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "指甲",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "指甲",
+        "pinyin": "zhǐ jia",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "得到",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "得到",
+        "pinyin": "dé dào",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "衣服",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "衣服",
+        "pinyin": "yī fu",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "所以",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "所以",
+        "pinyin": "suǒ yǐ",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "要是",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "要是",
+        "pinyin": "yào shi",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "同学",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "同学",
+        "pinyin": "tóng xué",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "可怜",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "可怜",
+        "pinyin": "kě lián",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "最好",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "最好",
+        "pinyin": "zuì hǎo",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "科学",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "科学",
+        "pinyin": "kē xué",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "旅行",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "旅行",
+        "pinyin": "lǚ xíng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "要好",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "要好",
+        "pinyin": "yào hǎo",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "答应",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "答应",
+        "pinyin": "dā ying",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "做梦",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "做梦",
+        "pinyin": "zuò mèng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "来得及",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "来得及",
+        "pinyin": "lái de jí",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "救命",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "救命",
+        "pinyin": "jiù mìng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "大吃一惊",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "大吃一惊",
+        "pinyin": "dà chī yì jīng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "尾巴",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "尾巴",
+        "pinyin": "wěi ba",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "牙齿",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "牙齿",
+        "pinyin": "yá chǐ",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "肚皮",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "肚皮",
+        "pinyin": "dù pí",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "食物",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "食物",
+        "pinyin": "shí wù",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "消化",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "消化",
+        "pinyin": "xiāo huà",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "当然",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "当然",
+        "pinyin": "dāng rán",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "刚才",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "刚才",
+        "pinyin": "gāng cái",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "知觉",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "知觉",
+        "pinyin": "zhī jué",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "光亮",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "光亮",
+        "pinyin": "guāng liàng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3144,
+    "target": "申请",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "申请",
+        "pinyin": "shēn qǐng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3144,
+    "target": "介绍",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "介绍",
+        "pinyin": "jiè shào",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3144,
+    "target": "主旨",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "主旨",
+        "pinyin": "zhǔ zhǐ",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3144,
+    "target": "占领",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "占领",
+        "pinyin": "zhàn lǐng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3144,
+    "target": "乏力",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "乏力",
+        "pinyin": "fá lì",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "母亲",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "母亲",
+        "pinyin": "mǔ qīn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "外祖父",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "外祖父",
+        "pinyin": "wài zǔ fù",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "船夫",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "船夫",
+        "pinyin": "chuán fū",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "羽毛",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "羽毛",
+        "pinyin": "yǔ máo",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "翠绿",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "翠绿",
+        "pinyin": "cuì lǜ",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "静悄悄",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "静悄悄",
+        "pinyin": "jìng qiāo qiāo",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "翠鸟",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "翠鸟",
+        "pinyin": "cuì niǎo",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "捕鱼",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "捕鱼",
+        "pinyin": "bǔ yú",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3152,
+    "target": "草地",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "草地",
+        "pinyin": "cǎo dì",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3152,
+    "target": "蒲公英",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "蒲公英",
+        "pinyin": "pú gōng yīng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3152,
+    "target": "盛开",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "盛开",
+        "pinyin": "shèng kāi",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3152,
+    "target": "玩耍",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "玩耍",
+        "pinyin": "wán shuǎ",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3152,
+    "target": "一本正经",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "一本正经",
+        "pinyin": "yì běn zhèng jīng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3152,
+    "target": "使劲",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "使劲",
+        "pinyin": "shǐ jìn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3152,
+    "target": "钓鱼",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "钓鱼",
+        "pinyin": "diào yú",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3152,
+    "target": "观察",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "观察",
+        "pinyin": "guān chá",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3152,
+    "target": "合拢",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "合拢",
+        "pinyin": "hé lǒng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3152,
+    "target": "张开",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "张开",
+        "pinyin": "zhāng kāi",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3152,
+    "target": "喜爱",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "喜爱",
+        "pinyin": "xǐ ài",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "风景",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "风景",
+        "pinyin": "fēng jǐng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "优美",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "优美",
+        "pinyin": "yōu měi",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "物产",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "物产",
+        "pinyin": "wù chǎn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "交错",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "交错",
+        "pinyin": "jiāo cuò",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "岩石",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "岩石",
+        "pinyin": "yán shí",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "鹿角",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "鹿角",
+        "pinyin": "lù jiǎo",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "成群结队",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "成群结队",
+        "pinyin": "chéng qún jié duì",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "布满",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "布满",
+        "pinyin": "bù mǎn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "条纹",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "条纹",
+        "pinyin": "tiáo wén",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "周身",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "周身",
+        "pinyin": "zhōu shēn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "皮球",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "皮球",
+        "pinyin": "pí qiú",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "茂密",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "茂密",
+        "pinyin": "mào mì",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "肥料",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "肥料",
+        "pinyin": "féi liào",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "祖国",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "祖国",
+        "pinyin": "zǔ guó",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "事业",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "事业",
+        "pinyin": "shì yè",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "发展",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "发展",
+        "pinyin": "fā zhǎn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "海滨",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "海滨",
+        "pinyin": "hǎi bīn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "街道",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "街道",
+        "pinyin": "jiē dào",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "交界",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "交界",
+        "pinyin": "jiāo jiè",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "水平线",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "水平线",
+        "pinyin": "shuǐ píng xiàn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "机帆船",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "机帆船",
+        "pinyin": "jī fān chuán",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "来来往往",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "来来往往",
+        "pinyin": "lái lái wǎng wǎng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "朝阳",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "朝阳",
+        "pinyin": "zhāo yáng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "渔民",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "渔民",
+        "pinyin": "yú mín",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "贝壳",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "贝壳",
+        "pinyin": "bèi ké",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "汽笛",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "汽笛",
+        "pinyin": "qì dí",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "出海",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "出海",
+        "pinyin": "chū hǎi",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "银光闪闪",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "银光闪闪",
+        "pinyin": "yín guāng shǎn shǎn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "庭院",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "庭院",
+        "pinyin": "tíng yuàn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "亚热带",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "亚热带",
+        "pinyin": "yà rè dài",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "散发",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "散发",
+        "pinyin": "sàn fā",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "打扫",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "打扫",
+        "pinyin": "dǎ sǎo",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "干净",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "干净",
+        "pinyin": "gān jìng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "东北",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "东北",
+        "pinyin": "dōng běi",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "密密层层",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "密密层层",
+        "pinyin": "mì mi céng céng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "严严实实",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "严严实实",
+        "pinyin": "yán yán shí shí",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "视线",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "视线",
+        "pinyin": "shì xiàn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "山谷",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "山谷",
+        "pinyin": "shān gǔ",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "起来",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "起来",
+        "pinyin": "qǐ lái",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "照射",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "照射",
+        "pinyin": "zhào shè",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "各种各样",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "各种各样",
+        "pinyin": "gè zhǒng gè yàng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "花坛",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "花坛",
+        "pinyin": "huā tán",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "显得",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "显得",
+        "pinyin": "xiǎn de",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "苍翠",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "苍翠",
+        "pinyin": "cāng cuì",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "药材",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "药材",
+        "pinyin": "yào cái",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "捕捉",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "捕捉",
+        "pinyin": "bǔ zhuō",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "野兔",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "野兔",
+        "pinyin": "yě tù",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "景色",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "景色",
+        "pinyin": "jǐng sè",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "宝库",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "宝库",
+        "pinyin": "bǎo kù",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "大自然",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "大自然",
+        "pinyin": "dà zì rán",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "美妙",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "美妙",
+        "pinyin": "měi miào",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "音乐家",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "音乐家",
+        "pinyin": "yīn yuè jiā",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "手风琴",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "手风琴",
+        "pinyin": "shǒu fēng qín",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "歌手",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "歌手",
+        "pinyin": "gē shǒu",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "感受",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "感受",
+        "pinyin": "gǎn shòu",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "温柔",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "温柔",
+        "pinyin": "wēn róu",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "合奏",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "合奏",
+        "pinyin": "hé zòu",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "充满",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "充满",
+        "pinyin": "chōng mǎn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "威力",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "威力",
+        "pinyin": "wēi lì",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "乐器",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "乐器",
+        "pinyin": "yuè qì",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "屋顶",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "屋顶",
+        "pinyin": "wū dǐng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "河流",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "河流",
+        "pinyin": "hé liú",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "轻快",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "轻快",
+        "pinyin": "qīng kuài",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "合唱",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "合唱",
+        "pinyin": "hé chàng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "水塘",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "水塘",
+        "pinyin": "shuǐ táng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "昆虫",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "昆虫",
+        "pinyin": "kūn chóng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "万物",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "万物",
+        "pinyin": "wàn wù",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "沉思",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "沉思",
+        "pinyin": "chén sī",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "搬家",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "搬家",
+        "pinyin": "bān jiā",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "井然有序",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "井然有序",
+        "pinyin": "jǐng rán yǒu xù",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "精神",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "精神",
+        "pinyin": "jīng shén",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "植物",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "植物",
+        "pinyin": "zhí wù",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "千姿百态",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "千姿百态",
+        "pinyin": "qiān zī bǎi tài",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "鲜美",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "鲜美",
+        "pinyin": "xiān měi",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "池塘",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "池塘",
+        "pinyin": "chí táng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "秋高气爽",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "秋高气爽",
+        "pinyin": "qiū gāo qì shuǎng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "倒映",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "倒映",
+        "pinyin": "dào yìng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "游玩",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "游玩",
+        "pinyin": "yóu wán",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "画册",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "画册",
+        "pinyin": "huà cè",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "无穷",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "无穷",
+        "pinyin": "wú qióng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "奥秘",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "奥秘",
+        "pinyin": "ào mì",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3173,
+    "target": "无尽",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "无尽",
+        "pinyin": "wú jìn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3174,
+    "target": "田螺",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "田螺",
+        "pinyin": "tián luó",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3174,
+    "target": "螃蟹",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "螃蟹",
+        "pinyin": "páng xiè",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3174,
+    "target": "鲤鱼",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "鲤鱼",
+        "pinyin": "lǐ yú",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3174,
+    "target": "鲫鱼",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "鲫鱼",
+        "pinyin": "jì yú",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3174,
+    "target": "鲨鱼",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "鲨鱼",
+        "pinyin": "shā yú",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "生物",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "生物",
+        "pinyin": "shēng wù",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "从事",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "从事",
+        "pinyin": "cóng shì",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "成就",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "成就",
+        "pinyin": "chéng jiù",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "学期",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "学期",
+        "pinyin": "xué qī",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "考试",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "考试",
+        "pinyin": "kǎo shì",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "再三",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "再三",
+        "pinyin": "zài sān",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "同意",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "同意",
+        "pinyin": "tóng yì",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "难得",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "难得",
+        "pinyin": "nán dé",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "值班",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "值班",
+        "pinyin": "zhí bān",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "努力",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "努力",
+        "pinyin": "nǔ lì",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "留学",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "留学",
+        "pinyin": "liú xué",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "国家",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "国家",
+        "pinyin": "guó jiā",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "落后",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "落后",
+        "pinyin": "luò hòu",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "地位",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "地位",
+        "pinyin": "dì wèi",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "环节",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "环节",
+        "pinyin": "huán jié",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "难度",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "难度",
+        "pinyin": "nán dù",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "刻苦",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "刻苦",
+        "pinyin": "kè kǔ",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3182,
+    "target": "兴奋",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "兴奋",
+        "pinyin": "xīng fèn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "手术台",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "手术台",
+        "pinyin": "shǒu shù tái",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "阵地",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "阵地",
+        "pinyin": "zhèn dì",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "战斗",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "战斗",
+        "pinyin": "zhàn dòu",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "打响",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "打响",
+        "pinyin": "dǎ xiǎng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "消灭",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "消灭",
+        "pinyin": "xiāo miè",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "伤员",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "伤员",
+        "pinyin": "shāng yuán",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "陆续",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "陆续",
+        "pinyin": "lù xù",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "血丝",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "血丝",
+        "pinyin": "xuè sī",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "匆匆",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "匆匆",
+        "pinyin": "cōng cōng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "医生",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "医生",
+        "pinyin": "yī shēng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "转告",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "转告",
+        "pinyin": "zhuǎn gào",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "赶忙",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "赶忙",
+        "pinyin": "gǎn máng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "迅速",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "迅速",
+        "pinyin": "xùn sù",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "争分夺秒",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "争分夺秒",
+        "pinyin": "zhēng fēn duó miǎo",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "连续",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "连续",
+        "pinyin": "lián xù",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3185,
+    "target": "怒目圆睁",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "怒目圆睁",
+        "pinyin": "nù mù yuán zhēng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3185,
+    "target": "眨眼",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "眨眼",
+        "pinyin": "zhǎ yǎn",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3185,
+    "target": "眼眶",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "眼眶",
+        "pinyin": "yǎn kuàng",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3185,
+    "target": "目瞪口呆",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "目瞪口呆",
+        "pinyin": "mù dèng kǒu dāi",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3185,
+    "target": "耳闻目睹",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "耳闻目睹",
+        "pinyin": "ěr wén mù dǔ",
+        "vtype": "词语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "急急忙忙",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "急急忙忙",
+        "pinyin": "jí jí máng máng",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "高高兴兴",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "高高兴兴",
+        "pinyin": "gāo gāo xìng xìng",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "明明白白",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "明明白白",
+        "pinyin": "míng míng bái bái",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "平平安安",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "平平安安",
+        "pinyin": "píng píng ān ān",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "糊里糊涂",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "糊里糊涂",
+        "pinyin": "hú lǐ hú tú",
+        "vtype": "ABAC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "绘声绘色",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "绘声绘色",
+        "pinyin": "huì shēng huì sè",
+        "vtype": "ABAC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "人来人往",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "人来人往",
+        "pinyin": "rén lái rén wǎng",
+        "vtype": "ABAC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "无边无际",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "无边无际",
+        "pinyin": "wú biān wú jì",
+        "vtype": "ABAC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "多姿多彩",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "多姿多彩",
+        "pinyin": "duō zī duō cǎi",
+        "vtype": "ABAC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "一字不漏",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "一字不漏",
+        "pinyin": "yī zì bù lòu",
+        "vtype": "一不式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "一丝不苟",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "一丝不苟",
+        "pinyin": "yī sī bù gǒu",
+        "vtype": "一不式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "一文不值",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "一文不值",
+        "pinyin": "yī wén bù zhí",
+        "vtype": "一不式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "一言不发",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "一言不发",
+        "pinyin": "yī yán bù fā",
+        "vtype": "一不式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "一成不变",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "一成不变",
+        "pinyin": "yī chéng bù biàn",
+        "vtype": "一不式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "亮晶晶",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "亮晶晶",
+        "pinyin": "liàng jīng jīng",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "湿漉漉",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "湿漉漉",
+        "pinyin": "shī lù lù",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "干巴巴",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "干巴巴",
+        "pinyin": "gān bā bā",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "胖乎乎",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "胖乎乎",
+        "pinyin": "pàng hū hū",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "冷冰冰",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "冷冰冰",
+        "pinyin": "lěng bīng bīng",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "暖洋洋",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "暖洋洋",
+        "pinyin": "nuǎn yáng yáng",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "金黄金黄",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "金黄金黄",
+        "pinyin": "jīn huáng jīn huáng",
+        "vtype": "ABAB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "雪白雪白",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "雪白雪白",
+        "pinyin": "xuě bái xuě bái",
+        "vtype": "ABAB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "瓦蓝瓦蓝",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "瓦蓝瓦蓝",
+        "pinyin": "wǎ lán wǎ lán",
+        "vtype": "ABAB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "火红火红",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "火红火红",
+        "pinyin": "huǒ hóng huǒ hóng",
+        "vtype": "ABAB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "碧绿碧绿",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "碧绿碧绿",
+        "pinyin": "bì lǜ bì lǜ",
+        "vtype": "ABAB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "五彩缤纷",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "五彩缤纷",
+        "pinyin": "wǔ cǎi bīn fēn",
+        "vtype": "表示颜色多"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "五颜六色",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "五颜六色",
+        "pinyin": "wǔ yán liù sè",
+        "vtype": "表示颜色多"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "五光十色",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "五光十色",
+        "pinyin": "wǔ guāng shí sè",
+        "vtype": "表示颜色多"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "万紫千红",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "万紫千红",
+        "pinyin": "wàn zǐ qiān hóng",
+        "vtype": "表示颜色多"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "黄叶唰唰",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "黄叶唰唰",
+        "pinyin": "huáng yè shuā shuā",
+        "vtype": "表示声音"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "蟋蟀嚯嚯",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "蟋蟀嚯嚯",
+        "pinyin": "xī shuài huò huò",
+        "vtype": "表示声音"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "小雨沙沙",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "小雨沙沙",
+        "pinyin": "xiǎo yǔ shā shā",
+        "vtype": "表示声音"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "小鸟啾啾",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "小鸟啾啾",
+        "pinyin": "xiǎo niǎo jiū jiū",
+        "vtype": "表示声音"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "海浪哔哔",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "海浪哔哔",
+        "pinyin": "hǎi làng bì bì",
+        "vtype": "表示声音"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "自言自语",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "自言自语",
+        "pinyin": "zì yán zì yǔ",
+        "vtype": "ABAC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "有声有色",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "有声有色",
+        "pinyin": "yǒu shēng yǒu sè",
+        "vtype": "ABAC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "有板有眼",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "有板有眼",
+        "pinyin": "yǒu bǎn yǒu yǎn",
+        "vtype": "ABAC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "绘声绘色",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "绘声绘色",
+        "pinyin": "huì shēng huì sè",
+        "vtype": "ABAC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "不慌不忙",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "不慌不忙",
+        "pinyin": "bù huāng bù máng",
+        "vtype": "ABAC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "哈哈大笑",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "哈哈大笑",
+        "pinyin": "hā hā dà xiào",
+        "vtype": "AABC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "欣欣向荣",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "欣欣向荣",
+        "pinyin": "xīn xīn xiàng róng",
+        "vtype": "AABC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "斤斤计较",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "斤斤计较",
+        "pinyin": "jīn jīn jì jiào",
+        "vtype": "AABC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "蒸蒸日上",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "蒸蒸日上",
+        "pinyin": "zhēng zhēng rì shàng",
+        "vtype": "AABC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "遥遥领先",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "遥遥领先",
+        "pinyin": "yáo yáo lǐng xiān",
+        "vtype": "AABC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "井井有条",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "井井有条",
+        "pinyin": "jǐng jǐng yǒu tiáo",
+        "vtype": "AABC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "迷迷糊糊",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "迷迷糊糊",
+        "pinyin": "mí mí hū hū",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "干干净净",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "干干净净",
+        "pinyin": "gān gān jìng jìng",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "开开心心",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "开开心心",
+        "pinyin": "kāi kāi xīn xīn",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "平平安安",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "平平安安",
+        "pinyin": "píng píng ān ān",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "高高兴兴",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "高高兴兴",
+        "pinyin": "gāo gāo xìng xìng",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "明明白白",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "明明白白",
+        "pinyin": "míng míng bái bái",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "孤零零",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "孤零零",
+        "pinyin": "gū líng líng",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "亮闪闪",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "亮闪闪",
+        "pinyin": "liàng shǎn shǎn",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "金灿灿",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "金灿灿",
+        "pinyin": "jīn càn càn",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "香喷喷",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "香喷喷",
+        "pinyin": "xiāng pēn pēn",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3131,
+    "target": "静悄悄",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "静悄悄",
+        "pinyin": "jìng qiāo qiāo",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "绿油油",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "绿油油",
+        "pinyin": "lǜ yóu yóu",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "脆生生",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "脆生生",
+        "pinyin": "cuì shēng shēng",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "可怜巴巴",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "可怜巴巴",
+        "pinyin": "kě lián bā bā",
+        "vtype": "ABCC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "目光炯炯",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "目光炯炯",
+        "pinyin": "mù guāng jiǒng jiǒng",
+        "vtype": "ABCC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "怒气冲冲",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "怒气冲冲",
+        "pinyin": "nù qì chōng chōng",
+        "vtype": "ABCC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "神采奕奕",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "神采奕奕",
+        "pinyin": "shén cǎi yì yì",
+        "vtype": "ABCC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "生机勃勃",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "生机勃勃",
+        "pinyin": "shēng jī bó bó",
+        "vtype": "ABCC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "平平常常",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "平平常常",
+        "pinyin": "píng píng cháng cháng",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "吞吞吐吐",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "吞吞吐吐",
+        "pinyin": "tūn tūn tǔ tǔ",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "匆匆忙忙",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "匆匆忙忙",
+        "pinyin": "cōng cōng máng máng",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "纷纷扬扬",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "纷纷扬扬",
+        "pinyin": "fēn fēn yáng yáng",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "隐隐约约",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "隐隐约约",
+        "pinyin": "yǐn yǐn yuē yuē",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "笑眯眯",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "笑眯眯",
+        "pinyin": "xiào mī mī",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "笑呵呵",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "笑呵呵",
+        "pinyin": "xiào hē hē",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "笑哈哈",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "笑哈哈",
+        "pinyin": "xiào hā hā",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "笑嘻嘻",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "笑嘻嘻",
+        "pinyin": "xiào xī xī",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "气冲冲",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "气冲冲",
+        "pinyin": "qì chōng chōng",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "气呼呼",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "气呼呼",
+        "pinyin": "qì hū hū",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "细嚼慢咽",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "细嚼慢咽",
+        "pinyin": "xì jiáo màn yàn",
+        "vtype": "描写吃"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "狼吞虎咽",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "狼吞虎咽",
+        "pinyin": "láng tūn hǔ yàn",
+        "vtype": "描写吃"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "暴饮暴食",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "暴饮暴食",
+        "pinyin": "bào yǐn bào shí",
+        "vtype": "描写吃"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "大快朵颐",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "大快朵颐",
+        "pinyin": "dà kuài duǒ yí",
+        "vtype": "描写吃"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "津津有味",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "津津有味",
+        "pinyin": "jīn jīn yǒu wèi",
+        "vtype": "描写吃"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "争先恐后",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "争先恐后",
+        "pinyin": "zhēng xiān kǒng hòu",
+        "vtype": "含反义词"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "异口同声",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "异口同声",
+        "pinyin": "yì kǒu tóng shēng",
+        "vtype": "含反义词"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "大材小用",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "大材小用",
+        "pinyin": "dà cái xiǎo yòng",
+        "vtype": "含反义词"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "扬长避短",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "扬长避短",
+        "pinyin": "yáng cháng bì duǎn",
+        "vtype": "含反义词"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "贪生怕死",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "贪生怕死",
+        "pinyin": "tān shēng pà sǐ",
+        "vtype": "含反义词"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "头重脚轻",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "头重脚轻",
+        "pinyin": "tóu zhòng jiǎo qīng",
+        "vtype": "含反义词"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "七上八下",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "七上八下",
+        "pinyin": "qī shàng bā xià",
+        "vtype": "含数字"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "百发百中",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "百发百中",
+        "pinyin": "bǎi fā bǎi zhòng",
+        "vtype": "含数字"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "百战百胜",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "百战百胜",
+        "pinyin": "bǎi zhàn bǎi shèng",
+        "vtype": "含数字"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "四面八方",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "四面八方",
+        "pinyin": "sì miàn bā fāng",
+        "vtype": "含数字"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "七嘴八舌",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "七嘴八舌",
+        "pinyin": "qī zuǐ bā shé",
+        "vtype": "含数字"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "七手八脚",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "七手八脚",
+        "pinyin": "qī shǒu bā jiǎo",
+        "vtype": "含数字"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3150,
+    "target": "静悄悄",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "静悄悄",
+        "pinyin": "jìng qiāo qiāo",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3150,
+    "target": "闹哄哄",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "闹哄哄",
+        "pinyin": "nào hōng hōng",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3150,
+    "target": "哗啦啦",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "哗啦啦",
+        "pinyin": "huā lā lā",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3150,
+    "target": "呼啦啦",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "呼啦啦",
+        "pinyin": "hū lā lā",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3150,
+    "target": "轰隆隆",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "轰隆隆",
+        "pinyin": "hōng lōng lóng",
+        "vtype": "ABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3150,
+    "target": "引人注目",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "引人注目",
+        "pinyin": "yǐn rén zhù mù",
+        "vtype": "含目的成语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3150,
+    "target": "目不转睛",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "目不转睛",
+        "pinyin": "mù bù zhuǎn jīng",
+        "vtype": "含目的成语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3150,
+    "target": "光彩夺目",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "光彩夺目",
+        "pinyin": "guāng cǎi duó mù",
+        "vtype": "含目的成语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3150,
+    "target": "刮目相看",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "刮目相看",
+        "pinyin": "guā mù xiāng kàn",
+        "vtype": "含目的成语"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "五光十色",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "五光十色",
+        "pinyin": "wǔ guāng shí sè",
+        "vtype": "含有数字"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "五花八门",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "五花八门",
+        "pinyin": "wǔ huā bā mén",
+        "vtype": "含有数字"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "十全十美",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "十全十美",
+        "pinyin": "shí quán shí měi",
+        "vtype": "含有数字"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "七上八下",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "七上八下",
+        "pinyin": "qī shàng bā xià",
+        "vtype": "含有数字"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "一心一意",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "一心一意",
+        "pinyin": "yì xīn yí yì",
+        "vtype": "含有数字"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "银光闪闪",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "银光闪闪",
+        "pinyin": "yín guāng shǎn shǎn",
+        "vtype": "ABCC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "气喘吁吁",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "气喘吁吁",
+        "pinyin": "qì chuǎn xū xū",
+        "vtype": "ABCC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "风尘仆仆",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "风尘仆仆",
+        "pinyin": "fēng chén pú pú",
+        "vtype": "ABCC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "生机勃勃",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "生机勃勃",
+        "pinyin": "shēng jī bó bó",
+        "vtype": "ABCC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "可怜巴巴",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "可怜巴巴",
+        "pinyin": "kě lián bā bā",
+        "vtype": "ABCC式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "咯吱咯吱",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "咯吱咯吱",
+        "pinyin": "gē zhī gē zhī",
+        "vtype": "表示声音"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "滴滴答答",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "滴滴答答",
+        "pinyin": "dī dī dā dā",
+        "vtype": "表示声音"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "叮叮咚咚",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "叮叮咚咚",
+        "pinyin": "dīng dīng dōng dōng",
+        "vtype": "表示声音"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "哗啦哗啦",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "哗啦哗啦",
+        "pinyin": "huā lā huā lā",
+        "vtype": "表示声音"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "又香又脆",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "又香又脆",
+        "pinyin": "yòu xiāng yòu cuì",
+        "vtype": "又又式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "又松又软",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "又松又软",
+        "pinyin": "yòu sōng yòu ruǎn",
+        "vtype": "又又式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "又大又圆",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "又大又圆",
+        "pinyin": "yòu dà yòu yuán",
+        "vtype": "又又式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "又香又甜",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "又香又甜",
+        "pinyin": "yòu xiāng yòu tián",
+        "vtype": "又又式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "葱葱茏茏",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "葱葱茏茏",
+        "pinyin": "cōng cōng lóng lóng",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "密密层层",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "密密层层",
+        "pinyin": "mì mì céng céng",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "严严实实",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "严严实实",
+        "pinyin": "yán yán shí shí",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "从从容容",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "从从容容",
+        "pinyin": "cóng cóng róng róng",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "慌慌张张",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "慌慌张张",
+        "pinyin": "huāng huāng zhāng zhāng",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "流光溢彩",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "流光溢彩",
+        "pinyin": "liú guāng yì cǎi",
+        "vtype": "形容光影绚丽"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "璀璨夺目",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "璀璨夺目",
+        "pinyin": "cuǐ càn duó mù",
+        "vtype": "形容光影绚丽"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "绚丽多彩",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "绚丽多彩",
+        "pinyin": "xuàn lì duō cǎi",
+        "vtype": "形容光影绚丽"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "五颜六色",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "五颜六色",
+        "pinyin": "wǔ yán liù sè",
+        "vtype": "形容光影绚丽"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "火树银花",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "火树银花",
+        "pinyin": "huǒ shù yín huā",
+        "vtype": "形容光影绚丽"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "灯火辉煌",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "灯火辉煌",
+        "pinyin": "dēng huǒ huī huáng",
+        "vtype": "形容光影绚丽"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "五彩斑斓",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "五彩斑斓",
+        "pinyin": "wǔ cǎi bān lán",
+        "vtype": "形容光影绚丽"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "光影交错",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "光影交错",
+        "pinyin": "guāng yǐng jiāo cuò",
+        "vtype": "形容光影绚丽"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "呢喃",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "呢喃",
+        "pinyin": "ní nán",
+        "vtype": "拟声词"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "淙淙",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "淙淙",
+        "pinyin": "cóng cóng",
+        "vtype": "拟声词"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "潺潺",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "潺潺",
+        "pinyin": "chán chán",
+        "vtype": "拟声词"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "哗哗",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "哗哗",
+        "pinyin": "huā huā",
+        "vtype": "拟声词"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "叽叽喳喳",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "叽叽喳喳",
+        "pinyin": "jī jī zhā zhā",
+        "vtype": "拟声词"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "滴滴答答",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "滴滴答答",
+        "pinyin": "dī dī dā dā",
+        "vtype": "拟声词"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "叮叮咚咚",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "叮叮咚咚",
+        "pinyin": "dīng dīng dōng dōng",
+        "vtype": "拟声词"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "淅淅沥沥",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "淅淅沥沥",
+        "pinyin": "xī xī lì lì",
+        "vtype": "拟声词"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "哗啦哗啦",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "哗啦哗啦",
+        "pinyin": "huā lā huā lā",
+        "vtype": "拟声词"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "波澜壮阔",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "波澜壮阔",
+        "pinyin": "bō lán zhuàng kuò",
+        "vtype": "描写大海"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "汹涌澎湃",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "汹涌澎湃",
+        "pinyin": "xiōng yǒng péng pài",
+        "vtype": "描写大海"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "惊涛骇浪",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "惊涛骇浪",
+        "pinyin": "jīng tāo hài làng",
+        "vtype": "描写大海"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "滔天巨浪",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "滔天巨浪",
+        "pinyin": "tāo tiān jù làng",
+        "vtype": "描写大海"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "风平浪静",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "风平浪静",
+        "pinyin": "fēng píng làng jìng",
+        "vtype": "描写大海"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "叽叽喳喳",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "叽叽喳喳",
+        "pinyin": "jī jī zhā zhā",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "蹦蹦跳跳",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "蹦蹦跳跳",
+        "pinyin": "bèng bèng tiào tiào",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "急急忙忙",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "急急忙忙",
+        "pinyin": "jí jí máng máng",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "摇摇晃晃",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "摇摇晃晃",
+        "pinyin": "yáo yáo huàng huǎng",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "明明白白",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "明明白白",
+        "pinyin": "míng míng bái bái",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "隐隐约约",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "隐隐约约",
+        "pinyin": "yǐn yǐn yuē yuē",
+        "vtype": "AABB式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "千姿百态",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "千姿百态",
+        "pinyin": "qiān zī bǎi tài",
+        "vtype": "千百式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "千方百计",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "千方百计",
+        "pinyin": "qiān fāng bǎi jì",
+        "vtype": "千百式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "千锤百炼",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "千锤百炼",
+        "pinyin": "qiān chuí bǎi liàn",
+        "vtype": "千百式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "千奇百怪",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "千奇百怪",
+        "pinyin": "qiān qí bǎi guài",
+        "vtype": "千百式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "千依百顺",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "千依百顺",
+        "pinyin": "qiān yī bǎi shùn",
+        "vtype": "千百式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "不声不响",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "不声不响",
+        "pinyin": "bù shēng bù xiǎng",
+        "vtype": "不不式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "不慌不忙",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "不慌不忙",
+        "pinyin": "bù huāng bù máng",
+        "vtype": "不不式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "不闻不问",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "不闻不问",
+        "pinyin": "bù wén bù wèn",
+        "vtype": "不不式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "不折不扣",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "不折不扣",
+        "pinyin": "bù zhé bù kòu",
+        "vtype": "不不式"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "争分夺秒",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "争分夺秒",
+        "pinyin": "zhēng fēn duó miǎo",
+        "vtype": "表示时间紧急"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "迫在眉睫",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "迫在眉睫",
+        "pinyin": "pò zài méi jié",
+        "vtype": "表示时间紧急"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "十万火急",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "十万火急",
+        "pinyin": "shí wàn huǒ jí",
+        "vtype": "表示时间紧急"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "火烧眉毛",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "火烧眉毛",
+        "pinyin": "huǒ shāo méi máo",
+        "vtype": "表示时间紧急"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "箭在弦上",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "箭在弦上",
+        "pinyin": "jiàn zài xián shàng",
+        "vtype": "表示时间紧急"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "千钧一发",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "千钧一发",
+        "pinyin": "qiān jūn yī fà",
+        "vtype": "表示时间紧急"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "危在旦夕",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "危在旦夕",
+        "pinyin": "wēi zài dàn xī",
+        "vtype": "表示时间紧急"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "分秒必争",
+    "category": "词语",
+    "options_json": [
+      {
+        "text": "分秒必争",
+        "pinyin": "fēn miǎo bì zhēng",
+        "vtype": "表示时间紧急"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "飘扬",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "飘扬",
+        "pinyin": "piāo yáng",
+        "pair_id": "311001",
+        "role": "tw1",
+        "confuse_char": "飘"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "漂流",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "漂流",
+        "pinyin": "piāo liú",
+        "pair_id": "311001",
+        "role": "tw2",
+        "confuse_char": "飘"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "强壮",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "强壮",
+        "pinyin": "qiáng zhuàng",
+        "pair_id": "311002",
+        "role": "tw1",
+        "confuse_char": "壮"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "状态",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "状态",
+        "pinyin": "zhuàng tài",
+        "pair_id": "311002",
+        "role": "tw2",
+        "confuse_char": "壮"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "湿润",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "湿润",
+        "pinyin": "shī rùn",
+        "pair_id": "311003",
+        "role": "tw1",
+        "confuse_char": "湿"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "温度",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "温度",
+        "pinyin": "wēn dù",
+        "pair_id": "311003",
+        "role": "tw2",
+        "confuse_char": "湿"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "粗细",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "粗细",
+        "pinyin": "cū xì",
+        "pair_id": "311004",
+        "role": "tw1",
+        "confuse_char": "粗"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "姐妹",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "姐妹",
+        "pinyin": "jiě mèi",
+        "pair_id": "311004",
+        "role": "tw2",
+        "confuse_char": "粗"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "飞扬",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "飞扬",
+        "pinyin": "fēi yáng",
+        "pair_id": "311005",
+        "role": "tw1",
+        "confuse_char": "扬"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "杨树",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "杨树",
+        "pinyin": "yáng shù",
+        "pair_id": "311005",
+        "role": "tw2",
+        "confuse_char": "扬"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "笛子",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "笛子",
+        "pinyin": "dí zi",
+        "pair_id": "311006",
+        "role": "tw1",
+        "confuse_char": "笛"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "禾苗",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "禾苗",
+        "pinyin": "hé miáo",
+        "pair_id": "311006",
+        "role": "tw2",
+        "confuse_char": "笛"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "互相",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "互相",
+        "pinyin": "hù xiāng",
+        "pair_id": "311007",
+        "role": "tw1",
+        "confuse_char": "互"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "瓦片",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "瓦片",
+        "pinyin": "wǎ piàn",
+        "pair_id": "311007",
+        "role": "tw2",
+        "confuse_char": "互"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "疯狂",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "疯狂",
+        "pinyin": "fēng kuáng",
+        "pair_id": "311008",
+        "role": "tw1",
+        "confuse_char": "狂"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "兴旺",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "兴旺",
+        "pinyin": "xīng wàng",
+        "pair_id": "311008",
+        "role": "tw2",
+        "confuse_char": "狂"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "山坡",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "山坡",
+        "pinyin": "shān pō",
+        "pair_id": "311009",
+        "role": "tw1",
+        "confuse_char": "坡"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "水波",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "水波",
+        "pinyin": "shuǐ bō",
+        "pair_id": "311009",
+        "role": "tw2",
+        "confuse_char": "坡"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "洁白",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "洁白",
+        "pinyin": "jié bái",
+        "pair_id": "311010",
+        "role": "tw1",
+        "confuse_char": "洁"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3110,
+    "target": "结束",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "结束",
+        "pinyin": "jié shù",
+        "pair_id": "311010",
+        "role": "tw2",
+        "confuse_char": "洁"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "石径",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "石径",
+        "pinyin": "shí jìng",
+        "pair_id": "312001",
+        "role": "tw1",
+        "confuse_char": "径"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "经常",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "经常",
+        "pinyin": "jīng cháng",
+        "pair_id": "312001",
+        "role": "tw2",
+        "confuse_char": "径"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "未来",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "未来",
+        "pinyin": "wèi lái",
+        "pair_id": "312002",
+        "role": "tw1",
+        "confuse_char": "未"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "末尾",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "末尾",
+        "pinyin": "mò wěi",
+        "pair_id": "312002",
+        "role": "tw2",
+        "confuse_char": "未"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "晴朗",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "晴朗",
+        "pinyin": "qíng lǎng",
+        "pair_id": "312003",
+        "role": "tw1",
+        "confuse_char": "朗"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "新郎",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "新郎",
+        "pinyin": "xīn láng",
+        "pair_id": "312003",
+        "role": "tw2",
+        "confuse_char": "朗"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "排列",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "排列",
+        "pinyin": "pái liè",
+        "pair_id": "312004",
+        "role": "tw1",
+        "confuse_char": "列"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "例题",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "例题",
+        "pinyin": "lì tí",
+        "pair_id": "312004",
+        "role": "tw2",
+        "confuse_char": "列"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "勾住",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "勾住",
+        "pinyin": "gōu zhù",
+        "pair_id": "312005",
+        "role": "tw1",
+        "confuse_char": "勾"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3120,
+    "target": "铁勺",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "铁勺",
+        "pinyin": "tiě sháo",
+        "pair_id": "312005",
+        "role": "tw2",
+        "confuse_char": "勾"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "风吹日晒",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "风吹日晒",
+        "pinyin": "fēng chuī rì shài",
+        "pair_id": "313001",
+        "role": "tw1",
+        "confuse_char": "晒"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "洒水",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "洒水",
+        "pinyin": "sǎ shuǐ",
+        "pair_id": "313001",
+        "role": "tw2",
+        "confuse_char": "晒"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "萌发",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "萌发",
+        "pinyin": "méng fā",
+        "pair_id": "313002",
+        "role": "tw1",
+        "confuse_char": "萌"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "葫芦",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "葫芦",
+        "pinyin": "hú lu",
+        "pair_id": "313002",
+        "role": "tw2",
+        "confuse_char": "萌"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "培养",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "培养",
+        "pinyin": "péi yǎng",
+        "pair_id": "313003",
+        "role": "tw1",
+        "confuse_char": "培"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3130,
+    "target": "陪伴",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "陪伴",
+        "pinyin": "péi bàn",
+        "pair_id": "313003",
+        "role": "tw2",
+        "confuse_char": "培"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "龙宫",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "龙宫",
+        "pinyin": "lóng gōng",
+        "pair_id": "314001",
+        "role": "tw1",
+        "confuse_char": "宫"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "做官",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "做官",
+        "pinyin": "zuò guān",
+        "pair_id": "314001",
+        "role": "tw2",
+        "confuse_char": "宫"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "旅行",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "旅行",
+        "pinyin": "lǚ xíng",
+        "pair_id": "314002",
+        "role": "tw1",
+        "confuse_char": "旅"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "民族",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "民族",
+        "pinyin": "mín zú",
+        "pair_id": "314002",
+        "role": "tw2",
+        "confuse_char": "旅"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "画龙点睛",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "画龙点睛",
+        "pinyin": "huà lóng diǎn jīng",
+        "pair_id": "314003",
+        "role": "tw1",
+        "confuse_char": "睛"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3140,
+    "target": "晴天",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "晴天",
+        "pinyin": "qíng tiān",
+        "pair_id": "314003",
+        "role": "tw2",
+        "confuse_char": "睛"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3150,
+    "target": "搭船",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "搭船",
+        "pinyin": "dā chuán",
+        "pair_id": "315001",
+        "role": "tw1",
+        "confuse_char": "搭"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3150,
+    "target": "宝塔",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "宝塔",
+        "pinyin": "bǎo tǎ",
+        "pair_id": "315001",
+        "role": "tw2",
+        "confuse_char": "搭"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3150,
+    "target": "玩耍",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "玩耍",
+        "pinyin": "wán shuǎ",
+        "pair_id": "315002",
+        "role": "tw1",
+        "confuse_char": "耍"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3150,
+    "target": "重要",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "重要",
+        "pinyin": "zhòng yào",
+        "pair_id": "315002",
+        "role": "tw2",
+        "confuse_char": "耍"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3150,
+    "target": "披风",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "披风",
+        "pinyin": "pī fēng",
+        "pair_id": "315003",
+        "role": "tw1",
+        "confuse_char": "披"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3150,
+    "target": "山坡",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "山坡",
+        "pinyin": "shān pō",
+        "pair_id": "315003",
+        "role": "tw2",
+        "confuse_char": "披"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3150,
+    "target": "合拢",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "合拢",
+        "pinyin": "hé lǒng",
+        "pair_id": "315004",
+        "role": "tw1",
+        "confuse_char": "拢"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3150,
+    "target": "打扰",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "打扰",
+        "pinyin": "dǎ rǎo",
+        "pair_id": "315004",
+        "role": "tw2",
+        "confuse_char": "拢"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "严密",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "严密",
+        "pinyin": "yán mì",
+        "pair_id": "316001",
+        "role": "tw1",
+        "confuse_char": "密"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "奥秘",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "奥秘",
+        "pinyin": "ào mì",
+        "pair_id": "316001",
+        "role": "tw2",
+        "confuse_char": "密"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "苍翠",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "苍翠",
+        "pinyin": "cāng cuì",
+        "pair_id": "316002",
+        "role": "tw1",
+        "confuse_char": "苍"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "仓库",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "仓库",
+        "pinyin": "cāng kù",
+        "pair_id": "316002",
+        "role": "tw2",
+        "confuse_char": "苍"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "海滨",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "海滨",
+        "pinyin": "hǎi bīn",
+        "pair_id": "316003",
+        "role": "tw1",
+        "confuse_char": "滨"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "缤纷",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "缤纷",
+        "pinyin": "bīn fēn",
+        "pair_id": "316003",
+        "role": "tw2",
+        "confuse_char": "滨"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "渔船",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "渔船",
+        "pinyin": "yú chuán",
+        "pair_id": "316004",
+        "role": "tw1",
+        "confuse_char": "渔"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "金鱼",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "金鱼",
+        "pinyin": "jīn yú",
+        "pair_id": "316004",
+        "role": "tw2",
+        "confuse_char": "渔"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "亚军",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "亚军",
+        "pinyin": "yà jūn",
+        "pair_id": "316005",
+        "role": "tw1",
+        "confuse_char": "亚"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "事业",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "事业",
+        "pinyin": "shì yè",
+        "pair_id": "316005",
+        "role": "tw2",
+        "confuse_char": "亚"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "严实",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "严实",
+        "pinyin": "yán shí",
+        "pair_id": "316006",
+        "role": "tw1",
+        "confuse_char": "严"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "特产",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "特产",
+        "pinyin": "tè chǎn",
+        "pair_id": "316006",
+        "role": "tw2",
+        "confuse_char": "严"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "挡住",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "挡住",
+        "pinyin": "dǎng zhù",
+        "pair_id": "316007",
+        "role": "tw1",
+        "confuse_char": "挡"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "文档",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "文档",
+        "pinyin": "wén dàng",
+        "pair_id": "316007",
+        "role": "tw2",
+        "confuse_char": "挡"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "木材",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "木材",
+        "pinyin": "mù cái",
+        "pair_id": "316008",
+        "role": "tw1",
+        "confuse_char": "材"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3160,
+    "target": "财富",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "财富",
+        "pinyin": "cái fù",
+        "pair_id": "316008",
+        "role": "tw2",
+        "confuse_char": "材"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "奇妙",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "奇妙",
+        "pinyin": "qí miào",
+        "pair_id": "317001",
+        "role": "tw1",
+        "confuse_char": "妙"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "抄写",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "抄写",
+        "pinyin": "chāo xiě",
+        "pair_id": "317001",
+        "role": "tw2",
+        "confuse_char": "妙"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "奥秘",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "奥秘",
+        "pinyin": "ào mì",
+        "pair_id": "317002",
+        "role": "tw1",
+        "confuse_char": "秘"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "严密",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "严密",
+        "pinyin": "yán mì",
+        "pair_id": "317002",
+        "role": "tw2",
+        "confuse_char": "秘"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "部分",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "部分",
+        "pinyin": "bù fen",
+        "pair_id": "317003",
+        "role": "tw1",
+        "confuse_char": "部"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "陪伴",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "陪伴",
+        "pinyin": "péi bàn",
+        "pair_id": "317003",
+        "role": "tw2",
+        "confuse_char": "部"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "姿态",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "姿态",
+        "pinyin": "zī tài",
+        "pair_id": "317004",
+        "role": "tw1",
+        "confuse_char": "姿"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3170,
+    "target": "资金",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "资金",
+        "pinyin": "zī jīn",
+        "pair_id": "317004",
+        "role": "tw2",
+        "confuse_char": "姿"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "木棒",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "木棒",
+        "pinyin": "mù bàng",
+        "pair_id": "318001",
+        "role": "tw1",
+        "confuse_char": "棒"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "捧场",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "捧场",
+        "pinyin": "pěng chǎng",
+        "pair_id": "318001",
+        "role": "tw2",
+        "confuse_char": "棒"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "考试",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "考试",
+        "pinyin": "kǎo shì",
+        "pair_id": "318002",
+        "role": "tw1",
+        "confuse_char": "考"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "老师",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "老师",
+        "pinyin": "lǎo shī",
+        "pair_id": "318002",
+        "role": "tw2",
+        "confuse_char": "考"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "登山",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "登山",
+        "pinyin": "dēng shān",
+        "pair_id": "318003",
+        "role": "tw1",
+        "confuse_char": "登"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "瞪眼",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "瞪眼",
+        "pinyin": "dèng yǎn",
+        "pair_id": "318003",
+        "role": "tw2",
+        "confuse_char": "登"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "努力",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "努力",
+        "pinyin": "nǔ lì",
+        "pair_id": "318004",
+        "role": "tw1",
+        "confuse_char": "努"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "愤怒",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "愤怒",
+        "pinyin": "fèn nù",
+        "pair_id": "318004",
+        "role": "tw2",
+        "confuse_char": "努"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "匆匆",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "匆匆",
+        "pinyin": "cōng cōng",
+        "pair_id": "318005",
+        "role": "tw1",
+        "confuse_char": "匆"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "切勿",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "切勿",
+        "pinyin": "qiè wù",
+        "pair_id": "318005",
+        "role": "tw2",
+        "confuse_char": "匆"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "血液",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "血液",
+        "pinyin": "xuè yè",
+        "pair_id": "318006",
+        "role": "tw1",
+        "confuse_char": "血"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "器皿",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "器皿",
+        "pinyin": "qì mǐn",
+        "pair_id": "318006",
+        "role": "tw2",
+        "confuse_char": "血"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "发呆",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "发呆",
+        "pinyin": "fā dāi",
+        "pair_id": "318007",
+        "role": "tw1",
+        "confuse_char": "呆"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3180,
+    "target": "吊灯",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "吊灯",
+        "pinyin": "diào dēng",
+        "pair_id": "318007",
+        "role": "tw2",
+        "confuse_char": "呆"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "原来",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "原来",
+        "pinyin": "yuán lái",
+        "pair_id": "300001",
+        "role": "tw1",
+        "confuse_char": "原"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "队员",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "队员",
+        "pinyin": "duì yuán",
+        "pair_id": "300001",
+        "role": "tw2",
+        "confuse_char": "原"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "注意",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "注意",
+        "pinyin": "zhù yì",
+        "pair_id": "300002",
+        "role": "tw1",
+        "confuse_char": "注"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "住房",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "住房",
+        "pinyin": "zhù fáng",
+        "pair_id": "300002",
+        "role": "tw2",
+        "confuse_char": "注"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "广场",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "广场",
+        "pinyin": "guǎng chǎng",
+        "pair_id": "300003",
+        "role": "tw1",
+        "confuse_char": "场"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "杨树",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "杨树",
+        "pinyin": "yáng shù",
+        "pair_id": "300003",
+        "role": "tw2",
+        "confuse_char": "场"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "玩具",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "玩具",
+        "pinyin": "wán jù",
+        "pair_id": "300004",
+        "role": "tw1",
+        "confuse_char": "具"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "真正",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "真正",
+        "pinyin": "zhēn zhèng",
+        "pair_id": "300004",
+        "role": "tw2",
+        "confuse_char": "具"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "民族",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "民族",
+        "pinyin": "mín zú",
+        "pair_id": "300005",
+        "role": "tw1",
+        "confuse_char": "族"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "旅游",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "旅游",
+        "pinyin": "lǚ yóu",
+        "pair_id": "300005",
+        "role": "tw2",
+        "confuse_char": "族"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "钱币",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "钱币",
+        "pinyin": "qián bì",
+        "pair_id": "300006",
+        "role": "tw1",
+        "confuse_char": "币"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "毛巾",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "毛巾",
+        "pinyin": "máo jīn",
+        "pair_id": "300006",
+        "role": "tw2",
+        "confuse_char": "币"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "盒子",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "盒子",
+        "pinyin": "hé zi",
+        "pair_id": "300007",
+        "role": "tw1",
+        "confuse_char": "盒"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "水盆",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "水盆",
+        "pinyin": "shuǐ pén",
+        "pair_id": "300007",
+        "role": "tw2",
+        "confuse_char": "盒"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "方便",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "方便",
+        "pinyin": "fāng biàn",
+        "pair_id": "300008",
+        "role": "tw1",
+        "confuse_char": "便"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "使用",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "使用",
+        "pinyin": "shǐ yòng",
+        "pair_id": "300008",
+        "role": "tw2",
+        "confuse_char": "便"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "积水",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "积水",
+        "pinyin": "jī shuǐ",
+        "pair_id": "300009",
+        "role": "tw1",
+        "confuse_char": "积"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "织布",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "织布",
+        "pinyin": "zhī bù",
+        "pair_id": "300009",
+        "role": "tw2",
+        "confuse_char": "积"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "破旧",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "破旧",
+        "pinyin": "pò jiù",
+        "pair_id": "300010",
+        "role": "tw1",
+        "confuse_char": "破"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "雨披",
+    "category": "易错字",
+    "options_json": [
+      {
+        "text": "雨披",
+        "pinyin": "yǔ pī",
+        "pair_id": "300010",
+        "role": "tw2",
+        "confuse_char": "破"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3112,
+    "target": "假",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "放假",
+        "pinyin": "fàng jià",
+        "pron": "jià"
+      },
+      {
+        "text": "真假",
+        "pinyin": "zhēn jiǎ",
+        "pron": "jiǎ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3121,
+    "target": "磨",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "磨蹭",
+        "pinyin": "mó ceng",
+        "pron": "mó"
+      },
+      {
+        "text": "石磨",
+        "pinyin": "shí mò",
+        "pron": "mò"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3121,
+    "target": "挑",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "挑战",
+        "pinyin": "tiǎo zhàn",
+        "pron": "tiǎo"
+      },
+      {
+        "text": "挑选",
+        "pinyin": "tiāo xuǎn",
+        "pron": "tiāo"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3132,
+    "target": "几",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "几乎",
+        "pinyin": "jī hū",
+        "pron": "jī"
+      },
+      {
+        "text": "几个",
+        "pinyin": "jǐ gè",
+        "pron": "jǐ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3133,
+    "target": "吗",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "干吗",
+        "pinyin": "gàn má",
+        "pron": "má"
+      },
+      {
+        "text": "好吗",
+        "pinyin": "hǎo ma",
+        "pron": "ma"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3133,
+    "target": "中",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "中奖",
+        "pinyin": "zhòng jiǎng",
+        "pron": "zhòng"
+      },
+      {
+        "text": "中间",
+        "pinyin": "zhōng jiān",
+        "pron": "zhōng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3133,
+    "target": "弹",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "子弹",
+        "pinyin": "zǐ dàn",
+        "pron": "dàn"
+      },
+      {
+        "text": "弹琴",
+        "pinyin": "tán qín",
+        "pron": "tán"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "少",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "少年",
+        "pinyin": "shào nián",
+        "pron": "shào"
+      },
+      {
+        "text": "多少",
+        "pinyin": "duō shao",
+        "pron": "shǎo"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "冲",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "冲着",
+        "pinyin": "chòng zhe",
+        "pron": "chòng"
+      },
+      {
+        "text": "冲击",
+        "pinyin": "chōng jī",
+        "pron": "chōng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3141,
+    "target": "系",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "联系",
+        "pinyin": "lián xì",
+        "pron": "xì"
+      },
+      {
+        "text": "系鞋带",
+        "pinyin": "jì xié dài",
+        "pron": "jì"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "答",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "答应",
+        "pinyin": "dā ying",
+        "pron": "dā"
+      },
+      {
+        "text": "回答",
+        "pinyin": "huí dá",
+        "pron": "dá"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3142,
+    "target": "应",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "呼应",
+        "pinyin": "hū yìng",
+        "pron": "yìng"
+      },
+      {
+        "text": "应当",
+        "pinyin": "yīng dāng",
+        "pron": "yīng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3143,
+    "target": "骨",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "骨碌碌",
+        "pinyin": "gū lu lu",
+        "pron": "gū"
+      },
+      {
+        "text": "骨头",
+        "pinyin": "gǔ tou",
+        "pron": "gǔ"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3143,
+    "target": "处",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "处理",
+        "pinyin": "chǔ lǐ",
+        "pron": "chǔ"
+      },
+      {
+        "text": "到处",
+        "pinyin": "dào chù",
+        "pron": "chù"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3151,
+    "target": "啦",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "哗啦",
+        "pinyin": "huā lā",
+        "pron": "lā"
+      },
+      {
+        "text": "好啦",
+        "pinyin": "hǎo la",
+        "pron": "la"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3161,
+    "target": "参",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "海参",
+        "pinyin": "hǎi shēn",
+        "pron": "shēn"
+      },
+      {
+        "text": "参加",
+        "pinyin": "cān jiā",
+        "pron": "cān"
+      },
+      {
+        "text": "参差不齐",
+        "pinyin": "cēn cī bù qí",
+        "pron": "cēn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3162,
+    "target": "臂",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "胳臂",
+        "pinyin": "gē bei",
+        "pron": "bei"
+      },
+      {
+        "text": "臂膀",
+        "pinyin": "bì bǎng",
+        "pron": "bì"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "兴",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "兴旺",
+        "pinyin": "xīng wàng",
+        "pron": "xīng"
+      },
+      {
+        "text": "高兴",
+        "pinyin": "gāo xìng",
+        "pron": "xìng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3163,
+    "target": "舍",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "宿舍",
+        "pinyin": "sù shè",
+        "pron": "shè"
+      },
+      {
+        "text": "舍弃",
+        "pinyin": "shě qì",
+        "pron": "shě"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3164,
+    "target": "角",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "角色",
+        "pinyin": "jué sè",
+        "pron": "jué"
+      },
+      {
+        "text": "墙角",
+        "pinyin": "qiáng jiǎo",
+        "pron": "jiǎo"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3171,
+    "target": "抹",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "涂抹",
+        "pinyin": "tú mǒ",
+        "pron": "mǒ"
+      },
+      {
+        "text": "抹布",
+        "pinyin": "mā bù",
+        "pron": "mā"
+      },
+      {
+        "text": "抹墙",
+        "pinyin": "mò qiáng",
+        "pron": "mò"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3172,
+    "target": "呢",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "呢喃",
+        "pinyin": "ní nán",
+        "pron": "ní"
+      },
+      {
+        "text": "早着呢",
+        "pinyin": "zǎo zhe ne",
+        "pron": "ne"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "大",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "大夫",
+        "pinyin": "dài fu",
+        "pron": "dài"
+      },
+      {
+        "text": "大家",
+        "pinyin": "dà jiā",
+        "pron": "dà"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3183,
+    "target": "担",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "担水",
+        "pinyin": "dān shuǐ",
+        "pron": "dān"
+      },
+      {
+        "text": "重担",
+        "pinyin": "zhòng dàn",
+        "pron": "dàn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3184,
+    "target": "还",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "还价",
+        "pinyin": "huán jià",
+        "pron": "huán"
+      },
+      {
+        "text": "还有",
+        "pinyin": "hái yǒu",
+        "pron": "hái"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3184,
+    "target": "禁",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "情不自禁",
+        "pinyin": "qíng bù zì jīn",
+        "pron": "jīn"
+      },
+      {
+        "text": "禁止",
+        "pinyin": "jìn zhǐ",
+        "pron": "jìn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "应",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "应该",
+        "pinyin": "yīng gāi",
+        "pron": "yīng"
+      },
+      {
+        "text": "应用",
+        "pinyin": "yìng yòng",
+        "pron": "yìng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "发",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "发现",
+        "pinyin": "fā xiàn",
+        "pron": "fā"
+      },
+      {
+        "text": "头发",
+        "pinyin": "tóu fa",
+        "pron": "fà"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "漂",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "漂流",
+        "pinyin": "piāo liú",
+        "pron": "piāo"
+      },
+      {
+        "text": "漂白",
+        "pinyin": "piǎo bái",
+        "pron": "piǎo"
+      },
+      {
+        "text": "漂亮",
+        "pinyin": "piào liang",
+        "pron": "piào"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "炸",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "油炸",
+        "pinyin": "yóu zhá",
+        "pron": "zhá"
+      },
+      {
+        "text": "炸弹",
+        "pinyin": "zhà dàn",
+        "pron": "zhà"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "圈",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "羊圈",
+        "pinyin": "yáng juàn",
+        "pron": "juàn"
+      },
+      {
+        "text": "圆圈",
+        "pinyin": "yuán quān",
+        "pron": "quān"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "便",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "方便",
+        "pinyin": "fāng biàn",
+        "pron": "biàn"
+      },
+      {
+        "text": "便宜",
+        "pinyin": "pián yi",
+        "pron": "pián"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "模",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "模样",
+        "pinyin": "mú yàng",
+        "pron": "mú"
+      },
+      {
+        "text": "模型",
+        "pinyin": "mó xíng",
+        "pron": "mó"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "重",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "重复",
+        "pinyin": "chóng fù",
+        "pron": "chóng"
+      },
+      {
+        "text": "重量",
+        "pinyin": "zhòng liàng",
+        "pron": "zhòng"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "尽",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "尽管",
+        "pinyin": "jǐn guǎn",
+        "pron": "jǐn"
+      },
+      {
+        "text": "尽力",
+        "pinyin": "jìn lì",
+        "pron": "jìn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "背",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "背包",
+        "pinyin": "bēi bāo",
+        "pron": "bēi"
+      },
+      {
+        "text": "后背",
+        "pinyin": "hòu bèi",
+        "pron": "bèi"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "传",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "传说",
+        "pinyin": "chuán shuō",
+        "pron": "chuán"
+      },
+      {
+        "text": "传记",
+        "pinyin": "zhuàn jì",
+        "pron": "zhuàn"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "结",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "结实",
+        "pinyin": "jiē shi",
+        "pron": "jiē"
+      },
+      {
+        "text": "打结",
+        "pinyin": "dǎ jié",
+        "pron": "jié"
+      }
+    ]
+  },
+  {
+    "lesson_seq": 3000,
+    "target": "教",
+    "category": "多音字",
+    "options_json": [
+      {
+        "text": "教书",
+        "pinyin": "jiāo shū",
+        "pron": "jiāo"
+      },
+      {
+        "text": "教师",
+        "pinyin": "jiào shī",
+        "pron": "jiào"
+      }
+    ]
+  }
+]
