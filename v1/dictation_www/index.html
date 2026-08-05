@@ -111,6 +111,15 @@
             </div>
 
             <div x-show="step === 2" x-cloak class="p-4 pb-6">
+                <div x-show="legend.length" class="flex flex-wrap gap-x-3 gap-y-1 mb-3 px-1 text-[11px] text-gray-500">
+                    <template x-for="it in legend" :key="it.key">
+                        <span class="inline-flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full" :class="it.dot"></span>
+                            <span x-text="it.name"></span>
+                            <span class="font-mono text-gray-400" x-text="it.count"></span>
+                        </span>
+                    </template>
+                </div>
                 <div class="grid grid-cols-2 gap-3">
                     <template x-for="word in wordList" :key="word.kp_id">
                         <div @click="word.selected = !word.selected"
@@ -298,6 +307,22 @@
                 // 本地测试请修改此地址，正式部署留空即可
                 API_BASE: '',
 
+                // 图例：只列本次实际出现的类型，顺便说明本次词表构成
+                get legend() {
+                    const meta = {
+                        wrong_last:   ['上次错词', 'bg-red-400'],
+                        wrong_recent: ['近期错词', 'bg-orange-400'],
+                        new_char:     ['本课生字', 'bg-blue-400'],
+                        new_word:     ['本课词语', 'bg-[#07C160]'],
+                        filler:       ['易混补充', 'bg-purple-400'],
+                        review:       ['回溯复习', 'bg-slate-300'],
+                    };
+                    const n = {};
+                    this.wordList.forEach(w => { n[w.type] = (n[w.type] || 0) + 1; });
+                    return Object.keys(meta)
+                        .filter(k => n[k])
+                        .map(k => ({ key: k, name: meta[k][0], dot: meta[k][1], count: n[k] }));
+                },
                 get selectedWords() { return this.wordList.filter(w => w.selected); },
                 get selectedCount() { return this.selectedWords.length; },
                 get wrongWordsList() { return this.selectedWords.filter(w => !w.isCorrect); },
@@ -444,23 +469,32 @@
                     }
                 },
 
+                // 六色体系：按注意力优先级分三组
+                //   暖色警示  红=上次刚错  橙=近期错过
+                //   冷色新知  蓝=本课生字  绿=本课词语
+                //   低饱和    紫=易混填充  浅灰=回溯复习
+                // 红色只给『上次刚错』，稀缺才有警示力。
                 getCardClass(word) {
                     if (!word.selected) return 'bg-gray-50 opacity-50 grayscale border-transparent text-gray-400';
                     switch(word.type) {
-                        case 'new_char': return 'bg-blue-50 border-blue-200 text-blue-800'; // 生字
-                        case 'new_word': return 'bg-[#E9F9F0] border-[#07C160]/30 text-[#07C160]'; // 词语
-                        case 'wrong': 
-                        case 'review': return 'bg-orange-50 border-orange-200 text-orange-800'; // 旧词/错词
-                        default: return 'bg-white';
+                        case 'wrong_last':   return 'bg-red-50 border-red-400 text-red-700';
+                        case 'wrong_recent': return 'bg-orange-50 border-orange-300 text-orange-700';
+                        case 'new_char':     return 'bg-blue-50 border-blue-300 text-blue-800';
+                        case 'new_word':     return 'bg-[#E9F9F0] border-[#07C160]/40 text-[#07C160]';
+                        case 'filler':       return 'bg-purple-50 border-purple-200 text-purple-700';
+                        case 'review':       return 'bg-slate-50 border-slate-200 text-slate-500';
+                        default:             return 'bg-white border-gray-200';
                     }
                 },
                 getIconClass(type) {
                     switch(type) {
-                        case 'new_char': return 'text-blue-500';
-                        case 'new_word': return 'text-[#07C160]';
-                        case 'wrong':
-                        case 'review': return 'text-orange-500';
-                        default: return 'text-gray-400';
+                        case 'wrong_last':   return 'text-red-500';
+                        case 'wrong_recent': return 'text-orange-500';
+                        case 'new_char':     return 'text-blue-500';
+                        case 'new_word':     return 'text-[#07C160]';
+                        case 'filler':       return 'text-purple-500';
+                        case 'review':       return 'text-slate-400';
+                        default:             return 'text-gray-400';
                     }
                 },
                 getScoreColorClass() {
