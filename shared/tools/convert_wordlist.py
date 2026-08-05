@@ -90,6 +90,9 @@ def main():
             "lesson_seq": lid,
             "unit_id": uid,
             "unit_name": unit_name.get(uid, f"单元{uid}"),
+            # ltitle 是「第1课」「语文园地」「第一单元」这类序号标题，
+            # 前端下拉菜单要靠它显示成「第1课 - 大青树下的小学」。
+            "lesson_title": r.get("ltitle", "") or "",
             "lesson_name": r.get("lname", "") or r.get("ltitle", ""),
         })
     lessons_out.sort(key=lambda x: x["lesson_seq"])

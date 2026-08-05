@@ -24,10 +24,11 @@ DATA_DIR = os.path.join(HERE, "data")
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS lessons (
-    lesson_seq  INTEGER PRIMARY KEY,
-    unit_id     INTEGER NOT NULL,
-    unit_name   TEXT    NOT NULL,
-    lesson_name TEXT    NOT NULL
+    lesson_seq   INTEGER PRIMARY KEY,
+    unit_id      INTEGER NOT NULL,
+    unit_name    TEXT    NOT NULL,
+    lesson_title TEXT    DEFAULT '',
+    lesson_name  TEXT    NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS knowledge_points (
@@ -118,8 +119,10 @@ def main():
     conn.executescript(SCHEMA)
 
     conn.executemany(
-        "INSERT INTO lessons (lesson_seq, unit_id, unit_name, lesson_name) VALUES (?,?,?,?)",
-        [(l["lesson_seq"], l["unit_id"], l["unit_name"], l["lesson_name"]) for l in lessons]
+        "INSERT INTO lessons (lesson_seq, unit_id, unit_name, lesson_title, lesson_name)"
+        " VALUES (?,?,?,?,?)",
+        [(l["lesson_seq"], l["unit_id"], l["unit_name"],
+          l.get("lesson_title", ""), l["lesson_name"]) for l in lessons]
     )
     conn.executemany(
         "INSERT INTO knowledge_points (lesson_seq, target, category, options_json) VALUES (?,?,?,?)",

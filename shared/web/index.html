@@ -100,6 +100,16 @@
 
     <!-- Step 2: 词表勾选 -->
     <div x-show="step===2" x-cloak class="p-4 pb-6">
+      <!-- 配色图例：只列本次实际出现的类型，顺带说明词表构成 -->
+      <div x-show="legend.length" class="flex flex-wrap gap-x-3 gap-y-1 mb-3 px-1 text-[11px] text-gray-500">
+        <template x-for="item in legend" :key="item.type">
+          <span class="flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full" :class="item.dot"></span>
+            <span x-text="item.name"></span>
+            <span class="font-bold" x-text="item.count"></span>
+          </span>
+        </template>
+      </div>
       <div class="grid grid-cols-2 gap-3">
         <template x-for="word in wordList" :key="word.kp_id">
           <div @click="word.selected=!word.selected"
@@ -584,16 +594,42 @@ document.addEventListener('alpine:init', () => {
       } catch(e) { /* 未连接后端时静默忽略 */ }
     },
 
+    // ── 六色体系 ───────────────────────────────────────────────────────
+    // 暖色警示（错词）／冷色新知（本课）／灰色复习（回溯凑数）。
+    // 红色只留给「上次刚错」，稀缺才有警示力；review 占位最多，必须视觉降权。
+    WORD_STYLES: {
+      wrong_last:   { card: 'bg-red-50 border-red-400 text-red-700',
+                      dot:  'text-red-500',    name: '上次错词' },
+      wrong_recent: { card: 'bg-orange-50 border-orange-300 text-orange-700',
+                      dot:  'text-orange-500', name: '近期错词' },
+      new_char:     { card: 'bg-blue-50 border-blue-300 text-blue-800',
+                      dot:  'text-blue-500',   name: '本课生字' },
+      new_word:     { card: 'bg-[#E9F9F0] border-[#07C160]/40 text-[#07C160]',
+                      dot:  'text-[#07C160]',  name: '本课词语' },
+      filler:       { card: 'bg-purple-50 border-purple-200 text-purple-700',
+                      dot:  'text-purple-500', name: '易混字' },
+      review:       { card: 'bg-slate-50 border-slate-200 text-slate-500',
+                      dot:  'text-slate-400',  name: '复习' },
+    },
+
     getCardClass(word) {
       if (!word.selected) return 'bg-gray-50 opacity-50 grayscale border-transparent text-gray-400';
-      return { new_char: 'bg-blue-50 border-blue-200 text-blue-800',
-               new_word: 'bg-[#E9F9F0] border-[#07C160]/30 text-[#07C160]',
-               wrong:    'bg-orange-50 border-orange-200 text-orange-800',
-               review:   'bg-orange-50 border-orange-200 text-orange-800' }[word.type] || 'bg-white border-gray-200';
+      const s = this.WORD_STYLES[word.type];
+      return s ? s.card : 'bg-white border-gray-200';
     },
     getIconClass(type) {
-      return { new_char: 'text-blue-500', new_word: 'text-[#07C160]',
-               wrong: 'text-orange-500', review: 'text-orange-500' }[type] || 'text-gray-400';
+      const s = this.WORD_STYLES[type];
+      return s ? s.dot : 'text-gray-400';
+    },
+
+    // 图例：只列出本次词表里真正出现的类型，顺带显示各类数量
+    get legend() {
+      const n = {};
+      for (const w of this.wordList) n[w.type] = (n[w.type] || 0) + 1;
+      return Object.keys(this.WORD_STYLES)
+        .filter(t => n[t])
+        .map(t => ({ type: t, name: this.WORD_STYLES[t].name,
+                     dot: this.WORD_STYLES[t].dot, count: n[t] }));
     },
     getScoreColorClass() {
       return this.score >= 90 ? 'text-[#07C160]' : this.score >= 80 ? 'text-[#91ED61]' : 'text-[#EE5E5E]';

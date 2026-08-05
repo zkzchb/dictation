@@ -81,7 +81,8 @@ async def generate_daily(lesson_seq: int, req: Request, mode: str = "daily"):
 
     data = [{
         "id": w["id"], "target": w["target"], "pinyin": w["pinyin"],
-        "word_type": w["word_type"], "audio_url": audio_url_for(w["target"]),
+        "word_type": w["word_type"], "category": w["category"],
+        "audio_url": audio_url_for(w["target"]),
     } for w in words]
     for p in poly:
         p["audio_url"] = audio_url_for(p["character"])

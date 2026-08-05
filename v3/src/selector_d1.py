@@ -238,17 +238,17 @@ async def _fill_daily(db, picker, lesson_seq, user_id):
     sessions = await _session_ids(db, user_id, limit=8)
 
     if sessions:
-        picker.extend(await _wrong_kps_in_sessions(db, sessions[:1]), "wrong")
+        picker.extend(await _wrong_kps_in_sessions(db, sessions[:1]), "wrong_last")
     picker.extend(await _kps_of(db, [lesson_seq], [CAT_WORD, CAT_TYPO]), "new_word")
     picker.extend(await _kps_of(db, [lesson_seq], [CAT_CHAR]), "new_char")
 
     if not picker.full() and len(sessions) > 1:
-        picker.extend(await _wrong_kps_in_sessions(db, sessions[1:4]), "wrong")
+        picker.extend(await _wrong_kps_in_sessions(db, sessions[1:4]), "wrong_recent")
 
     order = await regular_lessons(db)
     prior = [l for l in order if l < lesson_seq]
     if not picker.full() and not prior:
-        picker.extend(await _kps_of(db, [COLD_START_LESSON], [CAT_TYPO, CAT_WORD]), "wrong")
+        picker.extend(await _kps_of(db, [COLD_START_LESSON], [CAT_TYPO, CAT_WORD]), "filler")
 
     recent3 = prior[-3:][::-1]
     if not picker.full() and recent3:
@@ -271,13 +271,14 @@ async def _fill_review(db, picker, lesson_seq, user_id):
     order = await regular_lessons(db)
     kids = [l for l in order if l // 10 == unit_prefix]
 
-    picker.extend(await _unit_wrong_kps(db, user_id, kids), "wrong")
+    picker.extend(await _unit_wrong_kps(db, user_id, kids), "wrong_last")
     if not picker.full() and kids:
         picker.extend(await _kps_of(db, kids, [CAT_WORD]), "review")
     if not picker.full() and kids:
         picker.extend(await _kps_of(db, kids, [CAT_CHAR]), "review")
     if not picker.full():
-        picker.extend(await _kps_of(db, [lesson_seq], [CAT_TYPO]), "wrong")
+        # 复习课自带的易混字：不是孩子错过的词，归 filler（紫色）
+        picker.extend(await _kps_of(db, [lesson_seq], [CAT_TYPO]), "filler")
     if not picker.full():
         picker.extend(await _kps_of(db, [lesson_seq], [CAT_WORD]), "review")
     if not picker.full():

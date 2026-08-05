@@ -319,9 +319,9 @@ def _fill_daily(conn, picker, lesson_seq, user_id):
     """生字听写 7 级梯队。"""
     sessions = _session_ids(conn, user_id, limit=8)
 
-    # 梯队1：上一次听写的错词（全部）
+    # 梯队1：上一次听写的错词（全部）—— 最高优先，前端用红色突出
     if sessions:
-        picker.extend(_wrong_kps_in_sessions(conn, sessions[:1]), "wrong")
+        picker.extend(_wrong_kps_in_sessions(conn, sessions[:1]), "wrong_last")
 
     # 梯队2：本课词语表
     picker.extend(_kps_of(conn, [lesson_seq], [CAT_WORD, CAT_TYPO]), "new_word")
@@ -329,15 +329,15 @@ def _fill_daily(conn, picker, lesson_seq, user_id):
     # 梯队3：本课生字表
     picker.extend(_kps_of(conn, [lesson_seq], [CAT_CHAR]), "new_char")
 
-    # 梯队4：前 2–4 次听写的错词
+    # 梯队4：前 2–4 次听写的错词 —— 次级警示，前端用橙色
     if not picker.full() and len(sessions) > 1:
-        picker.extend(_wrong_kps_in_sessions(conn, sessions[1:4]), "wrong")
+        picker.extend(_wrong_kps_in_sessions(conn, sessions[1:4]), "wrong_recent")
 
     # 冷启动：开学第一课，用 lesson3000 的易混字补
     order = regular_lessons(conn)
     prior = [l for l in order if l < lesson_seq]
     if not picker.full() and not prior:
-        picker.extend(_kps_of(conn, [COLD_START_LESSON], [CAT_TYPO, CAT_WORD]), "wrong")
+        picker.extend(_kps_of(conn, [COLD_START_LESSON], [CAT_TYPO, CAT_WORD]), "filler")
 
     # 梯队5/6：前 1–3 课的生字表，然后词语表
     recent3 = prior[-3:][::-1]
@@ -365,7 +365,8 @@ def _fill_review(conn, picker, lesson_seq, user_id):
     kids = [l for l in order if l // 10 == unit_prefix]
 
     # 梯队1：本单元错词（全部）
-    picker.extend(_unit_wrong_kps(conn, user_id, kids), "wrong")
+    # 前端标红：本单元真实错词，复习课的重点
+    picker.extend(_unit_wrong_kps(conn, user_id, kids), "wrong_last")
 
     # 梯队2：本单元各课的词语表 + 生字表
     if not picker.full() and kids:
@@ -375,7 +376,8 @@ def _fill_review(conn, picker, lesson_seq, user_id):
 
     # 梯队3：本复习课自身的易混词 + 高阶词
     if not picker.full():
-        picker.extend(_kps_of(conn, [lesson_seq], [CAT_TYPO]), "wrong")
+        # 复习课自带的易混字：不是孩子错过的词，归 filler（紫色）
+        picker.extend(_kps_of(conn, [lesson_seq], [CAT_TYPO]), "filler")
     if not picker.full():
         picker.extend(_kps_of(conn, [lesson_seq], [CAT_WORD]), "review")
 
