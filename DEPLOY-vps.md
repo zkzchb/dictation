@@ -47,42 +47,26 @@ dig +short v1.dictation.de5.net; dig +short v2.dictation.de5.net; curl -s https:
 
 V2 播放预录切片，切片不入 Git（`.gitignore` 已排除），需在本地生成后上传。
 
+完整步骤见 **[DEPLOY-local.md](DEPLOY-local.md)**。简版：
+
 ```bash
 git clone https://github.com/zkzchb/dictation.git
 cd dictation
+cp deploy/local.env.example deploy/local.env
+nano deploy/local.env          # 填有道密钥
+bash deploy/local-install.sh
 ```
 
-安装生成脚本所需依赖：
+首次约需数分钟，生成 500+ 个 MP3 到 `shared/web/audio/`。增量执行，中断可重跑。
+
+验证：
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install requests
+find shared/web/audio -name '*.mp3' | wc -l    # 应为 500+
+ls shared/web/audio/sys/intro.mp3
 ```
 
-生成切片（填入你的有道密钥）：
-
-```bash
-YOUDAO_APP_KEY=你的AppKey YOUDAO_APP_SECRET=你的AppSecret \
-  python shared/gen_slices.py
-```
-
-- 输出到 `shared/web/audio/`，按内容 MD5 命名
-- 增量执行：已存在的文件自动跳过，中断后重跑会接着做
-- 默认间隔 1 秒（约 1 QPS）。若报 `errorCode 411`（限流），调大间隔重跑：
-
-```bash
-TTS_INTERVAL=2.0 YOUDAO_APP_KEY=你的AppKey YOUDAO_APP_SECRET=你的AppSecret \
-  python shared/gen_slices.py
-```
-
-铺装到 V2 目录并验证：
-
-```bash
-python tools/stage.py v2
-ls shared/web/audio/sys/intro.mp3 && find shared/web/audio -name '*.mp3' | wc -l
-```
-
-应看到 intro.mp3 存在，文件数为数百个。
+> 只部署 V1 可跳过本步 —— V1 在运行时实时合成，不依赖预录切片。
 
 ---
 
@@ -169,18 +153,24 @@ journalctl -u caddy -f
 
 ## 5. 本地：上传切片（V2）
 
-V2 的音频在本地，需上传到服务器：
+回到本机（第 1 步生成切片的那台），一条命令同步：
 
 ```bash
-rsync -avz --progress shared/web/audio/ \
-  root@你的服务器IP:/opt/dictation/shared/web/audio/
+bash deploy/sync-slices.sh root@你的服务器IP
 ```
 
-修正属主并重启：
+脚本会 rsync 增量传输、修正远端属主、重启 `dictation-v2`，并核对两边文件数是否一致。
+
+先看会传什么（不改动远端）：
 
 ```bash
-ssh root@你的服务器IP \
-  'chown -R dictation:dictation /opt/dictation/shared/web/audio && systemctl restart dictation-v2'
+bash deploy/sync-slices.sh root@你的服务器IP --dry-run
+```
+
+部署路径不是默认的 `/opt/dictation` 时用 `--path` 指定：
+
+```bash
+bash deploy/sync-slices.sh root@你的服务器IP --path /srv/dictation
 ```
 
 ---
@@ -258,10 +248,9 @@ sudo bash deploy/vps-install.sh     # 幂等，会重装依赖并重启
 ### 新增词条后更新切片
 
 ```bash
-# 本地
-python shared/gen_slices.py          # 增量，只生成新词
-rsync -avz shared/web/audio/ root@你的服务器IP:/opt/dictation/shared/web/audio/
-ssh root@你的服务器IP 'chown -R dictation:dictation /opt/dictation/shared/web/audio'
+# 本地：增量生成新词的切片，然后同步
+bash deploy/local-install.sh --slices-only
+bash deploy/sync-slices.sh root@你的服务器IP
 ```
 
 ### 数据库备份

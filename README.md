@@ -59,14 +59,18 @@ dictation-app/
 - 有道智云账号（APP_KEY / APP_SECRET）→ [控制台](https://ai.youdao.com/)
 - V3 额外需要：Node.js ≥ 18，[uv](https://docs.astral.sh/uv/)，Cloudflare 账号
 
-### 生成音频切片（V2 / V3 必须）
+### 本地部署 / 生成音频切片（V2 / V3 必须）
 
 ```bash
-YOUDAO_APP_KEY=你的Key YOUDAO_APP_SECRET=你的Secret \
-  python shared/gen_slices.py
+cp deploy/local.env.example deploy/local.env
+nano deploy/local.env          # 填有道密钥
+bash deploy/local-install.sh
 ```
 
-约 516 个文件，首次约需数分钟，后续增量更新不重复消耗额度。
+约 500+ 个文件，首次约需数分钟，后续增量更新不重复消耗额度。
+切片是 V2/V3 的共同前置，生成一次即可分发到 VPS 与 Cloudflare。
+
+详见 [DEPLOY-local.md](DEPLOY-local.md)。
 
 ### 部署 V1 / V2（Ubuntu VPS + Caddy）
 

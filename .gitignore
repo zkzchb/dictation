@@ -22,6 +22,10 @@ _build_venv/
 # 部署配置：含明文密钥，只提交 *.example 模板
 deploy/vps.env
 deploy/cloudflare.env
+deploy/local.env
+
+# 本地试跑用的环境变量（含密钥，由 local-install.sh 生成）
+.local-run.env
 
 # gen_slices.py 的临时依赖环境（cloudflare-deploy.sh 自动创建）
 .venv-gen/
