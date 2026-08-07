@@ -218,6 +218,35 @@ STUDIO_ENABLED=0
 
 > 建议给这台机器设固定 IP（或在路由器上做 DHCP 绑定），否则重启后 IP 变化，手机上的书签就失效了。
 
+### 录音工作台（`/studio`）怎么用
+
+想用真人录音替换 TTS 切片时，有两个前提：
+
+**一、临时打开开关**
+
+```bash
+# deploy/local.env 里改成 1，然后
+sudo systemctl restart dictation-local-v2
+```
+
+录完再改回 `0` 并重启。
+
+**二、必须在本机浏览器上录，不能用手机**
+
+浏览器只在「安全上下文」下允许访问麦克风：HTTPS、`localhost`、`file://`。用局域网 IP 走 http 访问时 `navigator.mediaDevices` 是 `undefined`，录不了。
+
+所以录音要在这台工作站自己的浏览器里打开：
+
+```
+http://localhost:8889/studio
+```
+
+手机访问 `http://192.168.5.5:8889/studio` 可以看到页面，但一点录音就会提示非安全来源。这是浏览器的硬限制，不是应用的 bug。
+
+反正录音是一次性的内容制作工作，在工作站上做更方便（能看波形、能反复校对切分结果）。录好的切片存到 `shared/web/audio/w/`，手机那边听写时自然就用上了。
+
+> 真要从手机录，得给本站配 HTTPS（自签证书 + 手机装根证书，或用 Caddy 的内部 CA）。为一次性任务不值得。
+
 日常运维：
 
 ```bash
