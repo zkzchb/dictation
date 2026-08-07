@@ -221,10 +221,21 @@ function studio() {
 
     async beginRecording() {
       let stream;
+      // 浏览器只在「安全上下文」暴露 mediaDevices：HTTPS、localhost、file://。
+      // 用局域网 IP 走 http 访问时它是 undefined，直接取 .getUserMedia 会抛
+      // TypeError，报出来的是「读取 undefined 的属性」之类，看不出真实原因。
+      // 这里先判断并给出可操作的提示。
+      if (!navigator.mediaDevices?.getUserMedia) {
+        this.hint = window.isSecureContext
+          ? '此浏览器不支持录音（缺少 mediaDevices API）'
+          : `浏览器禁止在非安全来源录音。请改用 http://localhost:${location.port || 8889}/studio 在本机录制，或为本站配置 HTTPS。`;
+        this.state = 'ready';
+        return;
+      }
       try {
         stream = await navigator.mediaDevices.getUserMedia({audio:true});
       } catch(e) {
-        this.hint = '无法访问麦克风：' + e.message;
+        this.hint = '无法访问麦克风：' + (e && e.message ? e.message : e);
         this.state = 'ready';
         return;
       }
