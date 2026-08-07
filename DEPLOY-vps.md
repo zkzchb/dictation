@@ -98,7 +98,7 @@ adduser --system --group --home /opt/dictation --shell /usr/sbin/nologin dictati
 ```bash
 # 本地：填入有道密钥后执行
 YOUDAO_APP_KEY=你的Key YOUDAO_APP_SECRET=你的Secret \
-  python shared/tools/gen_slices.py
+  python shared/gen_slices.py
 ```
 
 切片生成后铺进 V2 目录：
@@ -122,7 +122,7 @@ rsync -avz \
 
 ```bash
 ls /opt/dictation/{v1,v2}/main.py \
-   /opt/dictation/shared/data/lessons_2b.json \
+   /opt/dictation/shared/data/lessons_grade3.json \
    /opt/dictation/v2/audio/sys/intro.mp3
 ```
 
@@ -154,12 +154,15 @@ cd /opt/dictation/v2 && python3 -m venv venv
 
 > ⚠️ 如果你要迁移已有的 `v1/dictation.db`（含真实历史数据），**跳过本步**，直接上传 db 文件并修正属主后继续第 7 步。
 
+> 建库脚本只有一份：`shared/init_db.py`，通过 `--db` 指定目标库路径。
+> 目标库已存在时默认拒绝执行，需加 `--force`（会先自动备份）。
+
 ```bash
 # V1
-cd /opt/dictation/v1 && ./venv/bin/python init_db.py
+cd /opt/dictation/v1 && ./venv/bin/python ../shared/init_db.py --db dictation.db
 
 # V2（全新空库）
-cd /opt/dictation/v2 && ./venv/bin/python init_db.py
+cd /opt/dictation/v2 && ./venv/bin/python ../shared/init_db.py --db dictation.db
 ```
 
 验证：
