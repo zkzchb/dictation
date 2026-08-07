@@ -5,6 +5,9 @@ CREATE TABLE IF NOT EXISTS lessons (
     lesson_seq INTEGER PRIMARY KEY,
     unit_id    INTEGER NOT NULL,
     unit_name  TEXT    NOT NULL,
+    -- 「第1课」「语文园地」这类给人看的编号，题库 JSON 里本来就有。
+    -- 前端下拉菜单靠它显示，缺了就只能退回内部编号（Unit311）。
+    lesson_title TEXT  DEFAULT '',
     lesson_name TEXT   NOT NULL
 );
 
