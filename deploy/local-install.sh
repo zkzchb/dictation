@@ -114,6 +114,8 @@ set -a; . "$ENV_FILE"; set +a
 : "${YOUDAO_VOICE:=youxiaoxun}" ; : "${YOUDAO_SPEED:=0.6}"
 : "${TTS_INTERVAL:=1.0}"  ; : "${TTS_RETRY:=3}"
 : "${V1_PORT:=8888}"      ; : "${V2_PORT:=8889}"
+: "${BIND_HOST:=127.0.0.1}"
+: "${STUDIO_ENABLED:=1}"
 : "${WARM_V1_CACHE:=yes}"
 
 SETUP_V1="$(echo "$SETUP_V1" | tr '[:upper:]' '[:lower:]')"
@@ -362,6 +364,7 @@ YOUDAO_VOICE=$YOUDAO_VOICE
 YOUDAO_SPEED=$YOUDAO_SPEED
 AUDIO_CACHE_DIR=$V1_CACHE_DIR
 AUDIO_OUTPUT_DIR=$REPO_ROOT/v1/audio
+STUDIO_ENABLED=$STUDIO_ENABLED
 EOF
   chmod 600 "$ENV_SVC"
   ok ".local-svc.env（systemd 格式，权限 600）"
@@ -375,8 +378,9 @@ EOF
     unit="dictation-local-$v"
     desc=$([[ "$v" == "v1" ]] && echo "实时 TTS 合成" || echo "预录切片 + 录音工作台")
 
-    # 关键：--host 127.0.0.1 —— 只有本机能访问，同局域网访问不到。
-    # 旧的 deploy-local.sh 用的是 0.0.0.0（无鉴权且局域网可达），这里收紧。
+    # 监听地址由 BIND_HOST 决定：
+    #   127.0.0.1  仅本机
+    #   0.0.0.0    局域网可访问（手机用；同网段任何设备都能打开，且无鉴权）
     sudo tee "/etc/systemd/system/$unit.service" >/dev/null <<EOF
 [Unit]
 Description=听写小助手 ${v^^}（本地 · $desc）
@@ -387,8 +391,8 @@ Type=simple
 User=$RUN_USER
 Group=$RUN_GROUP
 WorkingDirectory=$REPO_ROOT/$v
-EnvironmentFile=$ENV_RUN
-ExecStart=$REPO_ROOT/$v/venv/bin/uvicorn main:app --host 127.0.0.1 --port $port
+EnvironmentFile=$ENV_SVC
+ExecStart=$REPO_ROOT/$v/venv/bin/uvicorn main:app --host $BIND_HOST --port $port
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true
@@ -421,8 +425,27 @@ EOF
 
   echo
   echo "${C_HEAD}访问地址${C_OFF}"
-  [[ "$SETUP_V1" == "yes" ]] && echo "  V1  http://localhost:$V1_PORT"
-  [[ "$SETUP_V2" == "yes" ]] && echo "  V2  http://localhost:$V2_PORT"
+  if [[ "$BIND_HOST" == "127.0.0.1" ]]; then
+    [[ "$SETUP_V1" == "yes" ]] && echo "  V1  http://localhost:$V1_PORT"
+    [[ "$SETUP_V2" == "yes" ]] && echo "  V2  http://localhost:$V2_PORT"
+    echo
+    echo "  ${C_DIM}仅监听 127.0.0.1，局域网其他设备访问不到。${C_OFF}"
+    echo "  ${C_DIM}要让手机访问，在 deploy/local.env 设 BIND_HOST=0.0.0.0 后重跑。${C_OFF}"
+  else
+    # 列出本机所有 IPv4，方便直接在手机上输入
+    ips="$(ip -4 -o addr show scope global 2>/dev/null \
+             | awk '{split($4,a,"/"); print a[1]}' || true)"
+    [[ "$SETUP_V2" == "yes" ]] && {
+      echo "  ${C_OK}V2（推荐手机用）${C_OFF}"
+      echo "    本机    http://localhost:$V2_PORT"
+      for ip in $ips; do echo "    局域网  http://$ip:$V2_PORT"; done
+    }
+    [[ "$SETUP_V1" == "yes" ]] && {
+      echo "  V1"
+      echo "    本机    http://localhost:$V1_PORT"
+      for ip in $ips; do echo "    局域网  http://$ip:$V1_PORT"; done
+    }
+  fi
   echo
   echo "${C_HEAD}日常运维${C_OFF}"
   echo "  状态    systemctl status dictation-local-v1 dictation-local-v2"
@@ -430,7 +453,17 @@ EOF
   echo "  重启    sudo systemctl restart dictation-local-v2"
   echo "  移除    bash deploy/local-install.sh --uninstall-service"
   echo
-  echo "  ${C_DIM}服务仅监听 127.0.0.1，同局域网其他设备访问不到。${C_OFF}"
+  if [[ "$BIND_HOST" != "127.0.0.1" ]]; then
+    echo "${C_WARN}  局域网已开放，且应用本身没有任何鉴权${C_OFF}"
+    echo "  ${C_DIM}同一 WiFi 下的设备都能打开、都能提交听写记录。${C_OFF}"
+    if [[ "$STUDIO_ENABLED" == "1" ]]; then
+      echo "  ${C_DIM}录音工作台 /studio 处于开启状态（可写音频文件到磁盘）。${C_OFF}"
+      echo "  ${C_DIM}不需要录音时建议在 deploy/local.env 设 STUDIO_ENABLED=0 后重跑。${C_OFF}"
+    else
+      echo "  ${C_OK}  录音工作台已关闭（STUDIO_ENABLED=0）${C_OFF}"
+    fi
+    echo
+  fi
   echo "  ${C_DIM}代码更新后需重启：git pull && sudo systemctl restart dictation-local-v1 dictation-local-v2${C_OFF}"
   echo
   exit 0
@@ -441,11 +474,17 @@ if [[ -n "$SERVE" ]]; then
   PORT_VAR="${SERVE^^}_PORT"
   PORT="${!PORT_VAR}"
   step "启动 $SERVE 本地服务器（Ctrl+C 结束）"
-  echo "  http://localhost:$PORT"
+  echo "  本机    http://localhost:$PORT"
+  if [[ "$BIND_HOST" != "127.0.0.1" ]]; then
+    while read -r ip; do
+      [[ -n "$ip" ]] && echo "  局域网  http://$ip:$PORT"
+    done < <(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9]+\.' || true)
+  fi
   echo
   cd "$REPO_ROOT/$SERVE"
   if [[ "$SERVE" == "v1" ]]; then
     set -a; . "$REPO_ROOT/.local-run.env"; set +a
   fi
-  exec "$REPO_ROOT/$SERVE/venv/bin/uvicorn" main:app --reload --port "$PORT"
+  exec "$REPO_ROOT/$SERVE/venv/bin/uvicorn" main:app \
+    --reload --host "$BIND_HOST" --port "$PORT"
 fi

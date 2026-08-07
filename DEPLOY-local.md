@@ -183,7 +183,40 @@ bash deploy/local-install.sh --install-service
 
 装两个 systemd 服务：`dictation-local-v1`（8888）、`dictation-local-v2`（8889），开机自启、异常自动重启。
 
-**只监听 `127.0.0.1`** —— 同局域网的其他设备访问不到。这是有意的：应用没有任何鉴权，暴露到局域网意味着谁都能改听写记录。需要给别的设备用，就走 VPS 那套（Caddy + basic_auth + HTTPS）。
+### 监听地址：本机 vs 局域网
+
+默认 `BIND_HOST=127.0.0.1`，只有这台机器自己能访问。
+
+要用**手机**访问（家里最常见的用法：手机放着播听写），在 `deploy/local.env` 里改成：
+
+```
+BIND_HOST=0.0.0.0
+STUDIO_ENABLED=0
+```
+
+然后重跑 `bash deploy/local-install.sh --install-service`。之后手机连同一 WiFi，浏览器打开 `http://<本机局域网IP>:8889` 即可。脚本会在结尾把可用的 IP 地址列出来。
+
+关于这两项的取舍：
+
+| | 说明 |
+|---|---|
+| `BIND_HOST=0.0.0.0` | 同网段任何设备都能访问，**没有任何鉴权** —— 谁都能出题、改听写记录 |
+| `STUDIO_ENABLED=0` | 关掉录音工作台。它会往磁盘写 MP3，是唯一有写文件能力的接口，平时听写用不到 |
+
+家庭内网通常可接受。但如果你的 WiFi 有访客网络、或接了不太可控的 IoT 设备，建议加一层鉴权 —— 最省事的做法是本机装 Caddy 反代并开 basic_auth：
+
+```caddyfile
+:8890 {
+    basic_auth {
+        mia <caddy hash-password 生成的哈希>
+    }
+    reverse_proxy 127.0.0.1:8889
+}
+```
+
+这样把 `BIND_HOST` 保持 `127.0.0.1`，手机访问 `http://<局域网IP>:8890`，需要输密码。
+
+> 建议给这台机器设固定 IP（或在路由器上做 DHCP 绑定），否则重启后 IP 变化，手机上的书签就失效了。
 
 日常运维：
 

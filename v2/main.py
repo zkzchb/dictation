@@ -7,7 +7,7 @@
   * /api/generate_audio 接口已移除；
   * 前端用播放列表驱动 <audio>，选好词表即可直接播放。
 """
-import os, sys, json, hashlib, sqlite3, random
+import os, re, sys, json, hashlib, sqlite3, random
 from datetime import datetime, timedelta
 from typing import List
 
@@ -219,10 +219,31 @@ STUDIO_AUDIO_DIR = os.getenv(
 )
 STUDIO_HTML = os.path.join(BASE_DIR, "..", "shared", "web", "studio.html")
 
+# 录音工作台可整体关闭。绑定到 0.0.0.0（局域网可访问）且无鉴权时，
+# 建议设 STUDIO_ENABLED=0 —— /studio/* 会写文件到磁盘，不该对整个网段开放。
+STUDIO_ENABLED = os.getenv("STUDIO_ENABLED", "1").lower() not in ("0", "false", "no")
+
+# 切片文件名固定是 md5(文本)[:12]，即 12 位小写十六进制。
+# 必须校验：hash 来自请求体，直接拼进路径会造成目录穿越（任意文件写入）。
+_HASH_RE = re.compile(r"^[0-9a-f]{12}$")
+
+
+def _safe_slice_path(h) -> str:
+    """把请求里的 hash 转成切片路径，格式不合法直接拒绝。"""
+    if not isinstance(h, str) or not _HASH_RE.match(h):
+        raise HTTPException(status_code=400, detail=f"非法的切片标识: {h!r}")
+    return os.path.join(STUDIO_AUDIO_DIR, f"{h}.mp3")
+
+
+def _require_studio():
+    if not STUDIO_ENABLED:
+        raise HTTPException(status_code=403, detail="录音工作台已关闭（STUDIO_ENABLED=0）")
+
 
 @app.get("/studio")
 async def studio_page():
     from fastapi.responses import HTMLResponse, PlainTextResponse
+    _require_studio()
     if not os.path.exists(STUDIO_HTML):
         return PlainTextResponse("studio.html 未找到", status_code=404)
     with open(STUDIO_HTML, encoding="utf-8") as f:
@@ -232,9 +253,13 @@ async def studio_page():
 @app.post("/api/studio/check")
 async def studio_check(payload: dict):
     """检查哪些 hash 已有录音文件。返回 {hash: bool}。"""
-    hashes = payload.get("hashes", [])
-    return {h: os.path.exists(os.path.join(STUDIO_AUDIO_DIR, f"{h}.mp3"))
-            for h in hashes}
+    _require_studio()
+    out = {}
+    for h in payload.get("hashes", []):
+        # 查询接口对非法值宽容处理：标记 False 而非整个请求失败
+        out[h] = bool(isinstance(h, str) and _HASH_RE.match(h)
+                      and os.path.exists(os.path.join(STUDIO_AUDIO_DIR, f"{h}.mp3")))
+    return out
 
 
 @app.post("/api/studio/split")
@@ -246,6 +271,7 @@ async def studio_split(request: Request):
     from pydub.silence import split_on_silence
     import io, base64 as b64
 
+    _require_studio()
     form = await request.form()
     audio_file = form["audio"]
     word_count = int(form.get("word_count", 0))
@@ -275,15 +301,39 @@ async def studio_split(request: Request):
 
 @app.post("/api/studio/save")
 async def studio_save(payload: dict):
-    """保存已校对的切片。payload: {items: [{hash, audio(base64)}]}。"""
+    """保存已校对的切片。payload: {items: [{hash, audio(base64)}]}。
+
+    hash 经 _safe_slice_path 校验（12 位小写十六进制），否则整批拒绝 ——
+    未校验时 hash 可含 ../ 穿越出音频目录，造成任意文件写入。
+    """
     import base64 as b64
+    _require_studio()
+
+    items = payload.get("items", [])
+    if not isinstance(items, list):
+        raise HTTPException(status_code=400, detail="items 必须是数组")
+
+    # 先全部校验再落盘：避免写了一半才发现有非法项
+    planned = []
+    for item in items:
+        if not isinstance(item, dict):
+            raise HTTPException(status_code=400, detail="items 每项必须是对象")
+        path = _safe_slice_path(item.get("hash"))
+        try:
+            data = b64.b64decode(item.get("audio") or "", validate=True)
+        except Exception:
+            raise HTTPException(status_code=400, detail="audio 不是合法的 base64")
+        if not data:
+            raise HTTPException(status_code=400, detail="audio 为空")
+        planned.append((path, data))
+
     os.makedirs(STUDIO_AUDIO_DIR, exist_ok=True)
-    saved = 0
-    for item in payload.get("items", []):
-        with open(os.path.join(STUDIO_AUDIO_DIR, f"{item['hash']}.mp3"), "wb") as f:
-            f.write(b64.b64decode(item["audio"]))
-        saved += 1
-    return {"status": "success", "saved": saved}
+    for path, data in planned:
+        tmp = path + ".part"          # 先写临时文件再原子替换，避免半截文件被播放
+        with open(tmp, "wb") as f:
+            f.write(data)
+        os.replace(tmp, path)
+    return {"status": "success", "saved": len(planned)}
 
 
 # ================= 📁 静态文件 =================
