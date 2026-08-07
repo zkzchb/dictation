@@ -185,24 +185,67 @@ def _space_typo_pairs(items, min_gap=TYPO_MIN_SPACING):
     return result
 
 
-async def _polyphonic_section(db, lesson_seq, count=POLY_PER_LESSON):
-    rows = list(await _kps_of(db, [lesson_seq], [CAT_POLY]))
-    if len(rows) < count:
-        order = await regular_lessons(db)
-        prior = [l for l in order if l < lesson_seq]
-        prior.reverse()
-        prior.append(COLD_START_LESSON)
-        have = {r["id"] for r in rows}
-        for lid in prior:
-            if len(rows) >= count:
-                break
-            for r in await _kps_of(db, [lid], [CAT_POLY]):
-                if len(rows) >= count:
-                    break
-                if r["id"] not in have:
-                    rows.append(r); have.add(r["id"])
+async def _recent_poly_ids(db, user_id, limit=8):
+    """最近 limit 次听写各自播报过的多音字 kp_id。
+
+    返回 [set, set, ...]，索引 0 是最近一次。
+    多音字不入 dictation_items（不判分），所以单独记在
+    dictation_history.poly_ids 里，逗号分隔。
+    """
+    try:
+        rows = await _rows(
+            db, "SELECT poly_ids FROM dictation_history "
+                "WHERE user_id = ? ORDER BY id DESC LIMIT ?", (user_id, limit))
+    except Exception:
+        # 旧库还没有 poly_ids 列时：视作无历史，不影响出题
+        return []
     out = []
-    for r in rows[:count]:
+    for r in rows:
+        raw = (r.get("poly_ids") or "").strip()
+        ids = set()
+        for part in raw.split(","):
+            part = part.strip()
+            if part.isdigit():
+                ids.add(int(part))
+        out.append(ids)
+    return out
+
+
+async def _polyphonic_section(db, lesson_seq, user_id=1, count=POLY_PER_LESSON):
+    # 先把候选池收全 —— 原实现凑够 count 就停止回溯，池子永远只有 2 个，
+    # 没有任何轮换空间，这是每次固定同两个多音字的直接原因。
+    rows    = list(await _kps_of(db, [lesson_seq], [CAT_POLY]))
+    own_ids = {r["id"] for r in rows}
+    have    = set(own_ids)
+    order   = await regular_lessons(db)
+    prior   = [l for l in order if l < lesson_seq]
+    prior.reverse()
+    prior.append(COLD_START_LESSON)
+    for lid in prior:
+        for r in await _kps_of(db, [lid], [CAT_POLY]):
+            if r["id"] not in have:
+                rows.append(r); have.add(r["id"])
+
+    # 休息规则：最近两次听写都出现过的字，这一轮不抽（休息一轮）。
+    # 若排除后不足 count，放宽回全池，保证段落不为空。
+    hist    = await _recent_poly_ids(db, user_id, limit=8)
+    resting = (hist[0] & hist[1]) if len(hist) >= 2 else set()
+    pool    = [r for r in rows if r["id"] not in resting]
+    if len(pool) < count:
+        pool = rows
+
+    def _rank(r):
+        kid   = r["id"]
+        times = sum(1 for s in hist if kid in s)   # 近期出现次数，越少越优先
+        # 上次出现在几轮前；从未出现视为最久（优先级最高）
+        ago   = next((i for i, s in enumerate(hist) if kid in s), len(hist) + 99)
+        # 本课自带的多音字优先于回溯补来的
+        return (0 if kid in own_ids else 1, times, -ago, r["lesson_seq"], kid)
+
+    pool.sort(key=_rank)
+
+    out = []
+    for r in pool[:count]:
         try:
             opts = json.loads(r["options_json"])
             if isinstance(opts, str):
@@ -229,7 +272,7 @@ async def build_word_list(db, lesson_seq, user_id=1, rng=None):
         poly = []
     else:
         await _fill_daily(db, picker, lesson_seq, user_id)
-        poly = await _polyphonic_section(db, lesson_seq)
+        poly = await _polyphonic_section(db, lesson_seq, user_id)
 
     return _space_typo_pairs(picker.items), poly
 
@@ -238,17 +281,17 @@ async def _fill_daily(db, picker, lesson_seq, user_id):
     sessions = await _session_ids(db, user_id, limit=8)
 
     if sessions:
-        picker.extend(await _wrong_kps_in_sessions(db, sessions[:1]), "wrong")
+        picker.extend(await _wrong_kps_in_sessions(db, sessions[:1]), "wrong_last")
     picker.extend(await _kps_of(db, [lesson_seq], [CAT_WORD, CAT_TYPO]), "new_word")
     picker.extend(await _kps_of(db, [lesson_seq], [CAT_CHAR]), "new_char")
 
     if not picker.full() and len(sessions) > 1:
-        picker.extend(await _wrong_kps_in_sessions(db, sessions[1:4]), "wrong")
+        picker.extend(await _wrong_kps_in_sessions(db, sessions[1:4]), "wrong_recent")
 
     order = await regular_lessons(db)
     prior = [l for l in order if l < lesson_seq]
     if not picker.full() and not prior:
-        picker.extend(await _kps_of(db, [COLD_START_LESSON], [CAT_TYPO, CAT_WORD]), "wrong")
+        picker.extend(await _kps_of(db, [COLD_START_LESSON], [CAT_TYPO, CAT_WORD]), "filler")
 
     recent3 = prior[-3:][::-1]
     if not picker.full() and recent3:
@@ -271,13 +314,14 @@ async def _fill_review(db, picker, lesson_seq, user_id):
     order = await regular_lessons(db)
     kids = [l for l in order if l // 10 == unit_prefix]
 
-    picker.extend(await _unit_wrong_kps(db, user_id, kids), "wrong")
+    picker.extend(await _unit_wrong_kps(db, user_id, kids), "wrong_last")
     if not picker.full() and kids:
         picker.extend(await _kps_of(db, kids, [CAT_WORD]), "review")
     if not picker.full() and kids:
         picker.extend(await _kps_of(db, kids, [CAT_CHAR]), "review")
     if not picker.full():
-        picker.extend(await _kps_of(db, [lesson_seq], [CAT_TYPO]), "wrong")
+        # 复习课自带的易混字：不是孩子错过的词，归 filler（紫色）
+        picker.extend(await _kps_of(db, [lesson_seq], [CAT_TYPO]), "filler")
     if not picker.full():
         picker.extend(await _kps_of(db, [lesson_seq], [CAT_WORD]), "review")
     if not picker.full():

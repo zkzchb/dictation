@@ -184,6 +184,7 @@ def generate_daily(lesson_seq: int, mode: str = "daily"):
     data = [{
         "id": w["id"], "target": w["target"],
         "pinyin": w["pinyin"], "word_type": w["word_type"],
+        "category": w.get("category", ""),
     } for w in words]
     return {"data": data, "polyphonic_section": poly}
 
@@ -299,14 +300,24 @@ def _truncate_text(q: str) -> str:
     return q if size <= 20 else q[:10] + str(size) + q[-10:]
 
 
-def get_audio_segment(text: str):
-    """合成单段语音，按内容 MD5 缓存到磁盘，避免重复调用 TTS。"""
-    from pydub import AudioSegment
-    cache_key = f"{YOUDAO_VOICE}_{YOUDAO_SPEED}_{text}"
-    md5_hash = hashlib.md5(cache_key.encode("utf-8")).hexdigest()
-    filepath = os.path.join(CACHE_DIR, f"{md5_hash}.mp3")
+# 一次 30 词听写要连续发 ~42 次 TTS 请求（词 + 开场 + 收尾 + 各组组号）。
+# 无间隔地打过去容易被有道限流，导致整次合成失败。这里做两件事：
+#   1) 每次真实请求之间至少间隔 TTS_MIN_INTERVAL 秒（命中缓存不计）
+#   2) 失败重试，退避等待，把偶发限流/网络抖动吸收掉
+TTS_MIN_INTERVAL = float(os.getenv("TTS_MIN_INTERVAL", "0.2"))
+TTS_MAX_RETRY    = int(os.getenv("TTS_MAX_RETRY", "3"))
+_tts_last_call   = 0.0
 
-    if not os.path.exists(filepath):
+
+def _fetch_tts_bytes(text: str) -> bytes:
+    """向有道请求一段语音，含限速与重试。失败抛 RuntimeError。"""
+    global _tts_last_call
+    last_err = ""
+    for attempt in range(1, TTS_MAX_RETRY + 1):
+        wait = TTS_MIN_INTERVAL - (time.time() - _tts_last_call)
+        if wait > 0:
+            time.sleep(wait)
+
         salt = str(uuid.uuid4())
         curtime = str(int(time.time()))
         sign_str = (YOUDAO_APP_KEY + _truncate_text(text) + salt
@@ -317,15 +328,39 @@ def get_audio_segment(text: str):
             "signType": "v3", "curtime": curtime, "format": "mp3",
             "voiceName": YOUDAO_VOICE, "speed": YOUDAO_SPEED,
         }
-        resp = requests.post(
-            YOUDAO_URL, data=data,
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            timeout=30,
-        )
-        if "audio" not in resp.headers.get("Content-Type", ""):
-            raise RuntimeError(f"有道 TTS 返回错误: {resp.text[:200]}")
-        with open(filepath, "wb") as f:
-            f.write(resp.content)
+        try:
+            resp = requests.post(
+                YOUDAO_URL, data=data,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                timeout=30,
+            )
+            _tts_last_call = time.time()
+            if "audio" in resp.headers.get("Content-Type", ""):
+                return resp.content
+            last_err = resp.text[:200]
+        except Exception as e:
+            _tts_last_call = time.time()
+            last_err = f"{type(e).__name__}: {e}"
+
+        if attempt < TTS_MAX_RETRY:
+            time.sleep(0.6 * attempt)          # 退避
+
+    raise RuntimeError(f'合成「{text}」失败（重试 {TTS_MAX_RETRY} 次）: {last_err}')
+
+
+def get_audio_segment(text: str):
+    """合成单段语音，按内容 MD5 缓存到磁盘，避免重复调用 TTS。"""
+    from pydub import AudioSegment
+    cache_key = f"{YOUDAO_VOICE}_{YOUDAO_SPEED}_{text}"
+    md5_hash = hashlib.md5(cache_key.encode("utf-8")).hexdigest()
+    filepath = os.path.join(CACHE_DIR, f"{md5_hash}.mp3")
+
+    if not os.path.exists(filepath):
+        content = _fetch_tts_bytes(text)
+        tmp = filepath + ".part"            # 先写临时文件，避免半截文件进缓存
+        with open(tmp, "wb") as f:
+            f.write(content)
+        os.replace(tmp, filepath)
     return AudioSegment.from_mp3(filepath)
 
 
@@ -385,6 +420,21 @@ async def api_generate_audio(word_list: List[WordItem]):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"语音生成失败: {e}")
     return {"audio_url": f"/audio/{filename}", "timeline": timeline}
+
+
+# ================= 📁 静态文件 =================
+# 必须放在所有 API 路由之后 —— 根路径挂载是 catch-all，会遮蔽后面注册的路由。
+# VPS 部署时这部分由 Caddy 负责；本地直连（无反向代理）时由 uvicorn 自己发。
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+
+_AUDIO_DIR = AUDIO_OUTPUT_DIR          # V1 实时合成的成品 MP3
+_WWW_DIR   = os.path.join(BASE_DIR, "dictation_www")
+
+os.makedirs(_AUDIO_DIR, exist_ok=True)
+if os.path.isdir(_AUDIO_DIR):
+    app.mount("/audio", StaticFiles(directory=_AUDIO_DIR), name="audio")
+if os.path.isdir(_WWW_DIR):
+    app.mount("/", StaticFiles(directory=_WWW_DIR, html=True), name="www")
 
 
 if __name__ == "__main__":

@@ -121,7 +121,7 @@ uv run pywrangler deploy
 cd v1   # 或 v2
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-python init_db.py          # 首次初始化数据库
+python ../shared/init_db.py --db dictation.db   # 首次初始化数据库
 uvicorn main:app --reload --port 8888
 ```
 

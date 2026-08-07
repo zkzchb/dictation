@@ -24,10 +24,11 @@ DATA_DIR = os.path.join(HERE, "data")
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS lessons (
-    lesson_seq  INTEGER PRIMARY KEY,
-    unit_id     INTEGER NOT NULL,
-    unit_name   TEXT    NOT NULL,
-    lesson_name TEXT    NOT NULL
+    lesson_seq   INTEGER PRIMARY KEY,
+    unit_id      INTEGER NOT NULL,
+    unit_name    TEXT    NOT NULL,
+    lesson_title TEXT    DEFAULT '',
+    lesson_name  TEXT    NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS knowledge_points (
@@ -63,6 +64,9 @@ CREATE TABLE IF NOT EXISTS dictation_history (
     dictation_type TEXT    NOT NULL,
     scope_id       INTEGER NOT NULL,
     score          REAL    DEFAULT 0,
+    -- 本次播报过的多音字 kp_id（逗号分隔）。多音字不判分、不入 dictation_items，
+    -- 但要支持「连续两次出现则休息一轮」的轮换规则，所以单独记在这里。
+    poly_ids       TEXT    DEFAULT '',
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -118,8 +122,10 @@ def main():
     conn.executescript(SCHEMA)
 
     conn.executemany(
-        "INSERT INTO lessons (lesson_seq, unit_id, unit_name, lesson_name) VALUES (?,?,?,?)",
-        [(l["lesson_seq"], l["unit_id"], l["unit_name"], l["lesson_name"]) for l in lessons]
+        "INSERT INTO lessons (lesson_seq, unit_id, unit_name, lesson_title, lesson_name)"
+        " VALUES (?,?,?,?,?)",
+        [(l["lesson_seq"], l["unit_id"], l["unit_name"],
+          l.get("lesson_title", ""), l["lesson_name"]) for l in lessons]
     )
     conn.executemany(
         "INSERT INTO knowledge_points (lesson_seq, target, category, options_json) VALUES (?,?,?,?)",

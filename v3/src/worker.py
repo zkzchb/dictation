@@ -31,6 +31,9 @@ class SubmitPayload(BaseModel):
     scope_id: int
     results: List[WordResult]
     user_id: int = USER_ID
+    # 本次实际播报的多音字 kp_id。多音字不判分、不入 dictation_items，
+    # 所以单独记在 dictation_history.poly_ids，供休息规则读取。
+    poly_ids: List[int] = []
 
 # ── Worker 入口点 ────────────────────────────────────────────────────────
 class Default(WorkerEntrypoint):
@@ -81,7 +84,8 @@ async def generate_daily(lesson_seq: int, req: Request, mode: str = "daily"):
 
     data = [{
         "id": w["id"], "target": w["target"], "pinyin": w["pinyin"],
-        "word_type": w["word_type"], "audio_url": audio_url_for(w["target"]),
+        "word_type": w["word_type"], "category": w["category"],
+        "audio_url": audio_url_for(w["target"]),
     } for w in words]
     for p in poly:
         p["audio_url"] = audio_url_for(p["character"])
@@ -100,9 +104,11 @@ async def submit_dictation(payload: SubmitPayload, req: Request):
 
     # 1. 写入听写历史，取得 history_id
     hist = await env.DB.prepare(
-        "INSERT INTO dictation_history (user_id, dictation_type, scope_id, score) "
-        "VALUES (?, ?, ?, ?)"
-    ).bind(payload.user_id, payload.dictation_type, payload.scope_id, score).run()
+        "INSERT INTO dictation_history "
+        "(user_id, dictation_type, scope_id, score, poly_ids) "
+        "VALUES (?, ?, ?, ?, ?)"
+    ).bind(payload.user_id, payload.dictation_type, payload.scope_id, score,
+           ",".join(str(i) for i in payload.poly_ids)).run()
     history_id = hist.meta.last_row_id
 
     # 2. 批量读取已有的记忆行，减少后续网络往返

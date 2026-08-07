@@ -47,6 +47,9 @@ class SubmitPayload(BaseModel):
     scope_id: int
     results: List[WordResult]
     user_id: int = USER_ID
+    # 本次实际播报的多音字 kp_id。多音字不判分、不入 dictation_items，
+    # 所以只有前端知道播了哪些 —— 记下来才能实现「连续两次出现则休息一轮」。
+    poly_ids: List[int] = []
 
 # ── 辅助函数 ─────────────────────────────────────────────────────────────
 def word_hash(text: str) -> str:
@@ -121,6 +124,7 @@ def generate_daily(lesson_seq: int, mode: str = "daily"):
         "target": w["target"],
         "pinyin": w["pinyin"],
         "word_type": w["word_type"],
+        "category": w.get("category", ""),
         "audio_url": audio_url_for(w["target"]),
     } for w in words]
 
@@ -141,9 +145,11 @@ def submit_dictation(payload: SubmitPayload):
     score   = round(correct / len(payload.results) * 100, 2)
     try:
         cursor.execute(
-            "INSERT INTO dictation_history (user_id, dictation_type, scope_id, score) "
-            "VALUES (?, ?, ?, ?)",
-            (payload.user_id, payload.dictation_type, payload.scope_id, score),
+            "INSERT INTO dictation_history "
+            "(user_id, dictation_type, scope_id, score, poly_ids) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (payload.user_id, payload.dictation_type, payload.scope_id, score,
+             ",".join(str(i) for i in payload.poly_ids)),
         )
         hid = cursor.lastrowid
         for r in payload.results:
@@ -278,6 +284,20 @@ async def studio_save(payload: dict):
             f.write(b64.b64decode(item["audio"]))
         saved += 1
     return {"status": "success", "saved": saved}
+
+
+# ================= 📁 静态文件 =================
+# 必须放在所有 API 路由（含 /studio）之后 —— 根路径挂载是 catch-all。
+# 直接挂 shared/web/ 而非 stage 后的副本，好处是 /studio 录进
+# shared/web/audio/w/ 的切片立刻可播，无需重新 stage。
+# VPS 部署时这部分由 Caddy 负责；本地直连时由 uvicorn 自己发。
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+
+_WEB_DIR = os.getenv("WEB_ROOT", os.path.join(BASE_DIR, "..", "shared", "web"))
+_WEB_DIR = os.path.abspath(_WEB_DIR)
+
+if os.path.isdir(_WEB_DIR):
+    app.mount("/", StaticFiles(directory=_WEB_DIR, html=True), name="www")
 
 
 if __name__ == "__main__":

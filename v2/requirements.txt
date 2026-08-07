@@ -1,4 +1,14 @@
-fastapi==0.104.1
-uvicorn==0.24.0.post1
-pydantic==2.5.2
-pydub==0.25.1
+# V2 依赖 —— 预录切片版，运行时不调 TTS
+# 仅录音工作台 /api/studio/split 用到 pydub（需系统装 ffmpeg）
+#
+# 版本说明：不钉死旧版。pydantic==2.5.2 在 Python 3.13+ 上会尝试从源码
+# 编译 pydantic-core（需 Rust 工具链），在新系统上必然失败。放宽下限，
+# 让 pip 直接选带预编译 wheel 的版本。
+fastapi>=0.115
+uvicorn>=0.32
+pydantic>=2.9
+pydub>=0.25.1
+
+# Python 3.13 起标准库移除了 audioop，而 pydub 依赖它。
+# audioop-lts 是官方替代实现，仅在 3.13+ 上安装。
+audioop-lts>=0.2.1; python_version >= "3.13"
