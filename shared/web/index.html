@@ -550,8 +550,11 @@ document.addEventListener('alpine:init', () => {
       try {
         const res = await fetch(`${this.API_BASE}/api/submit_dictation`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
+          // poly_ids：本轮播报过的多音字。它们不判分、不入错题库，
+          // 但要记下来供「连续两次出现则休息一轮」的规则读取。
           body: JSON.stringify({ user_id: 1, dictation_type: this.dictationMode,
-                                 scope_id: this.selectedLesson, results }),
+                                 scope_id: this.selectedLesson, results,
+                                 poly_ids: this.polyphonic.map(p => p.id) }),
         });
         if (!res.ok) throw new Error('API failed');
         const data = await res.json();

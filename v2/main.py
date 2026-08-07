@@ -47,6 +47,9 @@ class SubmitPayload(BaseModel):
     scope_id: int
     results: List[WordResult]
     user_id: int = USER_ID
+    # 本次实际播报的多音字 kp_id。多音字不判分、不入 dictation_items，
+    # 所以只有前端知道播了哪些 —— 记下来才能实现「连续两次出现则休息一轮」。
+    poly_ids: List[int] = []
 
 # ── 辅助函数 ─────────────────────────────────────────────────────────────
 def word_hash(text: str) -> str:
@@ -142,9 +145,11 @@ def submit_dictation(payload: SubmitPayload):
     score   = round(correct / len(payload.results) * 100, 2)
     try:
         cursor.execute(
-            "INSERT INTO dictation_history (user_id, dictation_type, scope_id, score) "
-            "VALUES (?, ?, ?, ?)",
-            (payload.user_id, payload.dictation_type, payload.scope_id, score),
+            "INSERT INTO dictation_history "
+            "(user_id, dictation_type, scope_id, score, poly_ids) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (payload.user_id, payload.dictation_type, payload.scope_id, score,
+             ",".join(str(i) for i in payload.poly_ids)),
         )
         hid = cursor.lastrowid
         for r in payload.results:

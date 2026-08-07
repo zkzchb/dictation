@@ -251,26 +251,70 @@ def _space_typo_pairs(items, min_gap=TYPO_MIN_SPACING):
 # 多音字：每次 2 个，本课优先，不足向前回溯
 # ────────────────────────────────────────────────────────────────────────
 
-def _polyphonic_section(conn, lesson_seq, count=POLY_PER_LESSON):
-    rows = list(_kps_of(conn, [lesson_seq], [CAT_POLY]))
-    if len(rows) < count:
-        # 从已学课程（含冷启动）向前回溯补足
-        order = regular_lessons(conn)
-        prior = [l for l in order if l < lesson_seq]
-        prior.reverse()
-        prior.append(COLD_START_LESSON)
-        have = {r["id"] for r in rows}
-        for lid in prior:
-            if len(rows) >= count:
-                break
-            for r in _kps_of(conn, [lid], [CAT_POLY]):
-                if len(rows) >= count:
-                    break
-                if r["id"] not in have:
-                    rows.append(r)
-                    have.add(r["id"])
+def _recent_poly_ids(conn, user_id, limit=8):
+    """最近 limit 次听写各自播报过的多音字 kp_id。
+
+    返回 [set, set, ...]，索引 0 是最近一次。
+    多音字不入 dictation_items（不判分），所以单独记在
+    dictation_history.poly_ids 里，逗号分隔。
+    """
+    try:
+        rows = conn.execute(
+            "SELECT poly_ids FROM dictation_history "
+            "WHERE user_id=? ORDER BY id DESC LIMIT ?",
+            (user_id, limit),
+        ).fetchall()
+    except Exception:
+        # 老库还没有 poly_ids 列时按「无历史」处理，不影响出题
+        return []
     out = []
-    for r in rows[:count]:
+    for r in rows:
+        raw = (r["poly_ids"] or "").strip()
+        ids = set()
+        for part in raw.split(","):
+            part = part.strip()
+            if part.isdigit():
+                ids.add(int(part))
+        out.append(ids)
+    return out
+
+
+def _polyphonic_section(conn, lesson_seq, user_id=1, count=POLY_PER_LESSON):
+    # 先把候选池收全 —— 原实现凑满 count 就停止回溯，池子永远只有 2 个，
+    # 没有任何轮换空间，这正是每课固定同样两个多音字的直接原因。
+    rows    = list(_kps_of(conn, [lesson_seq], [CAT_POLY]))
+    own_ids = {r["id"] for r in rows}
+    have    = set(own_ids)
+    order   = regular_lessons(conn)
+    prior   = [l for l in order if l < lesson_seq]
+    prior.reverse()
+    prior.append(COLD_START_LESSON)
+    for lid in prior:
+        for r in _kps_of(conn, [lid], [CAT_POLY]):
+            if r["id"] not in have:
+                rows.append(r)
+                have.add(r["id"])
+
+    # 休息规则：最近两次听写都播报过的字，这次不抽（休息一轮）。
+    # 排除后若不足 count，放宽回全池，保证段落不为空。
+    hist    = _recent_poly_ids(conn, user_id, limit=8)
+    resting = (hist[0] & hist[1]) if len(hist) >= 2 else set()
+    pool    = [r for r in rows if r["id"] not in resting]
+    if len(pool) < count:
+        pool = rows
+
+    def _rank(r):
+        kid   = r["id"]
+        times = sum(1 for s in hist if kid in s)   # 近期出现次数，少者优先
+        # 上次出现在几轮前；从未出现视为最久，优先级最高
+        ago   = next((i for i, s in enumerate(hist) if kid in s), len(hist) + 99)
+        # 本课自有的多音字优先于回溯补来的
+        return (0 if kid in own_ids else 1, times, -ago, r["lesson_seq"], kid)
+
+    pool.sort(key=_rank)
+
+    out = []
+    for r in pool[:count]:
         try:
             opts = json.loads(r["options_json"])
             if isinstance(opts, str):
@@ -309,7 +353,7 @@ def build_word_list(conn, lesson_seq, user_id=1, rng=None):
         poly = []
     else:
         _fill_daily(conn, picker, lesson_seq, user_id)
-        poly = _polyphonic_section(conn, lesson_seq)
+        poly = _polyphonic_section(conn, lesson_seq, user_id)
 
     words = _space_typo_pairs(picker.items)
     return words, poly
