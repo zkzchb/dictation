@@ -19,6 +19,13 @@ _build_venv/
 .env
 *.env.local
 
+# 部署配置：含明文密钥，只提交 *.example 模板
+deploy/vps.env
+deploy/cloudflare.env
+
+# gen_slices.py 的临时依赖环境（cloudflare-deploy.sh 自动创建）
+.venv-gen/
+
 # ── 数据库（含用户学习数据，不应进版本库）────────────────────────────
 *.db
 *.db.backup
