@@ -91,8 +91,8 @@
       <div class="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-100">
         <label class="text-xs text-gray-400 font-bold uppercase tracking-wider" x-text="dictationMode==='daily'?'选择课程':'选择单元'"></label>
         <select x-model="selectedLesson" class="w-full mt-2 bg-transparent text-lg font-bold outline-none text-gray-700 appearance-none truncate">
-          <template x-for="lesson in lessons" :key="lesson.lesson_seq">
-            <option :value="lesson.lesson_seq" x-text="`Unit${lesson.unit_seq} - ${lesson.lesson_name}`"></option>
+          <template x-for="lesson in visibleLessons" :key="lesson.lesson_seq">
+            <option :value="lesson.lesson_seq" x-text="lesson.label"></option>
           </template>
         </select>
       </div>
@@ -394,12 +394,30 @@ document.addEventListener('alpine:init', () => {
       try {
         const res = await fetch(`${this.API_BASE}/api/lessons`);
         this.lessons = await res.json();
+        this.syncSelectedLesson();   // 课程可能在 setMode 之后才到，补一次校正
       } catch(e) { console.error('课程加载失败', e); }
+    },
+
+    // 两种模式的课程互不相同：生字听写只列正式课，单元复习只列复习课。
+    // 后端已给出 is_review，前端不必再猜 lesson_seq 的编码规则。
+    get visibleLessons() {
+      const wantReview = this.dictationMode === 'unit';
+      return this.lessons.filter(l => !!l.is_review === wantReview);
+    },
+
+    // 切模式后下拉菜单的选项整批换了，selectedLesson 可能还指着上一模式的课。
+    // 不校正的话会用正式课的 lesson_seq 配 mode=unit 去请求，出题梯队全错。
+    syncSelectedLesson() {
+      const list = this.visibleLessons;
+      if (!list.length) { this.selectedLesson = null; return; }
+      if (!list.some(l => l.lesson_seq === this.selectedLesson)) {
+        this.selectedLesson = list[0].lesson_seq;
+      }
     },
 
     setMode(mode) {
       this.dictationMode = mode;
-      if (this.lessons.length) this.selectedLesson = this.lessons[0].lesson_seq;
+      this.syncSelectedLesson();
       this.step = 1;
     },
 

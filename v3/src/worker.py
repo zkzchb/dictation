@@ -63,14 +63,40 @@ def _next_review(days: int) -> str:
     return (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d")
 
 # ── 接口 ─────────────────────────────────────────────────────────────────
+
+def _lesson_row(d):
+    """把 lessons 行转成前端直接可用的结构（与 V1/V2 保持一致）。
+
+    补两个字段，避免前端自己拼字符串、也避免它暴露内部编号：
+      is_review  lesson_seq 末位为 0 即单元复习课，前端据此把两个下拉菜单分开
+      label      给人看的名字，三种情形：
+                   复习课            第一单元 单元复习
+                   title 已含在 name 语文园地一
+                   其余              第1课 - 大青树下的小学
+    """
+    seq = d["lesson_seq"]
+    title = (d.get("lesson_title") or "").strip()
+    name = (d.get("lesson_name") or "").strip()
+    unit = (d.get("unit_name") or "").strip()
+    d["is_review"] = seq % 10 == 0
+    if d["is_review"]:
+        d["label"] = f"{unit} {name}".strip()
+    elif title and title not in name:
+        d["label"] = f"{title} - {name}"
+    else:
+        d["label"] = name or title
+    return d
+
+
 @app.get("/api/lessons")
 async def get_lessons(req: Request):
     env = req.scope["env"]
     result = await env.DB.prepare(
-        "SELECT lesson_seq, unit_id AS unit_seq, unit_name, lesson_name "
+        "SELECT lesson_seq, unit_id AS unit_seq, unit_name, lesson_name, "
+        "       COALESCE(lesson_title, '') AS lesson_title "
         "FROM lessons WHERE lesson_seq > 0 ORDER BY lesson_seq"
     ).run()
-    return result.results.to_py()
+    return [_lesson_row(d) for d in result.results.to_py()]
 
 
 @app.get("/api/generate_daily/{lesson_seq}")

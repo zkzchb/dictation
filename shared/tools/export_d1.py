@@ -42,10 +42,14 @@ def main():
 
     lines.append("-- lessons")
     for d in lessons:
+        # 显式写列名，不用位置 VALUES —— schema 加列时位置会错位，
+        # lesson_title 就是后补的列，当初的位置写法会把它和 lesson_name 搞反。
         lines.append(
-            f"INSERT OR IGNORE INTO lessons VALUES "
+            f"INSERT OR IGNORE INTO lessons "
+            f"(lesson_seq, unit_id, unit_name, lesson_title, lesson_name) VALUES "
             f"({d['lesson_seq']}, {d['unit_id']}, "
-            f"{q(d['unit_name'])}, {q(d['lesson_name'])});"
+            f"{q(d['unit_name'])}, {q(d.get('lesson_title', ''))}, "
+            f"{q(d['lesson_name'])});"
         )
     lines.append(f"-- {len(lessons)} 条课程记录\n")
 
