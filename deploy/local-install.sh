@@ -16,9 +16,11 @@
 # 不需要 root（除了缺 ffmpeg / python3-venv 时装系统包）。
 #
 # 可选参数：
-#   --skip-slices   跳过切片生成
-#   --slices-only   只生成切片，不建 venv / 不初始化数据库
-#   --serve v1|v2   装完直接启动本地服务器
+#   --skip-slices        跳过切片生成
+#   --slices-only        只生成切片，不建 venv / 不初始化数据库
+#   --serve v1|v2        装完直接启动本地服务器（前台，Ctrl+C 结束）
+#   --install-service    装成 systemd 服务，开机自启（仅监听 127.0.0.1）
+#   --uninstall-service  移除 systemd 服务（保留数据与切片）
 # ============================================================================
 set -euo pipefail
 
@@ -36,17 +38,70 @@ die()  { echo "${C_ERR}  [X] $*${C_OFF}" >&2; exit 1; }
 SKIP_SLICES=no
 SLICES_ONLY=no
 SERVE=""
+INSTALL_SVC=no
+UNINSTALL_SVC=no
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --skip-slices) SKIP_SLICES=yes; shift ;;
-    --slices-only) SLICES_ONLY=yes; shift ;;
-    --serve)       SERVE="${2-}"; shift 2 ;;
-    -h|--help)     sed -n '2,26p' "$0"; exit 0 ;;
-    *)             die "未知参数: $1" ;;
+    --skip-slices)       SKIP_SLICES=yes; shift ;;
+    --slices-only)       SLICES_ONLY=yes; shift ;;
+    --serve)             SERVE="${2-}"; shift 2 ;;
+    --install-service)   INSTALL_SVC=yes; shift ;;
+    --uninstall-service) UNINSTALL_SVC=yes; shift ;;
+    -h|--help)           sed -n '2,28p' "$0"; exit 0 ;;
+    *)                   die "未知参数: $1" ;;
   esac
 done
 [[ -z "$SERVE" || "$SERVE" == "v1" || "$SERVE" == "v2" ]] \
   || die "--serve 只能是 v1 或 v2"
+[[ "$INSTALL_SVC" == "yes" && -n "$SERVE" ]] \
+  && die "--install-service 与 --serve 不能同时用（服务已在后台运行，无需前台试跑）"
+
+# ── 移除服务（独立操作，不走后续流程）─────────────────────────────────────
+if [[ "$UNINSTALL_SVC" == "yes" ]]; then
+  step "移除 systemd 服务"
+  command -v systemctl >/dev/null || die "本机没有 systemd"
+  for v in v1 v2; do
+    unit="dictation-local-$v"
+    if systemctl list-unit-files "$unit.service" >/dev/null 2>&1 \
+       && [[ -f "/etc/systemd/system/$unit.service" ]]; then
+      sudo systemctl disable --now "$unit" >/dev/null 2>&1 || true
+      sudo rm -f "/etc/systemd/system/$unit.service"
+      ok "已移除 $unit"
+    else
+      echo "  ${C_DIM}$unit 未安装，跳过${C_OFF}"
+    fi
+  done
+  sudo systemctl daemon-reload
+  sudo systemctl reset-failed 2>/dev/null || true
+  echo
+  ok "服务已移除。数据库与音频切片未受影响。"
+  exit 0
+fi
+
+# ── 移除服务（独立分支，不需要配置文件）─────────────────────────────────────
+if [[ "$UNINSTALL_SVC" == "yes" ]]; then
+  step "移除本地 systemd 服务"
+  found=no
+  for v in v1 v2; do
+    unit="dictation-local-$v"
+    if [[ -f "/etc/systemd/system/$unit.service" ]]; then
+      sudo systemctl disable --now "$unit" 2>/dev/null || true
+      sudo rm -f "/etc/systemd/system/$unit.service"
+      ok "已移除 $unit"
+      found=yes
+    fi
+  done
+  if [[ "$found" == "no" ]]; then
+    warn "没有找到 dictation-local-* 服务"
+  else
+    sudo systemctl daemon-reload
+    sudo systemctl reset-failed 2>/dev/null || true
+  fi
+  echo
+  echo "  ${C_DIM}数据库、切片、venv 均未改动。${C_OFF}"
+  echo
+  exit 0
+fi
 
 # ── 读取配置 ─────────────────────────────────────────────────────────────
 step "读取配置"
@@ -283,6 +338,103 @@ echo "    nano deploy/cloudflare.env"
 echo "    bash deploy/cloudflare-deploy.sh --skip-slices"
 echo "  （切片已在本地生成，用 --skip-slices 直接复用）"
 echo
+
+# ── 可选：装成 systemd 服务（仅监听 127.0.0.1）─────────────────────────────
+if [[ "$INSTALL_SVC" == "yes" ]]; then
+  step "安装 systemd 服务（开机自启，仅本机可访问）"
+  command -v systemctl >/dev/null || die "本机没有 systemd，无法装服务"
+
+  RUN_USER="$(id -un)"
+  RUN_GROUP="$(id -gn)"
+  [[ -f "$REPO_ROOT/.local-run.env" ]] \
+    || die "缺少 .local-run.env（先不带 --install-service 跑一次本脚本）"
+
+  # systemd 的 EnvironmentFile 不认 `export` 关键字，只接受纯 KEY=value。
+  # .local-run.env 是给 shell `source` 用的（带 export），不能直接喂给 systemd
+  # —— 否则 V1 拿不到密钥，合成时会用占位符去请求有道并失败。
+  # 这里单独生成一份 systemd 格式的。
+  ENV_SVC="$REPO_ROOT/.local-svc.env"
+  cat > "$ENV_SVC" <<EOF
+# 由 deploy/local-install.sh --install-service 生成（systemd 格式，无 export）
+YOUDAO_APP_KEY=${YOUDAO_APP_KEY-}
+YOUDAO_APP_SECRET=${YOUDAO_APP_SECRET-}
+YOUDAO_VOICE=$YOUDAO_VOICE
+YOUDAO_SPEED=$YOUDAO_SPEED
+AUDIO_CACHE_DIR=$V1_CACHE_DIR
+AUDIO_OUTPUT_DIR=$REPO_ROOT/v1/audio
+EOF
+  chmod 600 "$ENV_SVC"
+  ok ".local-svc.env（systemd 格式，权限 600）"
+
+  for v in v1 v2; do
+    [[ "$v" == "v1" && "$SETUP_V1" != "yes" ]] && continue
+    [[ "$v" == "v2" && "$SETUP_V2" != "yes" ]] && continue
+    [[ -x "$REPO_ROOT/$v/venv/bin/uvicorn" ]] || { warn "$v venv 不完整，跳过"; continue; }
+
+    port_var="${v^^}_PORT"; port="${!port_var}"
+    unit="dictation-local-$v"
+    desc=$([[ "$v" == "v1" ]] && echo "实时 TTS 合成" || echo "预录切片 + 录音工作台")
+
+    # 关键：--host 127.0.0.1 —— 只有本机能访问，同局域网访问不到。
+    # 旧的 deploy-local.sh 用的是 0.0.0.0（无鉴权且局域网可达），这里收紧。
+    sudo tee "/etc/systemd/system/$unit.service" >/dev/null <<EOF
+[Unit]
+Description=听写小助手 ${v^^}（本地 · $desc）
+After=network.target
+
+[Service]
+Type=simple
+User=$RUN_USER
+Group=$RUN_GROUP
+WorkingDirectory=$REPO_ROOT/$v
+EnvironmentFile=$ENV_RUN
+ExecStart=$REPO_ROOT/$v/venv/bin/uvicorn main:app --host 127.0.0.1 --port $port
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    ok "$unit  →  127.0.0.1:$port"
+  done
+
+  sudo systemctl daemon-reload
+  units=()
+  [[ "$SETUP_V1" == "yes" && -f /etc/systemd/system/dictation-local-v1.service ]] \
+    && units+=(dictation-local-v1)
+  [[ "$SETUP_V2" == "yes" && -f /etc/systemd/system/dictation-local-v2.service ]] \
+    && units+=(dictation-local-v2)
+  # set -u 下空数组展开会报错，先兜底
+  [[ ${#units[@]} -gt 0 ]] || die "没有可启动的服务（V1/V2 的 venv 都不完整？）"
+  sudo systemctl enable --now "${units[@]}"
+  sleep 2
+
+  echo
+  for u in "${units[@]}"; do
+    if systemctl is-active --quiet "$u"; then
+      ok "$u 运行中"
+    else
+      warn "$u 未启动 —— 排查：journalctl -u $u -n 30 --no-pager"
+    fi
+  done
+
+  echo
+  echo "${C_HEAD}访问地址${C_OFF}"
+  [[ "$SETUP_V1" == "yes" ]] && echo "  V1  http://localhost:$V1_PORT"
+  [[ "$SETUP_V2" == "yes" ]] && echo "  V2  http://localhost:$V2_PORT"
+  echo
+  echo "${C_HEAD}日常运维${C_OFF}"
+  echo "  状态    systemctl status dictation-local-v1 dictation-local-v2"
+  echo "  日志    journalctl -u dictation-local-v2 -f"
+  echo "  重启    sudo systemctl restart dictation-local-v2"
+  echo "  移除    bash deploy/local-install.sh --uninstall-service"
+  echo
+  echo "  ${C_DIM}服务仅监听 127.0.0.1，同局域网其他设备访问不到。${C_OFF}"
+  echo "  ${C_DIM}代码更新后需重启：git pull && sudo systemctl restart dictation-local-v1 dictation-local-v2${C_OFF}"
+  echo
+  exit 0
+fi
 
 # ── 可选：直接启动 ───────────────────────────────────────────────────────
 if [[ -n "$SERVE" ]]; then
