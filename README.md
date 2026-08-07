@@ -11,7 +11,7 @@
 - **间隔重复引擎** — 答对连续 3 次晋级"已掌握"，答错次日必听，复习间隔按 2ⁿ 天指数后延（上限 30 天）
 - **田字格实时高亮** — 播放时当前词的拼音与汉字同步显示
 - **35 天打卡日历** — 以颜色区分优秀 / 良好 / 需加强
-- **题库** — `38 课，622 条知识点（含生字、词语、多音字）`
+- **题库** — `43 课，815 条知识点（生字 250 / 词语 418 / 易错字 108 / 多音字 39）`
 
 ---
 
@@ -70,17 +70,26 @@ YOUDAO_APP_KEY=你的Key YOUDAO_APP_SECRET=你的Secret \
 
 ### 部署 V1 / V2（Ubuntu VPS + Caddy）
 
+服务器上拉取代码后填密钥、跑一键脚本：
+
+```bash
+git clone https://github.com/zkzchb/dictation.git /opt/dictation
+cd /opt/dictation
+cp deploy/vps.env.example deploy/vps.env
+nano deploy/vps.env          # 填有道密钥、域名、访问口令
+sudo bash deploy/vps-install.sh
+```
+
 详见 [DEPLOY-vps.md](DEPLOY-vps.md)。
 
 ### 部署 V3（Cloudflare Workers）
 
+本地执行，无需服务器：
+
 ```bash
-python tools/stage.py v3          # 铺装静态资源
-python shared/tools/export_d1.py  # 生成 D1 种子 SQL
-cd v3
-# 填入 wrangler.jsonc 中的 database_id 后：
-npx wrangler d1 migrations apply dictation-v3
-uv run pywrangler deploy
+cp deploy/cloudflare.env.example deploy/cloudflare.env
+nano deploy/cloudflare.env   # 填有道密钥
+bash deploy/cloudflare-deploy.sh
 ```
 
 详见 [DEPLOY-cloudflare.md](DEPLOY-cloudflare.md)。

@@ -1,177 +1,189 @@
-# 听写小助手 V3 —— Cloudflare Workers + D1 部署指南
+# Cloudflare 部署指南（V3）
 
-V3 域名：`v3.dictation.de5.net`
-
-整个应用跑在 Cloudflare 边缘上：API 是 Python Worker（FastAPI + D1），前端和音频切片是 Workers 静态资源（免费、不限量请求、自动 CDN）。部署后没有服务器需要维护。
-
-架构：
+从 GitHub 拉取代码开始，到 HTTPS 可访问为止。全程在本地执行，**不需要服务器** —— API 是 Python Worker，前端与音频是 Workers 静态资源，全部跑在 Cloudflare 边缘。
 
 ```
 浏览器
   └─ HTTPS ──> Cloudflare Edge
-                ├─ /api/*     → Python Worker（FastAPI + D1）
-                ├─ /audio/*   → 静态资源（预录切片，免费无限量）
-                └─ /          → 静态资源（index.html）
+                ├─ /api/*    → Python Worker（FastAPI + D1）
+                ├─ /audio/*  → 静态资源（预录切片，免费无限量）
+                └─ /         → 静态资源（index.html）
 ```
 
----
-
-## 前置条件
-
-- Node.js ≥ 18（用于 wrangler CLI）
-- [uv](https://docs.astral.sh/uv/getting-started/installation/)（Python 包管理，pywrangler 要求）
-- Cloudflare 账号，已登录 `npx wrangler login`
-- `v3.dictation.de5.net` 的 DNS 由 Cloudflare 托管（橙云开启）
+与 VPS 版（V1/V2）相比：无服务器可维护、自动 CDN、正常用量在免费额度内；代价是音频切片需随部署上传，数据库换成 D1。
 
 ---
 
-## 1. 安装工具
+## 总览：四步
+
+| 步骤 | 做什么 |
+|---|---|
+| 1 | 装工具链（Node.js、uv、wrangler 登录） |
+| 2 | 拉取代码 |
+| 3 | 填写 `deploy/cloudflare.env` 密钥 |
+| 4 | 跑 `deploy/cloudflare-deploy.sh` |
+
+脚本自动完成：生成切片 → 铺装静态资源 → 建 D1 → 写回 `database_id` → 导种子 SQL → 应用迁移 → 部署 → 验收。
+
+---
+
+## 0. 前置条件
+
+- Cloudflare 账号（免费版即可）
+- Node.js ≥ 18
+- 有道智云 APP_KEY / APP_SECRET（[控制台](https://ai.youdao.com/)）—— 仅用于本地生成音频切片
+- 若要用自定义域名（如 `v3.dictation.de5.net`）：该域名的 DNS 须已由 Cloudflare 托管（橙云开启）
+
+---
+
+## 1. 装工具链
+
+**Node.js ≥ 18**
 
 ```bash
-# wrangler（Cloudflare CLI）
-npm install -g wrangler
+node -v
+```
 
-# uv（如未安装）
+若低于 18 或未安装：
+
+```bash
+# Ubuntu / Debian
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# macOS
+brew install node
+```
+
+**uv**（Python 包管理，pywrangler 依赖）
+
+```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
-# 验证
-wrangler --version && uv --version
+安装后重开终端，或手动加入 PATH：
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+uv --version
+```
+
+> 部署脚本检测到缺 uv 时会自动装，此步可跳过。
+
+**登录 Cloudflare**
+
+```bash
+npx wrangler login
+```
+
+浏览器会打开授权页，点 Allow。验证：
+
+```bash
+npx wrangler whoami
+```
+
+> 无浏览器环境（如远程 SSH）可改用 API Token：
+> 在 Dashboard → My Profile → API Tokens 建一个含 `Workers Scripts:Edit` + `D1:Edit` 权限的 Token，然后
+> `export CLOUDFLARE_API_TOKEN=你的Token`
+
+---
+
+## 2. 拉取代码
+
+```bash
+git clone https://github.com/zkzchb/dictation.git
+cd dictation
 ```
 
 ---
 
-## 2. 生成音频切片（如尚未生成）
-
-切片只需在本地生成一次，后续可增量更新。填入有道密钥后执行：
+## 3. 填写密钥
 
 ```bash
-YOUDAO_APP_KEY=你的AppKey YOUDAO_APP_SECRET=你的AppSecret \
-  python shared/gen_slices.py
+cp deploy/cloudflare.env.example deploy/cloudflare.env
+nano deploy/cloudflare.env
 ```
 
-约 502 个词条 + 14 个系统提示音，首次约需数分钟。
-切片写入 `shared/web/audio/`，按内容 MD5 命名，增量更新。
+**必填项**：
 
----
+| 变量 | 说明 |
+|---|---|
+| `YOUDAO_APP_KEY` / `YOUDAO_APP_SECRET` | 生成音频切片用。若切片已生成过，可保留占位符并加 `--skip-slices` |
+| `D1_DATABASE_ID` | **保留占位符即可** —— 脚本会自动建库并把真实 ID 写回 `v3/wrangler.jsonc` |
 
-## 3. 铺装 V3 静态资源（stage）
+**可选项**：
+
+| 变量 | 默认 | 说明 |
+|---|---|---|
+| `V3_DOMAIN` | `v3.dictation.de5.net` | 自定义域名。留空则只用 `*.workers.dev` |
+| `V3_ZONE` | `de5.net` | 域名所在 Cloudflare Zone |
+| `D1_DATABASE_NAME` | `dictation-v3` | D1 库名 |
+| `TTS_INTERVAL` | `1.0` | 切片生成间隔（秒）。报 411 限流时调大 |
+
+保存后收紧权限：
 
 ```bash
-python tools/stage.py v3
-```
-
-这会把 `shared/web/index.html` 和 `shared/web/audio/` 复制到 `v3/public/`。
-`v3/public/` 已列入 `.gitignore`——它是部署前的中间产物，不提交。每次部署前运行一次。
-
-验证：
-
-```bash
-ls v3/public/index.html v3/public/audio/sys/intro.mp3
-```
-
----
-
-## 4. 创建 D1 数据库
-
-```bash
-npx wrangler d1 create dictation-v3
-```
-
-命令会输出类似：
-
-```
-✅ Successfully created DB 'dictation-v3'
-database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-```
-
-把 `database_id` 填入 `v3/wrangler.jsonc`，替换 `REPLACE_WITH_YOUR_D1_DATABASE_ID`：
-
-```jsonc
-"d1_databases": [
-  {
-    "binding": "DB",
-    "database_name": "dictation-v3",
-    "database_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  // ← 填这里
-  }
-]
+chmod 600 deploy/cloudflare.env
 ```
 
 ---
 
-## 5. 生成 D1 种子 SQL
+## 4. 一键部署
 
 ```bash
-python shared/tools/export_d1.py
+bash deploy/cloudflare-deploy.sh
 ```
 
-这会读取 `shared/data/` 中的 JSON 题库，生成 `v3/migrations/0002_seed.sql`（622 条知识点 + 38 条课程）。
+脚本按顺序执行：
 
-当前迁移文件顺序：
-- `0001_initial.sql` — 建表 schema
-- `0002_seed.sql` — 题库数据（上一步生成）
+1. 校验配置、Node/uv/Python 版本、Cloudflare 登录状态
+2. **生成音频切片**（首次约数分钟；已有 500+ 个则自动跳过）
+3. `tools/stage.py v3` 铺装 `v3/public/`
+4. 创建 D1 数据库，把 `database_id` 写回 `v3/wrangler.jsonc`
+5. `shared/tools/export_d1.py` 生成 `migrations/0002_seed.sql`
+6. `wrangler d1 migrations apply --remote` 应用迁移，并核对行数
+7. `pywrangler deploy` 上传 Worker + 静态资源
+8. 验收 `/api/lessons` 与 `/audio/sys/intro.mp3`
+
+幂等，可重复运行。常用参数：
+
+```bash
+bash deploy/cloudflare-deploy.sh --skip-slices   # 跳过切片生成（日常更新用）
+bash deploy/cloudflare-deploy.sh --dev           # 不上线，改为启动本地预览
+```
+
+### 首次运行预期输出
+
+```
+==> 读取配置
+  [OK] D1 数据库名: dictation-v3
+==> 音频切片
+  [OK] 切片共 516 个
+==> D1 数据库
+  [OK] database_id: xxxxxxxx-xxxx-...
+==> 应用数据库迁移（远端）
+  课程 43 门，知识点 815 条
+==> 部署到 Cloudflare
+  [OK] 部署成功：https://dictation-v3.xxx.workers.dev
+```
 
 ---
 
-## 6. 应用数据库迁移
+## 5. 绑定自定义域名
 
-```bash
-cd v3
+脚本若提示需手动绑定，两种做法任选。
 
-# 远端数据库（正式部署）
-npx wrangler d1 migrations apply dictation-v3
+**做法 A：Dashboard（推荐，最快）**
 
-# 或先在本地 dev 环境验证
-npx wrangler d1 migrations apply dictation-v3 --local
-```
+1. 打开 [Workers & Pages](https://dash.cloudflare.com/) → `dictation-v3`
+2. Settings → Domains & Routes → Add → Custom Domain
+3. 填 `v3.dictation.de5.net` → Add Domain
 
-验证：
+Cloudflare 自动配置 DNS 与证书，通常 1 分钟内生效。
 
-```bash
-npx wrangler d1 execute dictation-v3 \
-  --command "SELECT COUNT(*) AS kp FROM knowledge_points; SELECT COUNT(*) AS lessons FROM lessons;"
-```
+**做法 B：写进 wrangler.jsonc**
 
-应看到 622 和 38。
-
----
-
-## 7. 本地开发预览
-
-```bash
-cd v3
-uv run pywrangler dev
-```
-
-开启本地开发服务器，访问 `http://localhost:8787`。所有 API 接口和静态资源均可测试。
-
-> D1 在本地 dev 模式下使用本地 SQLite 副本，不连接远端数据库。
-
----
-
-## 8. 部署到 Cloudflare
-
-```bash
-cd v3
-uv run pywrangler deploy
-```
-
-wrangler 会自动：
-1. 上传 `src/worker.py` 及其依赖
-2. 上传 `public/` 中的所有静态资源（index.html + 音频切片）
-3. 绑定 D1 数据库
-4. 输出部署 URL
-
----
-
-## 9. 配置自定义域名
-
-部署成功后，在 Cloudflare Dashboard 为 Worker 添加自定义域名：
-
-1. 打开 Workers & Pages → `dictation-v3`
-2. Settings → Domains & Routes → Add Custom Domain
-3. 输入 `v3.dictation.de5.net`，Cloudflare 自动配置路由和证书
-
-或者用 wrangler.jsonc 声明（routes 字段）：
+在 `v3/wrangler.jsonc` 顶层加入：
 
 ```jsonc
 "routes": [
@@ -179,81 +191,181 @@ wrangler 会自动：
 ]
 ```
 
----
-
-## 10. 验收
+再重新部署：
 
 ```bash
-# 课程接口
-curl -s https://v3.dictation.de5.net/api/lessons | head -c 150
+bash deploy/cloudflare-deploy.sh --skip-slices
+```
 
-# 出题接口（应含 audio_url）
-curl -s "https://v3.dictation.de5.net/api/generate_daily/1?mode=daily" \
-  | python3 -c "import sys,json; d=json.load(sys.stdin); w=d['data'][0]; print(len(d['data']),'词:', w['target'], w['audio_url'])"
+---
+
+## 6. 验收
+
+浏览器打开 `https://v3.dictation.de5.net`，应看到听写界面并能播放音频。
+
+命令行：
+
+```bash
+# 课程目录
+curl -s https://v3.dictation.de5.net/api/lessons | head -c 200
+
+# 出题：应返回 30 词 + 2 个多音字，每词带 audio_url
+curl -s "https://v3.dictation.de5.net/api/generate_daily/3111" \
+  | python3 -c "import sys,json;d=json.load(sys.stdin);print(len(d['data']),'词, 多音字',len(d['polyphonic_section']),'个');print(d['data'][0])"
 
 # 切片可访问
 curl -sI https://v3.dictation.de5.net/audio/sys/intro.mp3 | head -3
 
-# 提交批改（把 kp_id 换成上一步返回的真实 id）
+# 提交批改（kp_id 换成上一步返回的真实 id）
 curl -s -X POST https://v3.dictation.de5.net/api/submit_dictation \
   -H 'Content-Type: application/json' \
-  -d '{"dictation_type":"daily","scope_id":1,"results":[{"kp_id":1,"is_correct":true},{"kp_id":2,"is_correct":false}]}'
+  -d '{"dictation_type":"daily","scope_id":3111,"results":[{"kp_id":1,"is_correct":true},{"kp_id":2,"is_correct":false}],"poly_ids":[]}'
 # 应返回 {"status":"success","score":50.0,...}
 ```
 
 ---
 
-## 11. 成本参考
+## 7. 安全提醒
 
-| 资源 | 免费配额 | V3 用量 |
-|---|---|---|
-| Worker 请求 | 100,000/天 | 每次听写 ~5 次 API 调用 |
-| D1 读取 | 25M 行/天 | 每次出题 ~100 行 |
-| D1 写入 | 100K 行/天 | 每次提交 ~60 行 |
-| 静态资源请求 | **免费无限量** | 所有音频文件 |
-| 静态资源存储 | 100K 文件，每文件 25MB | ~516 个文件，<5MB |
+**V3 默认没有任何访问鉴权** —— 任何人拿到地址都能打开并写入数据。VPS 版靠 Caddy basic_auth 保护，Workers 上没有等价的内置口令。
 
-正常使用完全在免费配额内。
+建议启用 Cloudflare Zero Trust Access（免费版含 50 用户）：
+
+1. Dashboard → Zero Trust → Access → Applications → Add an application
+2. 选 Self-hosted，Application domain 填 `v3.dictation.de5.net`
+3. 加一条 Policy：Action = Allow，Include = Emails → 填你的邮箱
+4. 保存后访问该域名会先要求邮箱验证码
+
+不启用的话，至少别把地址公开分享。
 
 ---
 
-## 12. 更新切片（增量）
+## 8. 日常运维
 
-题库 JSON 新增词条后：
+**实时日志**
 
 ```bash
-# 1. 增量生成新切片（已有文件不重新生成）
-python shared/gen_slices.py
+cd v3 && npx wrangler tail
+```
 
-# 2. 重新 stage
-python tools/stage.py v3
+**查库**
 
-# 3. 重新导出种子 SQL
-python shared/tools/export_d1.py
+```bash
+cd v3
+npx wrangler d1 execute dictation-v3 --remote \
+  --command "SELECT COUNT(*) FROM dictation_history;"
+```
 
-# 4. 应用新迁移
-cd v3 && npx wrangler d1 migrations apply dictation-v3
+**备份 D1**
 
-# 5. 重新部署（更新静态资源）
-cd v3 && uv run pywrangler deploy
+```bash
+cd v3
+npx wrangler d1 export dictation-v3 --remote --output ../d1-backup-$(date +%F).sql
+```
+
+**代码或题库更新后重新部署**
+
+```bash
+git pull
+bash deploy/cloudflare-deploy.sh --skip-slices
+```
+
+**题库新增词条后**（需要新切片）
+
+```bash
+git pull
+bash deploy/cloudflare-deploy.sh        # 增量生成新切片 + 重新部署
+```
+
+**回滚**
+
+```bash
+cd v3
+npx wrangler rollback
 ```
 
 ---
 
-## 13. 常见问题
+## 9. 成本
 
-**`error: Missing D1 binding`**：`wrangler.jsonc` 里的 `database_id` 还是占位符，或未运行 `wrangler d1 create`。
+| 资源 | 免费配额 | 本应用用量 |
+|---|---|---|
+| Worker 请求 | 100,000/天 | 每次听写约 5 次 API 调用 |
+| D1 读取 | 500 万行/天 | 每次出题约 100 行 |
+| D1 写入 | 10 万行/天 | 每次提交约 60 行 |
+| D1 存储 | 5 GB | < 5 MB |
+| 静态资源请求 | 免费无限量 | 全部音频文件 |
 
-**切片 404**：`tools/stage.py v3` 未运行，`v3/public/audio/` 是空的。
-
-**D1 迁移失败 `table already exists`**：初始 schema 已应用，但再次 apply 时冲突。用 `--local` 先测；或在 migration SQL 里确认用 `CREATE TABLE IF NOT EXISTS`（0001_initial.sql 已正确使用）。
-
-**`import workers` 报错（本地 Python 环境）**：这个模块只在 Workers 运行时中存在，本地 `python v3/src/worker.py` 会出错——这是正常的，必须用 `uv run pywrangler dev` 在 Workers 沙箱里运行。
-
-**`response_header_timeout` 相关的报错**：V3 不需要这个配置（Cloudflare 对 Worker 执行时间的限制来自 CPU 时间，而不是超时）。等待网络的时间（D1 查询、fetch）不计入 CPU 时间。
+单用户每天几次听写，远在免费额度内。
 
 ---
 
-## 附录：将 dictation.de5.net 切换到 V3
+## 10. 故障排查
 
-在 Cloudflare Dashboard 为 `dictation-v3` Worker 添加 `dictation.de5.net` 作为自定义域名，或在 DNS 将 `dictation.de5.net` CNAME 到 `v3.dictation.de5.net`。
+**`Missing D1 binding` / `no such table`**
+`wrangler.jsonc` 的 `database_id` 仍是占位符，或迁移未应用：
+
+```bash
+cd v3 && npx wrangler d1 migrations apply dictation-v3 --remote
+```
+
+**音频 404**
+`v3/public/audio/` 是空的（`public/` 不入 Git，每次部署前需 stage）：
+
+```bash
+python tools/stage.py v3
+find v3/public/audio -name '*.mp3' | wc -l    # 应为数百
+bash deploy/cloudflare-deploy.sh --skip-slices
+```
+
+**切片生成报 `errorCode 411`**
+有道限流。调大间隔重跑，已生成的会自动跳过：
+
+```bash
+# 在 deploy/cloudflare.env 里把 TTS_INTERVAL 改成 2.0，然后
+bash deploy/cloudflare-deploy.sh
+```
+
+**`import workers` 报错**
+该模块只存在于 Workers 运行时。本地不能直接 `python v3/src/worker.py`，必须用：
+
+```bash
+cd v3 && uv run pywrangler dev
+```
+
+**`uv: command not found`**
+uv 装了但没在 PATH：
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+**自定义域名 522 / 无响应**
+刚绑定需等 1–2 分钟。仍不行则检查该域名是否橙云代理开启、Zone 是否与 `V3_ZONE` 一致。
+
+**多音字每次都是同两个**
+D1 库缺 `poly_ids` 列（老库）。重新应用迁移：
+
+```bash
+cd v3 && npx wrangler d1 migrations apply dictation-v3 --remote
+```
+
+`0001_initial.sql` 已含该列，全新库无此问题。
+
+---
+
+## 11. 删除部署
+
+```bash
+cd v3
+npx wrangler delete                              # 删 Worker
+npx wrangler d1 delete dictation-v3              # 删数据库（数据不可恢复）
+```
+
+删库前先导出备份（见第 8 节）。
+
+---
+
+## 附录：把主域名指向 V3
+
+在 Dashboard 为 `dictation-v3` Worker 添加 `dictation.de5.net` 作为第二个 Custom Domain，或在 DNS 把 `dictation.de5.net` CNAME 到 `v3.dictation.de5.net`。
