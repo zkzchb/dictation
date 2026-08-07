@@ -102,6 +102,8 @@ bash deploy/local-install.sh
 bash deploy/local-install.sh --skip-slices        # 跳过切片生成
 bash deploy/local-install.sh --slices-only        # 只生成切片，不建 venv
 bash deploy/local-install.sh --serve v2           # 装完直接启动 V2
+bash deploy/local-install.sh --install-service    # 装成开机自启服务（仅本机可访问）
+bash deploy/local-install.sh --uninstall-service  # 移除服务（保留数据与切片）
 ```
 
 ### 预期输出结尾
@@ -171,7 +173,43 @@ du -sh shared/web/audio                          # 通常几 MB
 
 ---
 
-## 5. 下一步
+## 5. 常驻运行（可选）
+
+上面的试跑是前台进程，关掉终端就停了。如果希望这台笔记本开机自动运行、随时打开浏览器就能用：
+
+```bash
+bash deploy/local-install.sh --install-service
+```
+
+装两个 systemd 服务：`dictation-local-v1`（8888）、`dictation-local-v2`（8889），开机自启、异常自动重启。
+
+**只监听 `127.0.0.1`** —— 同局域网的其他设备访问不到。这是有意的：应用没有任何鉴权，暴露到局域网意味着谁都能改听写记录。需要给别的设备用，就走 VPS 那套（Caddy + basic_auth + HTTPS）。
+
+日常运维：
+
+```bash
+systemctl status dictation-local-v1 dictation-local-v2   # 状态
+journalctl -u dictation-local-v2 -f                      # 实时日志
+sudo systemctl restart dictation-local-v2                # 重启
+```
+
+代码更新后要重启才生效：
+
+```bash
+git pull && sudo systemctl restart dictation-local-v1 dictation-local-v2
+```
+
+移除服务（数据库与切片不受影响）：
+
+```bash
+bash deploy/local-install.sh --uninstall-service
+```
+
+> 服务读取的密钥文件是 `.local-svc.env`（systemd 格式，无 `export` 前缀），与试跑用的 `.local-run.env` 分开生成。两者都是 600 权限、都在 `.gitignore` 里。改了 `deploy/local.env` 里的密钥后，重跑一次 `--install-service` 即可刷新。
+
+---
+
+## 6. 下一步
 
 **部署到 VPS**（V1/V2）—— 见 [DEPLOY-vps.md](DEPLOY-vps.md)。
 VPS 部署完成后，回到本机把切片同步过去：
@@ -193,7 +231,7 @@ bash deploy/cloudflare-deploy.sh --skip-slices
 
 ---
 
-## 6. 题库更新后重新生成切片
+## 7. 题库更新后重新生成切片
 
 题库 JSON 新增词条后，增量生成只补新词：
 
@@ -211,7 +249,7 @@ bash deploy/cloudflare-deploy.sh --skip-slices      # Cloudflare（会重新 sta
 
 ---
 
-## 7. 故障排查
+## 8. 故障排查
 
 **`YOUDAO_APP_KEY 仍是占位符`**
 `deploy/local.env` 没填或没保存。注意要改的是 `local.env` 而不是 `local.env.example`。
@@ -278,13 +316,17 @@ v2/venv/bin/python shared/tools/migrate_poly_ids.py v2/dictation.db
 | `v1/tts_cache/` | V1 的 TTS 磁盘缓存 |
 | `v1/audio/` | V1 合成的成品音频 |
 | `deploy/local.env` | 你填的密钥 |
-| `.local-run.env` | 试跑用环境变量（含密钥） |
+| `.local-run.env` | 试跑用环境变量（含密钥，`source` 格式） |
+| `.local-svc.env` | systemd 服务用环境变量（含密钥，无 `export`） |
 
 彻底清理本地环境（**会删掉本地听写记录**）：
 
 ```bash
+# 若装过常驻服务，先移除
+bash deploy/local-install.sh --uninstall-service
+
 rm -rf v1/venv v2/venv v1/dictation.db v2/dictation.db \
-       v1/tts_cache v1/audio .local-run.env .venv-gen
+       v1/tts_cache v1/audio .local-run.env .local-svc.env .venv-gen
 # 切片建议保留，删了要重新消耗有道额度：
 # rm -rf shared/web/audio
 ```
