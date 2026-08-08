@@ -40,6 +40,9 @@ set -a; . "$ENV_FILE"; set +a
 : "${YOUDAO_VOICE:=youxiaoxun}" ; : "${YOUDAO_SPEED:=0.6}"
 : "${TTS_MIN_INTERVAL:=0.2}"    ; : "${TTS_MAX_RETRY:=3}"
 : "${BACKUP_KEEP_DAYS:=30}"
+# 录音工作台默认开启：VPS 上有 Caddy 的 HTTPS（浏览器录音的前提）和
+# basic_auth（挡住陌生人），是邀请老师录真人音频最合适的环境。
+: "${STUDIO_ENABLED:=1}"
 
 # 归一化 yes/no
 DEPLOY_V1="$(echo "${DEPLOY_V1}" | tr '[:upper:]' '[:lower:]')"
@@ -210,6 +213,7 @@ if [[ "$DEPLOY_V2" == "yes" ]]; then
 DICTATION_DB=$APP_ROOT/v2/dictation.db
 WEB_ROOT=$APP_ROOT/shared/web
 STUDIO_AUDIO_DIR=$APP_ROOT/shared/web/audio/w
+STUDIO_ENABLED=$STUDIO_ENABLED
 EOF
   chmod 600 /etc/dictation/v2.env
   chown root:root /etc/dictation/v2.env

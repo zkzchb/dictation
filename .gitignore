@@ -19,6 +19,9 @@ _build_venv/
 .env
 *.env.local
 
+# sync-slices.sh --pull 覆盖前的切片备份
+shared/web/audio.bak_*/
+
 # 部署配置：含明文密钥，只提交 *.example 模板
 deploy/vps.env
 deploy/cloudflare.env
