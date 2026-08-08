@@ -227,6 +227,18 @@ else
   warn "无法读取行数，可稍后手动核对"
 fi
 
+# pywrangler 由 workers-py 包提供。项目里声明了它就能 `uv run pywrangler`；
+# 没声明时 uv 只装 pyproject 的运行依赖，命令不存在（报 Failed to spawn）。
+# 用 uvx --from 直接取包来跑，无需先把它装进项目 —— 这也是官方文档给出的
+# 初始化方式（uvx --from workers-py pywrangler init）。
+pywrangler_cmd() {
+  if uv run --quiet pywrangler --version >/dev/null 2>&1; then
+    echo "uv run pywrangler"
+  else
+    echo "uvx --from workers-py pywrangler"
+  fi
+}
+
 # ── 本地预览模式 ─────────────────────────────────────────────────────────
 if [[ "$DEV_MODE" == "yes" ]]; then
   step "启动本地预览"
@@ -235,13 +247,15 @@ if [[ "$DEV_MODE" == "yes" ]]; then
   echo "    npx wrangler d1 migrations apply $D1_DATABASE_NAME --local"
   echo
   cd "$V3_DIR"
-  exec uv run pywrangler dev
+  exec $(pywrangler_cmd) dev
 fi
 
 # ── 部署 ─────────────────────────────────────────────────────────────────
 step "部署到 Cloudflare"
 cd "$V3_DIR"
-DEPLOY_OUT="$(uv run pywrangler deploy 2>&1)" || {
+PW="$(pywrangler_cmd)"
+ok "使用 $PW"
+DEPLOY_OUT="$($PW deploy 2>&1)" || {
   echo "$DEPLOY_OUT"
   die "部署失败（上方为 wrangler 输出）"
 }

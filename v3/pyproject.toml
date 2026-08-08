@@ -6,3 +6,12 @@ dependencies = [
     "fastapi",
     "pydantic>=2.0",
 ]
+
+# workers-py 提供 pywrangler 命令（部署与本地预览都靠它）。
+# 它只在开发机上用，不进 Worker 运行时，所以放 dependency-groups 而非
+# dependencies —— 后者会被打包进 Worker。
+# 没有这一段时 `uv run pywrangler` 会报 Failed to spawn: `pywrangler`。
+[dependency-groups]
+dev = [
+    "workers-py",
+]
