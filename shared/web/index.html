@@ -127,9 +127,13 @@
 
     <!-- Step 4: 播放（播放列表驱动，选好词表即可播放，无需等待生成） -->
     <div x-show="step===4" x-cloak class="flex flex-col items-center justify-center h-full p-6">
+      <!-- 不把 playerState 直接绑到 play/pause 事件上：Chrome 在每个切片
+           自然播完后会紧跟一个 pause 事件（Firefox 不会），词间停顿期间也处于
+           pause 状态。直接绑定会让图标在每个词的间隔里翻成「播放」，看着像
+           反复启停。playerState 只表达用户意图，由 onAudioPause 判断来源。 -->
       <audio x-ref="audioPlayer"
-             @play="playerState='playing'"
-             @pause="playerState='paused'"
+             @playing="_ignorePause=false"
+             @pause="onAudioPause()"
              @ended="onAudioEnded()"></audio>
       <div class="mb-2 text-center h-10">
         <span class="text-sm text-gray-400" x-show="!currentPlaylistWord">
@@ -321,6 +325,9 @@ document.addEventListener('alpine:init', () => {
     lessons: [], selectedLesson: null, wordList: [],
     playlist: [], playlistIndex: 0,
     currentPlaylistWord: null, _gapTimer: null, _inGap: false,
+    // 由我们自己调用 audio.pause() 或换 src 时置真，用于忽略随之而来的
+    // pause 事件。真正来自外部的暂停（来电、耳机按键）不会带这个标记。
+    _ignorePause: false,
     API_BASE: '',
 
     // 多音字段落（仅播报，不判分、核对页不列出）
@@ -513,12 +520,28 @@ document.addEventListener('alpine:init', () => {
         return;
       }
       const audio = this.$refs.audioPlayer;
+      // 换 src 会让浏览器先 pause 当前音频，这是我们自己造成的，不是用户暂停。
+      this._ignorePause = true;
       audio.src   = item.url;
       try { await audio.play(); }
-      catch(e) { this.playerState = 'paused'; }  // 自动播放被阻止
+      catch(e) { this._ignorePause = false; this.playerState = 'paused'; }  // 自动播放被阻止
+    },
+
+    // pause 事件有三个来源，只有第三种该改变 UI：
+    //   1. 切片自然播完 —— Chrome 在 ended 之后紧跟一个 pause
+    //   2. 我们自己调 audio.pause() 或换 src
+    //   3. 用户真的想停（点按钮、耳机键、来电打断）
+    // 前两种由 _ignorePause 标记跳过；点按钮那条路径在 togglePlay 里已显式
+    // 设好状态，所以这里剩下的就是外部打断，如实反映出来。
+    onAudioPause() {
+      if (this._ignorePause) { this._ignorePause = false; return; }
+      if (this._gapTimer) return;          // 词间停顿中，播放仍在继续
+      if (this.playerState === 'playing') this.playerState = 'paused';
     },
 
     onAudioEnded() {
+      // ended 之后 Chrome 还会补一个 pause，先标记好别让它翻状态
+      this._ignorePause = true;
       const item = this.playlist[this.playlistIndex];
       if (!item) return;
       if (item.gapMs > 0) {
@@ -537,20 +560,23 @@ document.addEventListener('alpine:init', () => {
     togglePlay() {
       const audio = this.$refs.audioPlayer;
       if (this.playerState === 'playing') {
+        this.playerState = 'paused';       // 用户意图，显式设置
         if (this._gapTimer) {
-          // 停顿中暂停：清除计时器，标记状态
+          // 停顿中暂停：清除计时器，记下位置以便恢复
           clearTimeout(this._gapTimer); this._gapTimer = null;
-          this._inGap = true; this.playerState = 'paused';
+          this._inGap = true;
         } else {
-          audio.pause();  // @pause 事件自动设 playerState='paused'
+          this._ignorePause = true;        // 这次 pause 是我们发起的
+          audio.pause();
         }
       } else if (this.playerState === 'paused') {
+        this.playerState = 'playing';
         if (this._inGap) {
           // 停顿中恢复：跳过剩余停顿，直接播下一词
-          this._inGap = false; this.playerState = 'playing';
+          this._inGap = false;
           this.playlistIndex++; this.playNextItem();
         } else {
-          audio.play();  // @play 事件自动设 playerState='playing'
+          audio.play().catch(() => { this.playerState = 'paused'; });
         }
       } else {
         // idle 或 ended：从头开始
@@ -583,6 +609,8 @@ document.addEventListener('alpine:init', () => {
     goToStep(s) {
       if (this.step === 4) {
         const audio = this.$refs.audioPlayer;
+        // 离开播放页是我们主动停的，别让它被当成外部打断
+        this._ignorePause = true;
         if (audio) { audio.pause(); audio.src = ''; }
         if (this._gapTimer) { clearTimeout(this._gapTimer); this._gapTimer = null; }
         this._inGap = false; this.playerState = 'paused';
