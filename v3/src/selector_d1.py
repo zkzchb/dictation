@@ -1,7 +1,7 @@
 """v3/src/selector_d1.py —— 选词引擎的 D1 异步版
 
 与 shared/selector.py 梯队逻辑完全一致（设计文档 §5），
-差异仅在数据访问：D1 用 await prepare/bind/run，行是 JS 对象需 .to_py()。
+差异仅在数据访问：D1 用 await prepare/bind/run 取行，见 _rows()。
 
 Pyodide 环境下不能跨目录 import，故此文件由 stage.py 从 shared/ 同步维护，
 或直接在此维护并与 shared/selector.py 保持逻辑对齐。
@@ -27,7 +27,11 @@ def is_review_lesson(lesson_seq):
 
 async def _rows(db, sql, params=()):
     r = await db.prepare(sql).bind(*params).run()
-    return r.results.to_py()
+    rows = r.results
+    # 当前 workers-py 下 results 已是 Python list，调 .to_py() 会抛
+    # AttributeError: 'list' object has no attribute 'to_py'。
+    # 旧版 Pyodide 返回 JsProxy 才需要转换，故按能力判断而非写死。
+    return rows.to_py() if hasattr(rows, "to_py") else list(rows)
 
 
 async def regular_lessons(db):
