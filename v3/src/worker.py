@@ -92,7 +92,10 @@ def _lesson_row(d):
     title = (d.get("lesson_title") or "").strip()
     name = (d.get("lesson_name") or "").strip()
     unit = (d.get("unit_name") or "").strip()
-    d["is_review"] = seq % 10 == 0
+    # 与 selector_d1.is_review_lesson() 保持一致：末位 0 是复习课，但 3000
+    # 是冷启动填充池（二年级总复习），选词时按正式课走，不能算复习课。
+    # 不排除的话它会落进「单元复习」下拉，而后端按正式课出题 —— 前后端判定打架。
+    d["is_review"] = seq % 10 == 0 and seq != 3000
     if d["is_review"]:
         d["label"] = f"{unit} {name}".strip()
     elif title and title not in name:
@@ -108,7 +111,10 @@ async def get_lessons(req: Request):
     result = await env.DB.prepare(
         "SELECT lesson_seq, unit_id AS unit_seq, unit_name, lesson_name, "
         "       COALESCE(lesson_title, '') AS lesson_title "
-        "FROM lessons WHERE lesson_seq > 0 ORDER BY lesson_seq"
+        # >= 3100 与 V1/V2 一致：排除 3000（冷启动词库，二年级总复习）。
+        # 3000 是给梯队算法兜底用的填充池，不是可选课程 —— 列进下拉菜单
+        # 会让用户选到一门 selector 按「正式课」处理、前端却当「复习课」的课。
+        "FROM lessons WHERE lesson_seq >= 3100 ORDER BY lesson_seq"
     ).run()
     return [_lesson_row(d) for d in _rows_of(result)]
 
