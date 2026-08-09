@@ -62,6 +62,20 @@ def extract_word_info(target, options_json):
 def _next_review(days: int) -> str:
     return (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d")
 
+
+def _rows_of(result):
+    """把 D1 查询结果取成 Python list[dict]。
+
+    不同 workers-py / Pyodide 版本行为不一致：新版 D1 绑定返回的
+    result.results 已经是普通 list[dict]，旧版是 JsProxy、需要 .to_py()。
+    对已是 list 的对象调 .to_py() 会抛
+        AttributeError: 'list' object has no attribute 'to_py'
+    所以这里按能力判断，两种运行时都能用。
+    """
+    rows = result.results
+    to_py = getattr(rows, "to_py", None)
+    return to_py() if callable(to_py) else list(rows)
+
 # ── 接口 ─────────────────────────────────────────────────────────────────
 
 def _lesson_row(d):
@@ -96,7 +110,7 @@ async def get_lessons(req: Request):
         "       COALESCE(lesson_title, '') AS lesson_title "
         "FROM lessons WHERE lesson_seq > 0 ORDER BY lesson_seq"
     ).run()
-    return [_lesson_row(d) for d in result.results.to_py()]
+    return [_lesson_row(d) for d in _rows_of(result)]
 
 
 @app.get("/api/generate_daily/{lesson_seq}")
@@ -140,10 +154,10 @@ async def submit_dictation(payload: SubmitPayload, req: Request):
     # 2. 批量读取已有的记忆行，减少后续网络往返
     kp_ids = [r.kp_id for r in payload.results]
     ph     = ",".join("?" * len(kp_ids))
-    mem_rows = (await env.DB.prepare(
+    mem_rows = _rows_of(await env.DB.prepare(
         f"SELECT kp_id, id, error_count, correct_streak FROM user_memory "
         f"WHERE user_id = ? AND kp_id IN ({ph})"
-    ).bind(payload.user_id, *kp_ids).run()).results.to_py()
+    ).bind(payload.user_id, *kp_ids).run())
     mem_map = {r["kp_id"]: r for r in mem_rows}
 
     # 3. 构建 batch：dictation_items + user_memory upsert
@@ -185,11 +199,11 @@ async def submit_dictation(payload: SubmitPayload, req: Request):
 @app.get("/api/dictation_history")
 async def get_dictation_history(start_date: str, end_date: str, req: Request):
     env = req.scope["env"]
-    rows = (await env.DB.prepare(
+    rows = _rows_of(await env.DB.prepare(
         "SELECT date(created_at) AS d, MAX(score) AS s "
         "FROM dictation_history "
         "WHERE user_id = ? AND date(created_at) BETWEEN ? AND ? "
         "GROUP BY date(created_at)"
-    ).bind(USER_ID, start_date, end_date).run()).results.to_py()
+    ).bind(USER_ID, start_date, end_date).run())
     return {r["d"]: r["s"] for r in rows}
 
