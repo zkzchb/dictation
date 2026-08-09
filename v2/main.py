@@ -270,6 +270,38 @@ def _require_studio():
         raise HTTPException(status_code=403, detail="录音工作台已关闭（STUDIO_ENABLED=0）")
 
 
+# 真人录音台账。
+# 为什么需要它：切片文件名是 md5(词面)[:12]，真人录音和 TTS 占位「同名同路径」，
+# 磁盘上无从区分。只看文件存在与否的话，gen_slices.py 生成完 869 个占位后
+# 「哪些还没录」永远是空集，工作台会直接显示「全部录制完成」。
+# 放在 audio/ 下是有意的：rsync 同步切片时它会一起走，本地与 VPS 对录音进度
+# 的认知保持一致。
+STUDIO_LEDGER = os.path.join(STUDIO_AUDIO_DIR, "..", ".recorded.json")
+
+
+def _load_ledger() -> dict:
+    """读台账。读不出来就当空 —— 它只影响进度显示，不该阻塞录音。"""
+    try:
+        with open(STUDIO_LEDGER, encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _mark_recorded(pairs) -> None:
+    """把本次保存的词记进台账。重录同一个词会覆盖时间戳。"""
+    led = _load_ledger()
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    for h, text in pairs:
+        led[h] = {"text": text, "at": now}
+    os.makedirs(os.path.dirname(os.path.abspath(STUDIO_LEDGER)), exist_ok=True)
+    tmp = STUDIO_LEDGER + ".part"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(led, f, ensure_ascii=False, indent=1)
+    os.replace(tmp, STUDIO_LEDGER)
+
+
 @app.get("/studio")
 async def studio_page():
     from fastapi.responses import HTMLResponse, PlainTextResponse
@@ -280,9 +312,91 @@ async def studio_page():
         return HTMLResponse(f.read())
 
 
+@app.get("/api/studio/words")
+def studio_words():
+    """录音台词表 —— 直接从题库生成，不需要手动上传 JSON。
+
+    取词规则与 shared/gen_slices.py 的 collect_targets 保持一致，这样算出的
+    hash 才能和已有切片文件名对上：
+      * 多音字取「单字」本身（前端播的就是单字，组词只是给家长看的参考）
+      * 其余类别取 options_json 里所有候选组词
+    按 (课序, kp.id) 排列而非字母序 —— 这样每 10 个一组天然属于同一课，
+    老师照着课本录更连贯。同一个词在多课出现时只保留首次。
+    """
+    _require_studio()
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            "SELECT kp.id, kp.lesson_seq, kp.target, kp.category, kp.options_json, "
+            "       COALESCE(l.lesson_title,'') AS lesson_title, "
+            "       COALESCE(l.lesson_name,'')  AS lesson_name "
+            "FROM knowledge_points kp "
+            "LEFT JOIN lessons l ON l.lesson_seq = kp.lesson_seq "
+            "ORDER BY kp.lesson_seq, kp.id"
+        ).fetchall()
+    finally:
+        conn.close()
+
+    out, seen = [], set()
+
+    def _add(text, pinyin, row):
+        text = (text or "").strip()
+        if not text or text in seen:
+            return
+        seen.add(text)
+        title = (row["lesson_title"] or "").strip()
+        name = (row["lesson_name"] or "").strip()
+        out.append({
+            "text": text,
+            "pinyin": (pinyin or "").strip(),
+            "hash": word_hash(text),
+            "lesson_seq": row["lesson_seq"],
+            "lesson": f"{title} {name}".strip() or str(row["lesson_seq"]),
+        })
+
+    for r in rows:
+        opts = r["options_json"] or []
+        if isinstance(opts, str):
+            try:
+                opts = json.loads(opts)
+                if isinstance(opts, str):     # 历史数据存在双重编码
+                    opts = json.loads(opts)
+            except Exception:
+                opts = []
+
+        if r["category"] == selector.CAT_POLY:
+            _add(r["target"], "", r)
+            continue
+
+        added = False
+        for o in opts:
+            if isinstance(o, dict) and (o.get("text") or "").strip():
+                _add(o["text"], o.get("pinyin", ""), r)
+                added = True
+        if not added:
+            _add(r["target"], "", r)
+
+    return {"words": out, "total": len(out)}
+
+
+@app.get("/api/studio/status")
+def studio_status():
+    """哪些词已由真人录过。返回 {recorded: {hash: {text, at}}, count}。
+
+    与 /api/studio/check 的区别：check 只看文件在不在（TTS 占位也算），
+    这里只认台账里记过的真人录音。
+    """
+    _require_studio()
+    led = _load_ledger()
+    return {"recorded": led, "count": len(led)}
+
+
 @app.post("/api/studio/check")
 async def studio_check(payload: dict):
-    """检查哪些 hash 已有录音文件。返回 {hash: bool}。"""
+    """检查哪些 hash 已有音频文件（含 TTS 占位）。返回 {hash: bool}。
+
+    保留此接口是为了兼容；判断「是否已由真人录过」请用 /api/studio/status。
+    """
     _require_studio()
     out = {}
     for h in payload.get("hashes", []):
@@ -331,10 +445,11 @@ async def studio_split(request: Request):
 
 @app.post("/api/studio/save")
 async def studio_save(payload: dict):
-    """保存已校对的切片。payload: {items: [{hash, audio(base64)}]}。
+    """保存已校对的切片。payload: {items: [{hash, text, audio(base64)}]}。
 
     hash 经 _safe_slice_path 校验（12 位小写十六进制），否则整批拒绝 ——
     未校验时 hash 可含 ../ 穿越出音频目录，造成任意文件写入。
+    text 可选，只用于台账可读性。
     """
     import base64 as b64
     _require_studio()
@@ -348,21 +463,26 @@ async def studio_save(payload: dict):
     for item in items:
         if not isinstance(item, dict):
             raise HTTPException(status_code=400, detail="items 每项必须是对象")
-        path = _safe_slice_path(item.get("hash"))
+        h = item.get("hash")
+        path = _safe_slice_path(h)
         try:
             data = b64.b64decode(item.get("audio") or "", validate=True)
         except Exception:
             raise HTTPException(status_code=400, detail="audio 不是合法的 base64")
         if not data:
             raise HTTPException(status_code=400, detail="audio 为空")
-        planned.append((path, data))
+        planned.append((h, path, data, item.get("text") or ""))
 
     os.makedirs(STUDIO_AUDIO_DIR, exist_ok=True)
-    for path, data in planned:
+    for _h, path, data, _t in planned:
         tmp = path + ".part"          # 先写临时文件再原子替换，避免半截文件被播放
         with open(tmp, "wb") as f:
             f.write(data)
         os.replace(tmp, path)
+
+    # 记账：切片文件名是内容 MD5，真人录音与 TTS 占位同名，磁盘上无从区分。
+    # 台账让工作台知道哪些是真人录的，从而显示准确进度。重录会刷新时间戳。
+    _mark_recorded([(h, t) for h, _p, _d, t in planned])
     return {"status": "success", "saved": len(planned)}
 
 
