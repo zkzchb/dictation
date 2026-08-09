@@ -91,7 +91,10 @@ def _lesson_row(r):
     title = (d.get("lesson_title") or "").strip()
     name = (d.get("lesson_name") or "").strip()
     unit = (d.get("unit_name") or "").strip()
-    d["is_review"] = seq % 10 == 0
+    # 与 selector.is_review_lesson() 保持一致：末位 0 是复习课，但 3000
+    # 是冷启动填充池（二年级总复习），选词时按正式课走，不能算复习课。
+    # 不排除的话它会落进「单元复习」下拉，而后端按正式课出题 —— 前后端判定打架。
+    d["is_review"] = seq % 10 == 0 and seq != 3000
     if d["is_review"]:
         d["label"] = f"{unit} {name}".strip()
     elif title and title not in name:
