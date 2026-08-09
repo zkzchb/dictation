@@ -7,7 +7,7 @@
 | V1 | 8888 | 运行时调有道 TTS，pydub 拼接 | 是 | 是 |
 | V2 | 8889 | 预录切片，浏览器播放列表 | 仅录音工作台 | 仅生成切片时 |
 
-两版共用一台 Ubuntu 22.04/24.04、一个 `caddy` 进程、一个 `dictation` 系统用户，数据库各自独立。
+两版共用一台 Ubuntu 24.04、一个 `caddy` 进程、一个 `dictation` 系统用户，数据库各自独立。
 
 ---
 
@@ -27,7 +27,7 @@
 
 ## 0. 前置条件
 
-- Ubuntu 22.04 / 24.04，有 root 或 sudo
+- Ubuntu 24.04，有 root 或 sudo
 - 域名 A 记录已指向服务器公网 IP：
   - `v1.dictation.de5.net`（部署 V1 时）
   - `v2.dictation.de5.net`（部署 V2 时）
