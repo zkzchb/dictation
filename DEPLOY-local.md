@@ -113,7 +113,7 @@ bash deploy/local-install.sh --uninstall-service  # 移除服务（保留数据�
   本地部署完成
 ============================================================
 
-  音频切片   516 个  →  shared/web/audio/
+  音频切片   892 个  →  shared/web/audio/
   V1 环境    v1/venv  +  v1/dictation.db
   V2 环境    v2/venv  +  v2/dictation.db
 ```
