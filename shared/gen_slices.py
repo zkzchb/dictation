@@ -43,6 +43,12 @@ MAX_GROUPS  = int(os.getenv("MAX_GROUPS", "20"))
 SYS_PHRASES = {
     "intro":      "准备听写。每三个词为一组，报三遍。",
     "outro":      "听写完毕，请检查后交卷。",
+    # 多音字改为每字一句，由三段拼起来：poly_prefix + 老师录的单字 + poly_suffix，
+    # 听感是「多音字：尽（老师的原声），请组词并默写，标注拼音。」
+    # 老师只读本课那一个音，题目也只针对这个音组词。
+    "poly_prefix": "多音字：",
+    "poly_suffix": "，请组词并默写，标注拼音。",
+    # 旧的整段引导保留合成，避免尚未更新的前端拿到 404；新前端不再播。
     "poly_intro": "下面是多音字。请写出不同读音的组词，并标上拼音。",
     **{f"g{n}": f"第{n}组。" for n in range(1, MAX_GROUPS + 1)},
 }
