@@ -434,11 +434,20 @@ document.addEventListener('alpine:init', () => {
       try {
         const res  = await fetch(`${this.API_BASE}/api/generate_daily/${this.selectedLesson}?mode=${this.dictationMode}`);
         const data = await res.json();
-        this.wordList = data.data.map(item => ({
+        // 按梯队显示顺序重排（稳定排序保留同级内后端原有间距）：
+        // 生字听写：上次错词 → 本课生字组词 → 本课词语表 → 其余（近期错词/复习/凑数）
+        // 单元复习：后端已按梯队给序，维持原序（wrong_last 在前即可）
+        const TIER = { wrong_last: 0, new_char: 1, new_word: 2 };
+        const tier = t => TIER[t] ?? 3;
+        const words = data.data.map(item => ({
           kp_id: item.id, text: item.target, pinyin: item.pinyin || '',
           type: item.word_type || 'review', audio_url: item.audio_url || '',
           selected: true, isCorrect: true,
         }));
+        if (this.dictationMode === 'daily') {
+          words.sort((a, b) => tier(a.type) - tier(b.type));
+        }
+        this.wordList = words;
         this.polyphonic = data.polyphonic_section || [];
       } catch(e) { console.error('获取词表失败', e); }
     },
