@@ -32,6 +32,62 @@
       overflow: hidden;
     }
     .cfg { width: 5.5rem; }
+
+    /* ─── 手机布局（≤640px）──────────────────────────────────────────
+       PC 上一屏放得下 10 词，手机放不下：375px 宽减掉边距只剩 327px，
+       卡片 min-w 120px + gap 12px 一行只排 2 个，10 词就是 5 行约 560px，
+       加上页头、波形、按钮、提示总高约 858px，而可视区只有 650px 上下。
+       结果是「开始录音」在折叠线以下，点完又跳回第一个词，页面却不动。
+
+       两套排布，只在手机生效：
+         · ready / 校对 → 紧凑网格，字号与内边距调小、一行 3 个，10 词进 3 行
+         · 录音中       → 专注模式，只留当前词（超大）与前后各一个（小、暗）
+       PC 端（>640px）完全走原样式，一行代码不受影响。               */
+    @media (max-width: 640px) {
+      /* 紧凑网格：卡片不再撑 120px，改由 flex-basis 三等分 */
+      .cards-compact { gap: .5rem; }
+      .cards-compact .word-card {
+        min-width: 0;
+        flex: 0 0 calc((100% - 1rem) / 3);
+        padding: .5rem .25rem;
+      }
+      .cards-compact .wc-text  { font-size: 1.125rem; line-height: 1.6rem; }
+      .cards-compact .wc-pinyin { font-size: .625rem; line-height: .9rem; }
+      .cards-compact .word-card.active { transform: scale(1.04); }
+      /* 多音字那行小字在紧凑网格里挤不下，收起来 —— ready 态另有整组提示 */
+      .cards-compact .wc-poly { display: none; }
+
+      /* 专注模式：当前词独占一行超大，前后各一个缩小压暗 */
+      .cards-focus { flex-direction: column; align-items: center; gap: .25rem; }
+      .cards-focus .word-card { min-width: 0; width: 100%; max-width: 20rem; }
+      .cards-focus .wc-focus-hide { display: none; }
+      .cards-focus .word-card.active .wc-text {
+        font-size: 3.75rem; line-height: 4.25rem;
+      }
+      .cards-focus .word-card.active .wc-pinyin {
+        font-size: 1rem; line-height: 1.5rem;
+      }
+      .cards-focus .word-card:not(.active) {
+        padding: .375rem; opacity: .3; transform: scale(.9);
+      }
+      .cards-focus .word-card:not(.active) .wc-text {
+        font-size: 1rem; line-height: 1.4rem;
+      }
+      .cards-focus .word-card:not(.active) .wc-pinyin { display: none; }
+      .cards-focus .word-card:not(.active) .wc-poly  { display: none; }
+
+      /* 控制条吸底常驻 —— 原来要滚到最下面才点得到「开始录音」 */
+      .ctl-sticky {
+        position: sticky; bottom: 0; z-index: 20;
+        margin: 0 -1.5rem -1.5rem; padding: .75rem 1rem;
+        padding-bottom: calc(.75rem + env(safe-area-inset-bottom, 0px));
+        background: rgba(15,23,42,.95);
+        border-top: 1px solid #1e293b;
+        backdrop-filter: blur(8px);
+      }
+      /* 录音中波形压扁，给词让位 */
+      canvas { max-width: 100%; height: 48px; }
+    }
   </style>
 </head>
 <body x-data="studio()" x-init="init()" class="min-h-screen">
@@ -124,20 +180,28 @@
       </button>
     </div>
 
-    <!-- 词语卡片区（提词器）-->
-    <div class="flex gap-3 justify-center mb-8 flex-wrap" style="min-height:140px">
+    <!-- 词语卡片区（提词器）
+         手机上两套排布，靠 cards-compact / cards-focus 切换（样式见页头）：
+         录音与倒计时走专注模式，其余走紧凑网格。PC 端两个类都不改变外观。 -->
+    <div class="flex gap-3 justify-center mb-8 flex-wrap"
+         :class="focusMode ? 'cards-focus' : 'cards-compact'"
+         x-ref="cards"
+         style="min-height:140px">
       <template x-for="(w, i) in currentWords" :key="w.hash">
+        <!-- data-idx 而非 x-ref：Alpine 的 x-ref 在 x-for 里每轮都写同一个键，
+             $refs.card 最后只剩最后一张卡，拿不到第 i 张。改成查 DOM。 -->
         <div class="word-card rounded-2xl p-5 flex flex-col items-center justify-center min-w-[120px]"
-             :class="cardClass(i)"
+             :class="[cardClass(i), focusMode && !nearActive(i) ? 'wc-focus-hide' : '']"
+             :data-idx="i"
              @click="state==='verifying' && toggleWord(i)"
              :style="state==='verifying' ? 'cursor:pointer' : ''">
           <!-- 多音字：拼音就是本课该读的音，必须显眼，否则老师不知道读哪个 -->
-          <span class="text-xs font-mono mb-1"
+          <span class="wc-pinyin text-xs font-mono mb-1"
                 :class="w.poly ? 'text-[#F59E0B] font-bold' : 'text-slate-400'"
                 x-text="w.pinyin"></span>
-          <span class="text-3xl font-bold" x-text="w.text"></span>
+          <span class="wc-text text-3xl font-bold" x-text="w.text"></span>
           <template x-if="w.poly">
-            <span class="mt-1 text-[11px] text-[#F59E0B] whitespace-nowrap">
+            <span class="wc-poly mt-1 text-[11px] text-[#F59E0B] whitespace-nowrap">
               多音字 · 读<span x-text="w.pinyin"></span>
               <template x-if="w.example"><span>（如<span x-text="w.example"></span>）</span></template>
             </span>
@@ -165,8 +229,8 @@
       </div>
     </div>
 
-    <!-- 控制按钮 -->
-    <div class="text-center flex gap-3 justify-center flex-wrap">
+    <!-- 控制按钮：手机上吸底常驻，不必滚到页尾去点「开始录音」 -->
+    <div class="ctl-sticky text-center flex gap-3 justify-center flex-wrap">
       <template x-if="state==='ready'">
         <div class="flex gap-3 items-center flex-wrap justify-center">
           <button @click="startCountdown()"
@@ -265,6 +329,37 @@ function studio() {
     get inGroup() {
       return ['ready','countdown','recording','splitting','verifying','saving']
              .indexOf(this.state) >= 0;
+    },
+
+    // 手机上录音/倒计时走「专注模式」：只留当前词与前后各一个。
+    // 校对必须看得见全部 10 个 —— 要逐个点喇叭试听、点卡片标重录，
+    // 只显示 5 个会逼着老师翻页找词。
+    get focusMode() {
+      return this.state === 'recording' || this.state === 'countdown';
+    },
+
+    // 专注模式里哪些卡片留着显示。activeIdx 为 -1（倒计时阶段还没开始推进）
+    // 时先亮第一个，否则整屏空着，老师不知道第一个要读什么。
+    nearActive(i) {
+      const a = this.activeIdx < 0 ? 0 : this.activeIdx;
+      return Math.abs(i - a) <= 1;
+    },
+
+    // 把高亮词滚进视区。这是老师报的那个问题的正解 —— 手机上点完「开始录音」
+    // 页面停在页尾，提词器却从第一个词开始亮，人看不到该读哪个。
+    // 每组词数可调到 30，任何「缩小塞进一屏」的做法都会在 30 词时失效，
+    // 所以这个兜底不能省。scrollIntoView 用 center，让当前词落在屏幕中间。
+    scrollActiveIntoView() {
+      const box = this.$refs.cards;
+      if (!box) return;
+      const i = this.activeIdx < 0 ? 0 : this.activeIdx;
+      const el = box.querySelector(`[data-idx="${i}"]`);
+      if (!el || typeof el.scrollIntoView !== 'function') return;
+      try {
+        el.scrollIntoView({behavior: 'smooth', block: 'center', inline: 'nearest'});
+      } catch (e) {
+        el.scrollIntoView(false);       // 老浏览器不认 options
+      }
     },
 
     // 进度只认台账，不看文件是否存在 —— TTS 占位与真人录音同名同路径，
@@ -441,6 +536,9 @@ function studio() {
       this.cleanupAudio();
       this.state = 'countdown';
       this.countdown = 3;
+      // 手机上「开始录音」在吸底条里，点它时页面可能停在任意位置。
+      // 倒计时一开始就把第一个词滚进视区，三秒后开口时人已经在看着它了。
+      this.$nextTick(() => this.scrollActiveIntoView());
       const token = this._token;
       const tick = () => {
         if (token !== this._token) return;
@@ -497,6 +595,8 @@ function studio() {
       const token = this._token;
       const ms = Math.max(500, (parseFloat(this.wordSeconds) || 2.5) * 1000);
       this.activeIdx = 0;
+      // $nextTick：等 Alpine 把 active 类渲染上去再滚，否则滚的是旧位置
+      this.$nextTick(() => this.scrollActiveIntoView());
       const step = () => {
         if (token !== this._token) return;
         if (this.activeIdx >= this.currentWords.length - 1) {
@@ -504,7 +604,11 @@ function studio() {
           this._timer = setTimeout(() => { if (token === this._token) this.stopRecording(); }, ms);
           return;
         }
-        this._timer = setTimeout(() => { this.activeIdx++; step(); }, ms);
+        this._timer = setTimeout(() => {
+          this.activeIdx++;
+          this.$nextTick(() => this.scrollActiveIntoView());
+          step();
+        }, ms);
       };
       step();
     },
