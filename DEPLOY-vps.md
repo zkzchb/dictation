@@ -179,7 +179,20 @@ bash deploy/sync-slices.sh root@你的服务器IP --path /srv/dictation
 
 浏览器打开 `https://v2.dictation.de5.net`，输入第 3 步设置的用户名密码，应看到听写界面并能播放音频。
 
-命令行验收（`用户名:密码` 换成你的）：
+> 忘了密码？唯一的明文副本在服务器上：`grep BASIC_AUTH /opt/dictation/deploy/vps.env`。
+> `/etc/caddy/Caddyfile` 里只有 bcrypt 哈希，不可逆推。真丢了就改
+> `deploy/vps.env` 里的 `BASIC_AUTH_PASSWORD` 后重跑 `bash deploy/vps-install.sh`
+> —— 脚本幂等，数据库与切片都不动。
+
+命令行验收（`用户名:密码` 换成你的）。**在服务器上可直连 uvicorn 端口跳过
+basic_auth**，调接口时比走 Caddy 省事：
+
+```bash
+curl -s http://127.0.0.1:8889/api/lessons | head -c 200      # V2，无需密码
+curl -s http://127.0.0.1:8888/api/lessons | head -c 200      # V1，无需密码
+```
+
+从外部走公网则需带上口令：
 
 ```bash
 # 课程目录：应返回 lesson_seq >= 3100 的课程
@@ -236,11 +249,32 @@ du -sh /opt/dictation/shared/web/audio /opt/dictation/v*/dictation.db
 
 ### 更新代码
 
+**首次拉取前需加一次例外**。安装脚本把 `/opt/dictation` 属主设为 `dictation`，而你以 root 登录，Git 2.35.2+ 会拒绝操作他人拥有的仓库：
+
+```
+fatal: detected dubious ownership in repository at '/opt/dictation'
+```
+
+```bash
+# 只需执行一次
+git config --global --add safe.directory /opt/dictation
+```
+
+之后每次更新（**`chown` 不能省**——root 拉下来的新文件属主是 root，
+而服务以 `dictation` 身份运行且带 `ProtectSystem=strict`，会读不到新代码）：
+
 ```bash
 cd /opt/dictation
-systemctl stop dictation-v1 dictation-v2
 git pull
-sudo bash deploy/vps-install.sh     # 幂等，会重装依赖并重启
+chown -R dictation:dictation /opt/dictation
+systemctl restart dictation-v1 dictation-v2
+```
+
+依赖或配置也变了时（新增 Python 包、改了 Caddy 规则、动过 `deploy/vps.env`），
+改跑一键脚本——它幂等，并且自己会处理属主：
+
+```bash
+cd /opt/dictation && git pull && sudo bash deploy/vps-install.sh
 ```
 
 数据库不受影响（脚本检测到已存在即跳过初始化）。
@@ -252,6 +286,47 @@ sudo bash deploy/vps-install.sh     # 幂等，会重装依赖并重启
 bash deploy/local-install.sh --slices-only
 bash deploy/sync-slices.sh root@你的服务器IP
 ```
+
+### 录音工作台：邀请老师录真人音频
+
+浏览器只在**安全上下文**（HTTPS / `localhost`）才暴露 `navigator.mediaDevices`，
+所以局域网 HTTP 地址（`http://192.168.x.x:8889/studio`）**录不了音**——页面能打开，
+一点录音就报非安全来源。VPS 有 Caddy 自动签发的证书，加上 basic_auth 挡住陌生人，
+是录音最合适的环境，也便于邀请校外的老师参与。
+
+```bash
+# 1. 本地先把 TTS 切片推上去，保证词表完整，老师只需覆盖想重录的
+bash deploy/sync-slices.sh root@你的服务器IP
+
+# 2. 把地址和口令给老师
+#    https://v2.你的域名/studio
+
+# 3. 老师录完，拉回本地（会先备份本地切片，可回退）
+bash deploy/sync-slices.sh root@你的服务器IP --pull
+
+# 4. 同步到 Cloudflare（若已部署 V3）
+bash deploy/cloudflare-deploy.sh --skip-slices
+```
+
+`--pull` 是反向同步。真人录音与 TTS 占位切片**同名同路径**（文件名是
+`md5(词面)[:12]`），拉回会直接覆盖，所以脚本默认先把本地 `shared/web/audio/`
+备份成 `audio.bak_<时间戳>`。加 `--no-backup` 跳过，加 `--dry-run` 先看会拉什么。
+
+哪些词已由真人录过记在 `shared/web/audio/.recorded.json`。之所以需要这份台账：
+切片文件名是内容 MD5，真人录音和 TTS 占位在磁盘上无从区分，只看文件是否存在
+的话「待录」永远是空集。它跟切片放在一起，`sync-slices.sh` 会一并同步，
+本地与 VPS 对录音进度的认知保持一致。
+
+`/studio` 是唯一会往磁盘写文件的接口，由 `STUDIO_ENABLED` 控制（VPS 上默认开启）。
+不录音时建议关掉：
+
+```bash
+# 改 deploy/vps.env 设 STUDIO_ENABLED=0，然后
+cd /opt/dictation && sudo bash deploy/vps-install.sh
+```
+
+> V1 的 TTS 缓存不会自动跟着更新。老师重录后若要 V1 也用新音频，
+> 需重跑一次预热（见第 6 节「预热 V1 缓存」）。V2/V3 直接读切片，不受影响。
 
 ### 数据库备份
 

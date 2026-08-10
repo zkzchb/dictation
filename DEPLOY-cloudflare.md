@@ -158,7 +158,7 @@ bash deploy/cloudflare-deploy.sh --dev           # 不上线，改为启动本�
 ==> 读取配置
   [OK] D1 数据库名: dictation-v3
 ==> 音频切片
-  [OK] 切片共 516 个
+  [OK] 切片共 892 个
 ==> D1 数据库
   [OK] database_id: xxxxxxxx-xxxx-...
 ==> 应用数据库迁移（远端）

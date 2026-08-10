@@ -322,6 +322,11 @@ def studio_words():
       * 其余类别取 options_json 里所有候选组词
     按 (课序, kp.id) 排列而非字母序 —— 这样每 10 个一组天然属于同一课，
     老师照着课本录更连贯。同一个词在多课出现时只保留首次。
+
+    唯一例外：COLD_START_LESSON(3000，二年级总复习) 只是第一门正式课的填充池，
+    极少真正播到。它的课序最小，若按原序会排在最前，老师一开工录的全是填充词。
+    故排序键第一列用 (lesson_seq = 3000) 把它整体沉到末尾 —— SQLite 布尔表达式
+    返回 0/1，命中的行排序键为 1。
     """
     _require_studio()
     conn = get_db()
@@ -332,7 +337,8 @@ def studio_words():
             "       COALESCE(l.lesson_name,'')  AS lesson_name "
             "FROM knowledge_points kp "
             "LEFT JOIN lessons l ON l.lesson_seq = kp.lesson_seq "
-            "ORDER BY kp.lesson_seq, kp.id"
+            "ORDER BY (kp.lesson_seq = ?), kp.lesson_seq, kp.id",
+            (selector.COLD_START_LESSON,)
         ).fetchall()
     finally:
         conn.close()
