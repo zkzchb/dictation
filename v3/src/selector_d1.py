@@ -25,6 +25,25 @@ def is_review_lesson(lesson_seq):
     return lesson_seq % 10 == 0 and lesson_seq != COLD_START_LESSON
 
 
+# 人工标注的本课读音：{kp_id: 候选序号(从 1 开始)}。与 shared/selector.py 保持一致。
+POLY_READING_OVERRIDE = {}
+
+
+def lesson_reading(opts, kp_id=None):
+    """取多音字在本课该读的音。与 shared/selector.py 同名函数逻辑一致。
+
+    题库没有「本课读音」字段，默认取第一个候选；POLY_READING_OVERRIDE 里有
+    人工标注则优先按标注取。两处实现必须同步改，否则 V2 与 V3 的播报会不一致。
+    """
+    opts = [o for o in (opts or []) if isinstance(o, dict)]
+    if not opts:
+        return None
+    idx = POLY_READING_OVERRIDE.get(kp_id)
+    if isinstance(idx, int) and 1 <= idx <= len(opts):
+        return opts[idx - 1]
+    return opts[0]
+
+
 async def _rows(db, sql, params=()):
     r = await db.prepare(sql).bind(*params).run()
     rows = r.results
@@ -256,8 +275,13 @@ async def _polyphonic_section(db, lesson_seq, user_id=1, count=POLY_PER_LESSON):
                 opts = json.loads(opts)
         except Exception:
             opts = []
+        pick = lesson_reading(opts, r["id"]) or {}
         out.append({
             "id": r["id"], "character": r["target"],
+            # 本课该读的音，前端据此显示拼音；老师只录这一个音
+            "pron": pick.get("pron", ""),
+            "example_word": pick.get("text", ""),
+            "example_pinyin": pick.get("pinyin", ""),
             "readings": [{"pron": o.get("pron", ""),
                           "example_word": o.get("text", ""),
                           "example_pinyin": o.get("pinyin", "")}
