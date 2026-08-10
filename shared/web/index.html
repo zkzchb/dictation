@@ -383,8 +383,8 @@ document.addEventListener('alpine:init', () => {
         }
         ms += c.gap_between_groups_ms;
       }
-      // 多音字每字三段：「多音字：」约 900ms + 单字约 700ms + 「请组词…」约 2200ms
-      ms += this.polyphonic.length * (3800 + c.gap_polyphonic_ms);
+      // 多音字每字三段，实测：poly_prefix 1.30s + 单字 0.97s + poly_suffix 3.20s
+      ms += this.polyphonic.length * (5470 + c.gap_polyphonic_ms);
       const s = Math.round(ms / 1000);
       return `${Math.floor(s / 60)}分${String(s % 60).padStart(2, '0')}秒`;
     },
