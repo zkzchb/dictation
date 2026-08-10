@@ -130,8 +130,17 @@
              :class="cardClass(i)"
              @click="state==='verifying' && toggleWord(i)"
              :style="state==='verifying' ? 'cursor:pointer' : ''">
-          <span class="text-xs font-mono text-slate-400 mb-1" x-text="w.pinyin"></span>
+          <!-- 多音字：拼音就是本课该读的音，必须显眼，否则老师不知道读哪个 -->
+          <span class="text-xs font-mono mb-1"
+                :class="w.poly ? 'text-[#F59E0B] font-bold' : 'text-slate-400'"
+                x-text="w.pinyin"></span>
           <span class="text-3xl font-bold" x-text="w.text"></span>
+          <template x-if="w.poly">
+            <span class="mt-1 text-[11px] text-[#F59E0B] whitespace-nowrap">
+              多音字 · 读<span x-text="w.pinyin"></span>
+              <template x-if="w.example"><span>（如<span x-text="w.example"></span>）</span></template>
+            </span>
+          </template>
           <div x-show="state==='verifying'" class="mt-2 flex items-center gap-2">
             <span x-show="segStatus[i]==='ok'" class="text-[#07C160]"><i class="fas fa-check-circle"></i></span>
             <span x-show="segStatus[i]==='retry'" class="text-red-400"><i class="fas fa-times-circle"></i></span>
@@ -386,6 +395,10 @@ function studio() {
       this.hint = done
         ? `本组已录 ${done}/${this.currentWords.length}，重录将覆盖已有音频。${base}`
         : base;
+      // 多音字只读单字，且必须读卡片上标的那个音；播放时系统会自动前后接
+      // 「多音字：」和「请组词并默写，标注拼音」，老师不用念这两句。
+      const np = this.currentWords.filter(w => w.poly).length;
+      if (np) this.hint += `　本组有 ${np} 个多音字（橙色标注），只读单字本身，按卡片标的读音读。`;
     },
 
     // ── 统一清场 ──
