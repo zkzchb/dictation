@@ -323,10 +323,18 @@ def studio_words():
     按 (课序, kp.id) 排列而非字母序 —— 这样每 10 个一组天然属于同一课，
     老师照着课本录更连贯。同一个词在多课出现时只保留首次。
 
-    唯一例外：COLD_START_LESSON(3000，二年级总复习) 只是第一门正式课的填充池，
-    极少真正播到。它的课序最小，若按原序会排在最前，老师一开工录的全是填充词。
-    故排序键第一列用 (lesson_seq = 3000) 把它整体沉到末尾 —— SQLite 布尔表达式
-    返回 0/1，命中的行排序键为 1。
+    排序在纯课序之外做了两处调整，都是为了让老师照课本顺序录：
+
+      1. COLD_START_LESSON(3000，二年级总复习) 只是第一门正式课的填充池，极少
+         真正播到。它的课序最小，若按原序会排在最前，老师一开工录的全是填充词。
+      2. 复习课 lid 末位为 0（3110、3120…），数字上小于本单元正课（3111…），
+         按原序会排在本单元之前。老师手里的课本是先正课后复习。
+
+    两处都用 SQLite 布尔表达式返回 0/1 的特性做排序键：命中的行键为 1，自然沉到
+    同级末尾。整数除法 kp.lesson_seq / 10 取单元号（3110 与 3111 同属 311）。
+
+    注意排序同时决定「词归哪一课」——去重只保留首次出现，所以复习课后置会把
+    与正课重复的词改判到正课名下（实测 38 个词），词表总数与 hash 集合不变。
     """
     _require_studio()
     conn = get_db()
@@ -337,7 +345,10 @@ def studio_words():
             "       COALESCE(l.lesson_name,'')  AS lesson_name "
             "FROM knowledge_points kp "
             "LEFT JOIN lessons l ON l.lesson_seq = kp.lesson_seq "
-            "ORDER BY (kp.lesson_seq = ?), kp.lesson_seq, kp.id",
+            "ORDER BY (kp.lesson_seq = ?), "        # 冷启动填充课整体沉到末尾
+            "         kp.lesson_seq / 10, "          # 再按单元
+            "         (kp.lesson_seq % 10 = 0), "    # 单元内正课在前、复习课在后
+            "         kp.lesson_seq, kp.id",
             (selector.COLD_START_LESSON,)
         ).fetchall()
     finally:
