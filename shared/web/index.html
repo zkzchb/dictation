@@ -383,7 +383,8 @@ document.addEventListener('alpine:init', () => {
         }
         ms += c.gap_between_groups_ms;
       }
-      ms += this.polyphonic.length * (900 + c.gap_polyphonic_ms) + 2000;
+      // 多音字每字三段：「多音字：」约 900ms + 单字约 700ms + 「请组词…」约 2200ms
+      ms += this.polyphonic.length * (3800 + c.gap_polyphonic_ms);
       const s = Math.round(ms / 1000);
       return `${Math.floor(s / 60)}分${String(s % 60).padStart(2, '0')}秒`;
     },
@@ -488,16 +489,18 @@ document.addEventListener('alpine:init', () => {
         items.push({ url: null, word: null, gapMs: c.gap_between_groups_ms });
       }
 
-      // 多音字：仅语音播报 + 长间隔，不判分、核对页不列出
-      if (this.polyphonic.length) {
-        items.push({ url: '/audio/sys/poly_intro.mp3', word: null, gapMs: c.gap_group_head_ms });
-        for (const p of this.polyphonic) {
-          items.push({
-            url: p.audio_url || null,
-            word: { text: p.character, pinyin: '', polyphonic: true },
-            gapMs: c.gap_polyphonic_ms,
-          });
-        }
+      // 多音字：仅语音播报 + 长间隔，不判分、核对页不列出。
+      // 每字三段拼接 —— 「多音字：」+ 老师录的单字 + 「，请组词并默写，标注拼音。」
+      // 前两段之间不留间隔（gapMs: 0），听感才连贯；只在末段后留书写时间。
+      // 老师录的是本课那一个读音，所以题目只针对这个音组词。
+      for (const p of this.polyphonic) {
+        items.push({ url: '/audio/sys/poly_prefix.mp3', word: null, gapMs: 0 });
+        items.push({
+          url: p.audio_url || null,
+          word: { text: p.character, pinyin: p.pron || '', polyphonic: true },
+          gapMs: 0,
+        });
+        items.push({ url: '/audio/sys/poly_suffix.mp3', word: null, gapMs: c.gap_polyphonic_ms });
       }
 
       items.push({ url: '/audio/sys/outro.mp3', word: null, gapMs: 0 });

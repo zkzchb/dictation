@@ -33,6 +33,34 @@ def is_review_lesson(lesson_seq):
     return lesson_seq % 10 == 0 and lesson_seq != COLD_START_LESSON
 
 
+def lesson_reading(opts, kp_id=None):
+    """取多音字在本课该读的那个音，返回 options_json 里的一项（dict）或 None。
+
+    题库目前没有「本课读音」这个字段 —— 每条多音字都把全部读音平列出来，
+    看不出课文里用的是哪一个。默认取第一项：实测 39 条里有 5 条的例词能在
+    同课词汇中找到，且全部落在第一项，第二项及以后一次都没命中；人工抽查
+    参→海参(西沙群岛)、兴→xīng(小兴安岭)、大→dài(大夫，手术台就是阵地)
+    也都对得上第一项。
+
+    但这只是约定，不是数据保证：中→zhòng(中奖) 之于《小狗学叫》、
+    角→jué(角色) 之于《香港，璀璨的明珠》看着就不像本课读音。等人工标注表
+    回来后，POLY_READING_OVERRIDE 填上 {kp_id: 从 1 开始的候选序号}，
+    这里优先按它取，标注过的条目就不再依赖「第一项」这个猜测。
+    """
+    opts = [o for o in (opts or []) if isinstance(o, dict)]
+    if not opts:
+        return None
+    idx = POLY_READING_OVERRIDE.get(kp_id)
+    if isinstance(idx, int) and 1 <= idx <= len(opts):
+        return opts[idx - 1]
+    return opts[0]
+
+
+# 人工标注的本课读音：{kp_id: 候选序号(从 1 开始)}。
+# 留空即全部走「取第一项」的默认。标注表见 tools/poly_readings.csv。
+POLY_READING_OVERRIDE = {}
+
+
 def regular_lessons(conn):
     """全部正式课 lid 升序（排除复习课与冷启动）。"""
     rows = conn.execute(
@@ -321,9 +349,14 @@ def _polyphonic_section(conn, lesson_seq, user_id=1, count=POLY_PER_LESSON):
                 opts = json.loads(opts)
         except Exception:
             opts = []
+        pick = lesson_reading(opts, r["id"])
         out.append({
             "id": r["id"],
             "character": r["target"],
+            # 本课该读的音。老师只录这一个音，播放时夹在提示音之间。
+            "pron": (pick or {}).get("pron", ""),
+            "example_word": (pick or {}).get("text", ""),
+            "example_pinyin": (pick or {}).get("pinyin", ""),
             "readings": [{
                 "pron": o.get("pron", ""),
                 "example_word": o.get("text", ""),

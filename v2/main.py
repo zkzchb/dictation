@@ -356,20 +356,25 @@ def studio_words():
 
     out, seen = [], set()
 
-    def _add(text, pinyin, row):
+    def _add(text, pinyin, row, poly=False, example=""):
         text = (text or "").strip()
         if not text or text in seen:
             return
         seen.add(text)
         title = (row["lesson_title"] or "").strip()
         name = (row["lesson_name"] or "").strip()
-        out.append({
+        item = {
             "text": text,
             "pinyin": (pinyin or "").strip(),
             "hash": word_hash(text),
             "lesson_seq": row["lesson_seq"],
             "lesson": f"{title} {name}".strip() or str(row["lesson_seq"]),
-        })
+        }
+        if poly:
+            # 录音台据此提示「读 jìn 这个音，如『尽力』」，并标出多音字身份
+            item["poly"] = True
+            item["example"] = (example or "").strip()
+        out.append(item)
 
     for r in rows:
         opts = r["options_json"] or []
@@ -382,7 +387,11 @@ def studio_words():
                 opts = []
 
         if r["category"] == selector.CAT_POLY:
-            _add(r["target"], "", r)
+            # 多音字录的是「单字」，但必须读本课那个音 —— 提词器上光一个「尽」
+            # 老师不知道该读 jǐn 还是 jìn。把本课读音与例词一起带给前端。
+            pick = selector.lesson_reading(opts, r["id"]) or {}
+            _add(r["target"], pick.get("pron", ""), r,
+                 poly=True, example=pick.get("text", ""))
             continue
 
         added = False
