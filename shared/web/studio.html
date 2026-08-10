@@ -571,7 +571,9 @@ function studio() {
       } catch(e) {
         if (token !== this._token) return;
         this.enterReady();
-        this.hint = '切割失败：' + (e && e.message ? e.message : e) + '（服务器需装 ffmpeg/pydub）';
+        // 别硬编码猜测原因 —— 后端现在会把缺哪个依赖写进 detail。
+        // 原来这句固定说「需装 ffmpeg/pydub」，而真实原因是缺 python-multipart。
+        this.hint = '切割失败：' + (e && e.message ? e.message : e);
       }
     },
 

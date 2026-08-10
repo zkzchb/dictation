@@ -9,6 +9,12 @@ uvicorn>=0.32
 pydantic>=2.9
 pydub>=0.25.1
 
+# /api/studio/split 收的是 multipart/form-data（录音 blob）。starlette 解析
+# 表单要靠它，缺了就在 await request.form() 处抛 AssertionError，前端只看到
+# 500，而 catch 里那句「服务器需装 ffmpeg/pydub」会把人往错方向引。
+# fastapi 不会自动带上它 —— 要装 fastapi[standard] 才有，这里显式钉住。
+python-multipart>=0.0.9
+
 # Python 3.13 起标准库移除了 audioop，而 pydub 依赖它。
 # audioop-lts 是官方替代实现，仅在 3.13+ 上安装。
 audioop-lts>=0.2.1; python_version >= "3.13"

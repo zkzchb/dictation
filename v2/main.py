@@ -435,14 +435,26 @@ async def studio_check(payload: dict):
 @app.post("/api/studio/split")
 async def studio_split(request: Request):
     """上传录音 → pydub 按静音切割 → 返回各段 base64。
-    需要系统安装 ffmpeg。
+
+    依赖两样东西，缺哪样都在这里显式报出来，别让前端只看到 500：
+      * python-multipart —— starlette 解析 multipart/form-data 要用
+      * ffmpeg + pydub  —— 解码 webm 与导出 mp3 要用
     """
     from pydub import AudioSegment
     from pydub.silence import split_on_silence
     import io, base64 as b64
 
     _require_studio()
-    form = await request.form()
+    try:
+        form = await request.form()
+    except AssertionError as e:
+        # 缺 python-multipart 时 starlette 在这里抛 AssertionError。原先没接，
+        # 冒到前端就是 Internal Server Error，而前端 catch 里写的是「服务器需装
+        # ffmpeg/pydub」，把排查方向带偏了整整一轮。
+        raise HTTPException(
+            status_code=500,
+            detail=f"服务器缺少 python-multipart，无法接收录音表单：{e}",
+        )
     audio_file = form["audio"]
     word_count = int(form.get("word_count", 0))
     min_silence_len = int(form.get("min_silence_len", 500))
