@@ -25,15 +25,17 @@ def is_review_lesson(lesson_seq):
     return lesson_seq % 10 == 0 and lesson_seq != COLD_START_LESSON
 
 
-# 人工标注的本课读音：{kp_id: 候选序号(从 1 开始)}。与 shared/selector.py 保持一致。
+# 本课读音例外表：{kp_id: 候选序号(从 1 开始)}。
+# 现有 38 条已由老师对着课本核实全部取第一项，故留空。仅当以后新增的多音字
+# 本课读音不在第一项时才需要往这里填。改动时 shared/selector.py 要同步。
 POLY_READING_OVERRIDE = {}
 
 
 def lesson_reading(opts, kp_id=None):
     """取多音字在本课该读的音。与 shared/selector.py 同名函数逻辑一致。
 
-    题库没有「本课读音」字段，默认取第一个候选；POLY_READING_OVERRIDE 里有
-    人工标注则优先按标注取。两处实现必须同步改，否则 V2 与 V3 的播报会不一致。
+    38 条多音字已由老师逐条对着课本核实，全部取第一个候选即正确。
+    POLY_READING_OVERRIDE 留空。两处实现必须同步改，否则 V2 与 V3 的播报会不一致。
     """
     opts = [o for o in (opts or []) if isinstance(o, dict)]
     if not opts:
