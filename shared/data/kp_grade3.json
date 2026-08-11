@@ -10731,23 +10731,6 @@
   },
   {
     "lesson_seq": 3000,
-    "target": "应",
-    "category": "多音字",
-    "options_json": [
-      {
-        "text": "应该",
-        "pinyin": "yīng gāi",
-        "pron": "yīng"
-      },
-      {
-        "text": "应用",
-        "pinyin": "yìng yòng",
-        "pron": "yìng"
-      }
-    ]
-  },
-  {
-    "lesson_seq": 3000,
     "target": "发",
     "category": "多音字",
     "options_json": [

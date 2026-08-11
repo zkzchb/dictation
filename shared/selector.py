@@ -36,16 +36,15 @@ def is_review_lesson(lesson_seq):
 def lesson_reading(opts, kp_id=None):
     """取多音字在本课该读的那个音，返回 options_json 里的一项（dict）或 None。
 
-    题库目前没有「本课读音」这个字段 —— 每条多音字都把全部读音平列出来，
-    看不出课文里用的是哪一个。默认取第一项：实测 39 条里有 5 条的例词能在
-    同课词汇中找到，且全部落在第一项，第二项及以后一次都没命中；人工抽查
-    参→海参(西沙群岛)、兴→xīng(小兴安岭)、大→dài(大夫，手术台就是阵地)
-    也都对得上第一项。
+    题库没有「本课读音」这个字段 —— 每条多音字都把全部读音平列出来，看不出
+    课文里用的是哪一个。取第一项。
 
-    但这只是约定，不是数据保证：中→zhòng(中奖) 之于《小狗学叫》、
-    角→jué(角色) 之于《香港，璀璨的明珠》看着就不像本课读音。等人工标注表
-    回来后，POLY_READING_OVERRIDE 填上 {kp_id: 从 1 开始的候选序号}，
-    这里优先按它取，标注过的条目就不再依赖「第一项」这个猜测。
+    这不是猜测：老师逐条对着课本核过全部 38 条，正式课的多音字(kp_id 777–802)
+    本课读音全部是第一个候选，上学期的多音字复习(lesson_seq 3000)同样取第一项。
+    所以 POLY_READING_OVERRIDE 留空即正确，无需逐条标注。
+
+    保留 override 是为了以后：新课的多音字若出现本课读音不在第一项的情况，
+    往 POLY_READING_OVERRIDE 填 {kp_id: 从 1 开始的候选序号} 即可，不必改逻辑。
     """
     opts = [o for o in (opts or []) if isinstance(o, dict)]
     if not opts:
@@ -56,8 +55,9 @@ def lesson_reading(opts, kp_id=None):
     return opts[0]
 
 
-# 人工标注的本课读音：{kp_id: 候选序号(从 1 开始)}。
-# 留空即全部走「取第一项」的默认。标注表见 tools/poly_readings.csv。
+# 本课读音例外表：{kp_id: 候选序号(从 1 开始)}。
+# 现有 38 条已由老师对着课本核实全部取第一项，故留空。仅当以后新增的多音字
+# 本课读音不在第一项时才需要往这里填。改动时 v3/src/selector_d1.py 要同步。
 POLY_READING_OVERRIDE = {}
 
 
