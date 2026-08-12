@@ -16,7 +16,7 @@
     {
       "binding": "DB",
       "database_name": "dictation-v3",
-      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+      "database_id": "4a1f1d60-e5d8-48ee-8e9d-0daf5a1fa2df"
     }
   ],
   "observability": {
