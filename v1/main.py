@@ -33,9 +33,9 @@ PLAYBACK_CFG_PATH = os.path.join(
 PLAYBACK_DEFAULTS = {
     "group_size": 3, "repeat_times": 3,
     "gap_intro_ms": 2000, "gap_group_head_ms": 1000,
-    "gap_between_words_ms": 1000, "gap_between_groups_ms": 2000,
-    "base_gap_ms": [6500, 6000, 2500],
-    "per_char_gap_ms": [1500, 1000, 300],
+    "gap_between_words_ms": 2000, "gap_between_groups_ms": 2000,
+    "base_gap_ms": [3000, 2000, 2500],
+    "per_char_gap_ms": [1500, 1000, 600],
     "max_write_gap_ms": 14000,
     "gap_polyphonic_ms": 8000, "playback_rate": 1.0,
 }
@@ -470,5 +470,4 @@ if os.path.isdir(_WWW_DIR):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8888)
-
 
