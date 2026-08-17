@@ -524,6 +524,79 @@ async def studio_save(payload: dict):
     return {"status": "success", "saved": len(planned)}
 
 
+# ── 系统提示音人工录音 ─────────────────────────────────────────────────
+# 播放列表里的引导音（开场 / 第N组 / 多音字前后缀 / 收尾）原先全是 TTS 合成。
+# 老师可以逐条录真人版覆盖。文件与 TTS 同名同路径（audio/sys/{key}.mp3），
+# 播放端无感知；用独立台账 .recorded_sys.json 区分真人/TTS，只供进度显示。
+SYS_AUDIO_DIR = os.path.abspath(os.path.join(STUDIO_AUDIO_DIR, "..", "sys"))
+SYS_LEDGER    = os.path.join(STUDIO_AUDIO_DIR, "..", ".recorded_sys.json")
+
+
+def _sys_keys():
+    """要录的系统音清单。poly_intro 已弃用（新前端不播），不列入。"""
+    from gen_slices import MAX_GROUPS
+    return (["intro", "poly_prefix", "poly_suffix", "outro"]
+            + [f"g{n}" for n in range(1, MAX_GROUPS + 1)])
+
+
+def _load_sys_ledger() -> dict:
+    try:
+        with open(SYS_LEDGER, encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+@app.get("/api/studio/syswords")
+def studio_syswords():
+    """系统提示音清单 + 每条是否已有真人录音。"""
+    from gen_slices import SYS_PHRASES
+    _require_studio()
+    led = _load_sys_ledger()
+    words = [{
+        "key": k,
+        "text": SYS_PHRASES.get(k, ""),
+        "recorded": k in led,
+        "url": f"/audio/sys/{k}.mp3",
+    } for k in _sys_keys()]
+    return {"words": words, "total": len(words)}
+
+
+@app.post("/api/studio/save_sys")
+async def studio_save_sys(payload: dict):
+    """保存一条系统提示音的真人录音，覆盖 TTS 文件并记账。"""
+    import base64 as b64
+    from gen_slices import SYS_PHRASES
+    _require_studio()
+    key = (payload.get("key") or "").strip()
+    if key not in _sys_keys():                      # 白名单，防路径穿越
+        raise HTTPException(status_code=400, detail=f"非法 key: {key}")
+    try:
+        data = b64.b64decode(payload.get("audio") or "", validate=True)
+    except Exception:
+        raise HTTPException(status_code=400, detail="audio 不是合法的 base64")
+    if not data:
+        raise HTTPException(status_code=400, detail="audio 为空")
+
+    os.makedirs(SYS_AUDIO_DIR, exist_ok=True)
+    dest = os.path.join(SYS_AUDIO_DIR, f"{key}.mp3")
+    tmp = dest + ".part"
+    with open(tmp, "wb") as f:
+        f.write(data)
+    os.replace(tmp, dest)
+
+    led = _load_sys_ledger()
+    led[key] = {"text": SYS_PHRASES.get(key, ""),
+                "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+    os.makedirs(os.path.dirname(os.path.abspath(SYS_LEDGER)), exist_ok=True)
+    stmp = SYS_LEDGER + ".part"
+    with open(stmp, "w", encoding="utf-8") as f:
+        json.dump(led, f, ensure_ascii=False, indent=1)
+    os.replace(stmp, SYS_LEDGER)
+    return {"status": "success", "saved": 1}
+
+
 # ================= 📁 静态文件 =================
 # 必须放在所有 API 路由（含 /studio）之后 —— 根路径挂载是 catch-all。
 # 直接挂 shared/web/ 而非 stage 后的副本，好处是 /studio 录进
