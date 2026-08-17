@@ -130,9 +130,10 @@
       <!-- 不把 playerState 直接绑到 play/pause 事件上：Chrome 在每个切片
            自然播完后会紧跟一个 pause 事件（Firefox 不会），词间停顿期间也处于
            pause 状态。直接绑定会让图标在每个词的间隔里翻成「播放」，看着像
-           反复启停。playerState 只表达用户意图，由 onAudioPause 判断来源。 -->
+           反复启停。playerState 只表达用户意图，只由 togglePlay 和播放列表
+           播完时写；pause 事件交给 onAudioPause 处理，它不动状态。 -->
       <audio x-ref="audioPlayer"
-             @playing="_ignorePause=false"
+             @playing="playbackBlocked=false"
              @pause="onAudioPause()"
              @ended="onAudioEnded()"></audio>
       <div class="mb-2 text-center h-10">
@@ -219,8 +220,15 @@
           <i class="fas fa-3x" :class="playerState==='playing'?'fa-pause':'fa-play pl-2'"></i>
         </button>
       </div>
-      <p class="text-gray-500 font-medium"
-         x-text="playerState==='playing'?'正在朗读...':(playerState==='paused'?'已暂停 (点击继续)':'点击开始')"></p>
+      <!-- 播报期间不显示暂停：词间停顿、切片边界都会让音频元素处于 pause，
+           但听写并没有中断。只有用户自己点了暂停才显示，或浏览器拦下连播
+           时提示点一下。 -->
+      <p class="font-medium"
+         :class="playbackBlocked ? 'text-[#F59E0B]' : 'text-gray-500'"
+         x-text="playbackBlocked ? '被浏览器拦下了，点一下继续'
+                 : (playerState==='playing' ? '正在朗读...'
+                 : (playerState==='paused' ? '已暂停 (点击继续)'
+                 : (playerState==='ended' ? '听写结束' : '点击开始')))"></p>
     </div>
 
     <!-- Step 5: 核对 -->
@@ -325,9 +333,9 @@ document.addEventListener('alpine:init', () => {
     lessons: [], selectedLesson: null, wordList: [],
     playlist: [], playlistIndex: 0,
     currentPlaylistWord: null, _gapTimer: null, _inGap: false,
-    // 由我们自己调用 audio.pause() 或换 src 时置真，用于忽略随之而来的
-    // pause 事件。真正来自外部的暂停（来电、耳机按键）不会带这个标记。
-    _ignorePause: false,
+    // 浏览器拦下了自动连播，需要用户点一下解锁。这不是"用户想暂停"，
+    // 所以单独记一个标记，不去动 playerState。
+    playbackBlocked: false,
     API_BASE: '',
 
     // 多音字段落（仅播报，不判分、核对页不列出）
@@ -434,11 +442,20 @@ document.addEventListener('alpine:init', () => {
       try {
         const res  = await fetch(`${this.API_BASE}/api/generate_daily/${this.selectedLesson}?mode=${this.dictationMode}`);
         const data = await res.json();
-        this.wordList = data.data.map(item => ({
+        // 按梯队显示顺序重排（稳定排序保留同级内后端原有间距）：
+        // 生字听写：上次错词 → 本课生字组词 → 本课词语表 → 其余（近期错词/复习/凑数）
+        // 单元复习：后端已按梯队给序，维持原序（wrong_last 在前即可）
+        const TIER = { wrong_last: 0, new_char: 1, new_word: 2 };
+        const tier = t => TIER[t] ?? 3;
+        const words = data.data.map(item => ({
           kp_id: item.id, text: item.target, pinyin: item.pinyin || '',
           type: item.word_type || 'review', audio_url: item.audio_url || '',
           selected: true, isCorrect: true,
         }));
+        if (this.dictationMode === 'daily') {
+          words.sort((a, b) => tier(a.type) - tier(b.type));
+        }
+        this.wordList = words;
         this.polyphonic = data.polyphonic_section || [];
       } catch(e) { console.error('获取词表失败', e); }
     },
@@ -451,6 +468,7 @@ document.addEventListener('alpine:init', () => {
       this.playerState     = 'idle';
       this._gapTimer       = null;
       this._inGap          = false;
+      this.playbackBlocked = false;
       this.goToStep(4);
     },
 
@@ -523,28 +541,45 @@ document.addEventListener('alpine:init', () => {
         return;
       }
       const audio = this.$refs.audioPlayer;
-      // 换 src 会让浏览器先 pause 当前音频，这是我们自己造成的，不是用户暂停。
-      this._ignorePause = true;
-      audio.src   = item.url;
-      try { await audio.play(); }
-      catch(e) { this._ignorePause = false; this.playerState = 'paused'; }  // 自动播放被阻止
+      audio.src = item.url;
+      try {
+        await audio.play();
+        this.playbackBlocked = false;
+      } catch(e) {
+        // 自动连播被浏览器拦下。playerState 保持 'playing'（用户确实想听），
+        // 只标记需要一次点击来解锁 —— 状态不翻成 'paused'，否则跟词间停顿
+        // 闪现的那个假暂停混在一起分不清。
+        this.playbackBlocked = true;
+      }
     },
 
-    // pause 事件有三个来源，只有第三种该改变 UI：
-    //   1. 切片自然播完 —— Chrome 在 ended 之后紧跟一个 pause
-    //   2. 我们自己调 audio.pause() 或换 src
-    //   3. 用户真的想停（点按钮、耳机键、来电打断）
-    // 前两种由 _ignorePause 标记跳过；点按钮那条路径在 togglePlay 里已显式
-    // 设好状态，所以这里剩下的就是外部打断，如实反映出来。
+    // playerState 只由人的意图决定，pause 事件一概不写它。
+    //
+    // 原先这里用 _ignorePause 挡"非用户发起"的 pause，但那是个一次性布尔，
+    // 而一次切片切换会发出多个 pause：换 src 触发一个，Chrome 在 ended 之后
+    // 还补一个，中间新切片的 playing 事件又把标记清掉。标记只挡得住第一个，
+    // 漏下来的那个就在词间停顿里把状态翻成 'paused'，屏幕上闪出
+    // 「已暂停 (点击继续)」——听写其实还在正常往下走。多音字三段拼接
+    // （gapMs 为 0，切换最密）最容易看到。
+    //
+    // 挡不干净的原因是拿一次性标记去数不确定数量的事件，所以不再去数：
+    // 播报期间音频元素本来就会反复 pause（切片边界、换 src、停顿），这是
+    // 正常状态，不该让它反映到 UI。真正的暂停只有一个来源 —— 用户点按钮，
+    // 那条路径在 togglePlay 里已显式设好状态。
+    //
+    // 代价是外部打断（来电、耳机键）不再自动显示为暂停。改为先尝试续播：
+    // 能续上就当没发生过，续不上才置 playbackBlocked 提示需要点一下。
     onAudioPause() {
-      if (this._ignorePause) { this._ignorePause = false; return; }
-      if (this._gapTimer) return;          // 词间停顿中，播放仍在继续
-      if (this.playerState === 'playing') this.playerState = 'paused';
+      if (this.playerState !== 'playing') return;   // 用户已暂停/未开始，无需干预
+      if (this._gapTimer || this._inGap) return;     // 词间停顿中，播放仍在继续
+      const audio = this.$refs.audioPlayer;
+      // ended 之后的那个 pause 不能续播 —— 一续就把刚播完的切片从头再放一遍。
+      // 推进播放列表的活儿归 onAudioEnded，这里只管"播到一半被掐断"的情况。
+      if (!audio || audio.ended || !audio.src) return;
+      audio.play().catch(() => { this.playbackBlocked = true; });
     },
 
     onAudioEnded() {
-      // ended 之后 Chrome 还会补一个 pause，先标记好别让它翻状态
-      this._ignorePause = true;
       const item = this.playlist[this.playlistIndex];
       if (!item) return;
       if (item.gapMs > 0) {
@@ -563,27 +598,36 @@ document.addEventListener('alpine:init', () => {
     togglePlay() {
       const audio = this.$refs.audioPlayer;
       if (this.playerState === 'playing') {
+        // 连播被拦时按钮仍是「暂停」态，但此刻并没有在响。这一下点击带来了
+        // 用户手势，正好用来解锁，而不该被当成"想暂停"。
+        if (this.playbackBlocked) {
+          this.playbackBlocked = false;
+          if (this._inGap) { this._inGap = false; this.playlistIndex++; }
+          this.playNextItem();
+          return;
+        }
         this.playerState = 'paused';       // 用户意图，显式设置
         if (this._gapTimer) {
           // 停顿中暂停：清除计时器，记下位置以便恢复
           clearTimeout(this._gapTimer); this._gapTimer = null;
           this._inGap = true;
         } else {
-          this._ignorePause = true;        // 这次 pause 是我们发起的
           audio.pause();
         }
       } else if (this.playerState === 'paused') {
         this.playerState = 'playing';
+        this.playbackBlocked = false;
         if (this._inGap) {
           // 停顿中恢复：跳过剩余停顿，直接播下一词
           this._inGap = false;
           this.playlistIndex++; this.playNextItem();
         } else {
-          audio.play().catch(() => { this.playerState = 'paused'; });
+          audio.play().catch(() => { this.playbackBlocked = true; });
         }
       } else {
         // idle 或 ended：从头开始
         this.playlistIndex = 0; this.currentPlaylistWord = null;
+        this.playbackBlocked = false;
         this.playerState = 'playing'; this.playNextItem();
       }
     },
@@ -611,12 +655,14 @@ document.addEventListener('alpine:init', () => {
 
     goToStep(s) {
       if (this.step === 4) {
-        const audio = this.$refs.audioPlayer;
-        // 离开播放页是我们主动停的，别让它被当成外部打断
-        this._ignorePause = true;
-        if (audio) { audio.pause(); audio.src = ''; }
+        // 先落状态再 pause：onAudioPause 只在 playerState 为 'playing' 时才
+        // 尝试续播，顺序颠倒会让它把我们正要停掉的音频又续上。
+        this.playerState = 'paused';
+        this.playbackBlocked = false;
         if (this._gapTimer) { clearTimeout(this._gapTimer); this._gapTimer = null; }
-        this._inGap = false; this.playerState = 'paused';
+        this._inGap = false;
+        const audio = this.$refs.audioPlayer;
+        if (audio) { audio.pause(); audio.src = ''; }
       }
       this.step = s;
       const m = document.querySelector('main');
