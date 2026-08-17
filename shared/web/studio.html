@@ -57,57 +57,29 @@
       /* 多音字那行小字在紧凑网格里挤不下，收起来 —— ready 态另有整组提示 */
       .cards-compact .wc-poly { display: none; }
 
-      /* 专注模式：10 个词全部渲染在一个定高可滚动区里，当前词自动滚到正中，
-         其余按距离渐次压暗。不再隐藏窗口外的词 —— 每组词数可调到 30，
-         固定窗口在 30 词时看不到全貌，滚动区则与组大小无关。            */
+      /* 专注模式：只保留当前词及前后相邻词。远处词仍在 DOM 中，但不参与
+         布局；切词时由 scrollActiveIntoView 把新的当前词带回视区。 */
       .cards-focus {
         flex-direction: column; align-items: center; gap: .25rem;
-        height: 24rem; overflow-y: auto; width: 100%;
-        /* 首末词也能滚到正中：上下各垫半屏。scroll-padding 不够，
-           因为 scrollIntoView(center) 受制于实际可滚动范围。   */
-        padding: 9rem 0;
-        scroll-behavior: smooth;
-        /* 惯性滚动交给系统，别和 scrollIntoView 抢 */
-        -webkit-overflow-scrolling: touch;
       }
-      /* 滚动条藏掉，露出来在深色底上很脏 */
-      .cards-focus::-webkit-scrollbar { width: 0; height: 0; }
-      .cards-focus { scrollbar-width: none; }
-
-      .cards-focus .word-card {
-        min-width: 0; width: 100%; max-width: 20rem;
-        flex: 0 0 auto;                     /* 别被 flex 压缩，否则高度算不准 */
-      }
-      /* 隐藏不在可见窗口内的卡片 —— nearActive(i) 返回 false 时加这个类 */
+      /* 比 Tailwind CDN 生成的单类 .flex-wrap 选择器更具体，确保不会横向换列。 */
+      .cards-focus.flex-wrap { flex-wrap: nowrap; }
+      .cards-focus .word-card { min-width: 0; width: 100%; max-width: 20rem; }
       .cards-focus .wc-focus-hide { display: none; }
-      /* 当前词：超大、最重字重。padding 从 p-5 的 20px 压到 6px —— 你要的
-         「取消当前词上下的空行」，这里是主要来源。                     */
-      .cards-focus .word-card.active {
-        padding: .375rem .5rem;
-      }
       .cards-focus .word-card.active .wc-text {
-        font-size: 3.75rem; line-height: 4rem; font-weight: 900;
+        font-size: 3.75rem; line-height: 4.25rem;
       }
       .cards-focus .word-card.active .wc-pinyin {
-        font-size: 1rem; line-height: 1.4rem;
+        font-size: 1rem; line-height: 1.5rem;
       }
-
-      /* 邻词：不显示拼音，只留汉字，按距当前词的远近分三档压暗。
-         档位由 JS 加 wc-near-1 / wc-near-2 类，更远的走兜底规则。   */
       .cards-focus .word-card:not(.active) {
-        padding: .1875rem .5rem; background: transparent;
-        border-color: transparent; box-shadow: none;
+        padding: .375rem; opacity: .3; transform: scale(.9);
       }
       .cards-focus .word-card:not(.active) .wc-text {
-        font-size: 1.125rem; line-height: 1.6rem; font-weight: 400;
+        font-size: 1rem; line-height: 1.4rem;
       }
       .cards-focus .word-card:not(.active) .wc-pinyin { display: none; }
       .cards-focus .word-card:not(.active) .wc-poly  { display: none; }
-      .cards-focus .word-card:not(.active)            { opacity: .18; }
-      .cards-focus .word-card.wc-near-2               { opacity: .35; }
-      .cards-focus .word-card.wc-near-1               { opacity: .6; }
-      /* 已录过的绿边在专注模式里是噪音，当前词的绿框才是焦点 */
-      .cards-focus .word-card.done { border-color: transparent; }
 
       /* 控制条吸底常驻 —— 原来要滚到最下面才点得到「开始录音」 */
       .ctl-sticky {
