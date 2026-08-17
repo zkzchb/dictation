@@ -78,6 +78,8 @@
         min-width: 0; width: 100%; max-width: 20rem;
         flex: 0 0 auto;                     /* 别被 flex 压缩，否则高度算不准 */
       }
+      /* 隐藏不在可见窗口内的卡片 —— nearActive(i) 返回 false 时加这个类 */
+      .cards-focus .wc-focus-hide { display: none; }
       /* 当前词：超大、最重字重。padding 从 p-5 的 20px 压到 6px —— 你要的
          「取消当前词上下的空行」，这里是主要来源。                     */
       .cards-focus .word-card.active {
@@ -355,8 +357,8 @@
       </template>
     </div>
 
-    <!-- 波形/倒计时 -->
-    <div class="flex flex-col items-center mb-6">
+    <!-- 波形/倒计时 —— 统一高度避免状态切换时布局抖动 -->
+    <div class="flex flex-col items-center mb-6" style="min-height: 120px;">
       <div x-show="state==='countdown'" class="text-7xl font-black text-[#07C160]" x-text="countdown"></div>
       <canvas x-show="state==='recording'" x-ref="wave" width="600" height="80"></canvas>
       <div x-show="state==='splitting'" class="text-slate-400 py-6">
