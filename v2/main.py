@@ -458,7 +458,7 @@ async def studio_split(request: Request):
     audio_file = form["audio"]
     word_count = int(form.get("word_count", 0))
     min_silence_len = int(form.get("min_silence_len", 500))
-    silence_thresh = int(form.get("silence_thresh", -35))
+    silence_thresh = int(form.get("silence_thresh", -40))
 
     raw = await audio_file.read()
     try:
@@ -614,4 +614,3 @@ if os.path.isdir(_WEB_DIR):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8889)
-
