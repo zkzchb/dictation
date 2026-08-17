@@ -402,8 +402,8 @@
 function studio() {
   return {
     // ── 配置 ──
-    wordSeconds: 2.5,      // 每词朗读时长（提词器停留）
-    silenceThresh: -35,    // 静音阈值 dBFS
+    wordSeconds: 3,        // 每词朗读时长（提词器停留）
+    silenceThresh: -40,    // 静音阈值 dBFS
     minSilenceLen: 500,    // 静音判定最短时长 ms
     batchSize: 10,         // 每组词数
     API: '',               // 同源
@@ -829,7 +829,7 @@ function studio() {
 
     runTeleprompter() {
       const token = this._token;
-      const ms = Math.max(500, (parseFloat(this.wordSeconds) || 2.5) * 1000);
+      const ms = Math.max(500, (parseFloat(this.wordSeconds) || 3) * 1000);
       this.activeIdx = 0;
       // $nextTick：等 Alpine 把 active 类渲染上去再滚，否则滚的是旧位置
       this.$nextTick(() => this.scrollActiveIntoView());
