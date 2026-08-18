@@ -277,29 +277,75 @@ def _require_studio():
 # 放在 audio/ 下是有意的：rsync 同步切片时它会一起走，本地与 VPS 对录音进度
 # 的认知保持一致。
 STUDIO_LEDGER = os.path.join(STUDIO_AUDIO_DIR, "..", ".recorded.json")
+STUDIO_CHECK_LEDGER = os.path.join(STUDIO_AUDIO_DIR, "..", ".checked.json")
+STUDIO_RERECORD_LIST = os.path.join(STUDIO_AUDIO_DIR, "..", ".rerecord.json")
+
+
+def _load_json(path, fallback):
+    """读取录音工作流的 JSON 状态；损坏或缺失时返回给定默认值。"""
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        return data
+    except Exception:
+        return fallback
+
+
+def _save_json(path, data) -> None:
+    """先写临时文件再原子替换，避免页面关闭或服务中断留下半截 JSON。"""
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    tmp = path + ".part"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=1)
+    os.replace(tmp, path)
 
 
 def _load_ledger() -> dict:
     """读台账。读不出来就当空 —— 它只影响进度显示，不该阻塞录音。"""
-    try:
-        with open(STUDIO_LEDGER, encoding="utf-8") as f:
-            data = json.load(f)
-        return data if isinstance(data, dict) else {}
-    except Exception:
-        return {}
+    data = _load_json(STUDIO_LEDGER, {})
+    return data if isinstance(data, dict) else {}
+
+
+def _load_check_ledger() -> dict:
+    data = _load_json(STUDIO_CHECK_LEDGER, {})
+    return data if isinstance(data, dict) else {}
+
+
+def _load_rerecord_list() -> dict:
+    data = _load_json(STUDIO_RERECORD_LIST, {"words": []})
+    if not isinstance(data, dict) or not isinstance(data.get("words"), list):
+        return {"words": []}
+    return data
 
 
 def _mark_recorded(pairs) -> None:
-    """把本次保存的词记进台账。重录同一个词会覆盖时间戳。"""
+    """把本次保存的词记进台账，并同步质检/重录进度。
+
+    无论来自 studio 还是 studio2，新录音都必须重新质检，所以删除旧检查状态；
+    如果它属于当前重录词表，则同时把该词记为已重录。
+    """
     led = _load_ledger()
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     for h, text in pairs:
         led[h] = {"text": text, "at": now}
-    os.makedirs(os.path.dirname(os.path.abspath(STUDIO_LEDGER)), exist_ok=True)
-    tmp = STUDIO_LEDGER + ".part"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(led, f, ensure_ascii=False, indent=1)
-    os.replace(tmp, STUDIO_LEDGER)
+    _save_json(STUDIO_LEDGER, led)
+
+    changed_hashes = {h for h, _text in pairs}
+    checked = _load_check_ledger()
+    if any(h in checked for h in changed_hashes):
+        for h in changed_hashes:
+            checked.pop(h, None)
+        _save_json(STUDIO_CHECK_LEDGER, checked)
+
+    rerecord = _load_rerecord_list()
+    changed = False
+    for word in rerecord.get("words", []):
+        if isinstance(word, dict) and word.get("hash") in changed_hashes:
+            word["done"] = True
+            word["rerecorded_at"] = now
+            changed = True
+    if changed:
+        _save_json(STUDIO_RERECORD_LIST, rerecord)
 
 
 @app.get("/studio")
@@ -415,6 +461,139 @@ def studio_status():
     _require_studio()
     led = _load_ledger()
     return {"recorded": led, "count": len(led)}
+
+
+# ── 人工录音质检与重录词表 ─────────────────────────────────────────────
+def _check_words_data():
+    """返回所有真人录音及其质检状态，顺序与录音台词表完全一致。"""
+    all_words = studio_words().get("words", [])
+    recorded = _load_ledger()
+    checked = _load_check_ledger()
+    words = []
+    for source in all_words:
+        h = source.get("hash")
+        rec = recorded.get(h)
+        if not isinstance(rec, dict):
+            continue
+        item = dict(source)
+        item["recorded_at"] = rec.get("at", "")
+        state = checked.get(h)
+        status = state.get("status") if isinstance(state, dict) else None
+        item["status"] = status if status in ("checked", "rerecord") else "pending"
+        # 重录会覆盖同一路径；用真人录音时间生成版本参数，避开浏览器七天音频缓存。
+        item["audio_url"] = f"/audio/w/{h}.mp3?v={word_hash(str(rec.get('at', '')))}"
+        words.append(item)
+    return words
+
+
+def _check_stats(words):
+    stats = {"total": len(words), "pending": 0, "checked": 0, "rerecord": 0}
+    for word in words:
+        status = word.get("status", "pending")
+        if status not in stats:
+            status = "pending"
+        stats[status] += 1
+    return stats
+
+
+@app.get("/api/check/words")
+def check_words():
+    """质检队列：只列已登记的真人录音，不把 TTS 占位算进去。"""
+    _require_studio()
+    words = _check_words_data()
+    rerecord = _load_rerecord_list()
+    saved_words = [w for w in rerecord.get("words", []) if isinstance(w, dict)]
+    return {
+        "words": words,
+        "stats": _check_stats(words),
+        "rerecord_list": {
+            "count": len(saved_words),
+            "done": sum(1 for w in saved_words if w.get("done")),
+            "created_at": rerecord.get("created_at", ""),
+        },
+    }
+
+
+@app.post("/api/check/mark")
+async def check_mark(payload: dict):
+    """即时保存单词质检结果。status 仅允许 checked / rerecord。"""
+    _require_studio()
+    h = payload.get("hash")
+    _safe_slice_path(h)
+    status = payload.get("status")
+    if status not in ("checked", "rerecord"):
+        raise HTTPException(status_code=400, detail="status 必须是 checked 或 rerecord")
+    recorded = _load_ledger()
+    rec = recorded.get(h)
+    if not isinstance(rec, dict):
+        raise HTTPException(status_code=404, detail="该词没有真人录音")
+    checked = _load_check_ledger()
+    checked[h] = {
+        "status": status,
+        "text": rec.get("text", ""),
+        "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "recorded_at": rec.get("at", ""),
+    }
+    _save_json(STUDIO_CHECK_LEDGER, checked)
+    return {"status": "success", "hash": h, "result": status}
+
+
+@app.post("/api/check/save_rerecord")
+async def check_save_rerecord():
+    """把已标记问题的词保存成 studio2 可直接读取的新词表。"""
+    _require_studio()
+    words = _check_words_data()
+    stats = _check_stats(words)
+    if stats["pending"]:
+        raise HTTPException(status_code=409, detail=f"还有 {stats['pending']} 个词未检查")
+    selected = []
+    for word in words:
+        if word.get("status") != "rerecord":
+            continue
+        item = {k: word[k] for k in
+                ("text", "pinyin", "hash", "lesson_seq", "lesson", "poly", "example")
+                if k in word}
+        item["done"] = False
+        selected.append(item)
+    data = {
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "words": selected,
+    }
+    _save_json(STUDIO_RERECORD_LIST, data)
+    return {"status": "success", "count": len(selected), "studio_url": "/studio2.html"}
+
+
+@app.get("/api/studio2/words")
+def studio2_words():
+    """重录工作台词表；由 check 页面生成，保持原 Studio 字段格式。"""
+    _require_studio()
+    data = _load_rerecord_list()
+    words = []
+    for source in data.get("words", []):
+        if not isinstance(source, dict):
+            continue
+        item = {k: v for k, v in source.items()
+                if k not in ("done", "rerecorded_at")}
+        words.append(item)
+    return {"words": words, "total": len(words), "created_at": data.get("created_at", "")}
+
+
+@app.get("/api/studio2/status")
+def studio2_status():
+    """当前重录词表的完成台账，供复制版 Studio 显示组进度。"""
+    _require_studio()
+    data = _load_rerecord_list()
+    recorded = {}
+    for word in data.get("words", []):
+        if not isinstance(word, dict) or not word.get("done"):
+            continue
+        h = word.get("hash")
+        if isinstance(h, str) and _HASH_RE.match(h):
+            recorded[h] = {
+                "text": word.get("text", ""),
+                "at": word.get("rerecorded_at", ""),
+            }
+    return {"recorded": recorded, "count": len(recorded)}
 
 
 @app.post("/api/studio/check")

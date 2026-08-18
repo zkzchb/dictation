@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>重录工作台 · 听写小助手</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root { --green: #07C160; --amber: #F59E0B; }
+    body { font-family: sans-serif; background: #0f172a; color: #e2e8f0; }
+    [x-cloak] { display: none !important; }
+    .word-card {
+      transition: all .25s ease; border: 3px solid transparent;
+      background: #1e293b; opacity: .35; transform: scale(.95);
+    }
+    /* 当前朗读词：微信绿高亮，与全场主色一致（原为琥珀色，风格不统一）*/
+    .word-card.active {
+      opacity: 1; transform: scale(1.08);
+      border-color: var(--green); background: #14352a;
+      box-shadow: 0 0 30px rgba(7,193,96,.45);
+    }
+    .word-card.done { opacity: .7; border-color: var(--green); }
+    .word-card.retry { opacity: .9; border-color: #ef4444; background: #3f1d1d; }
+    .pulse { animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    /* 波形直接绘制在页面底色上；静音时不再留下突兀的纯黑矩形。 */
+    canvas { background: transparent; }
+    /* 分组卡里的词面预览：最多两行，超出省略 */
+    .preview-2 {
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .cfg { width: 5.5rem; }
+
+    /* ─── 手机布局（≤640px）──────────────────────────────────────────
+       PC 上一屏放得下 10 词，手机放不下：375px 宽减掉边距只剩 327px，
+       卡片 min-w 120px + gap 12px 一行只排 2 个，10 词就是 5 行约 560px，
+       加上页头、波形、按钮、提示总高约 858px，而可视区只有 650px 上下。
+       结果是「开始录音」在折叠线以下，点完又跳回第一个词，页面却不动。
+
+       两套排布，只在手机生效：
+         · ready / 校对 → 紧凑网格，字号与内边距调小、一行 3 个，10 词进 3 行
+         · 录音中       → 专注模式，只留当前词（超大）与前后各一个（小、暗）
+       PC 端（>640px）完全走原样式，一行代码不受影响。               */
+    @media (max-width: 640px) {
+      /* 紧凑网格：卡片不再撑 120px，改由 flex-basis 三等分 */
+      .cards-compact { gap: .5rem; }
+      .cards-compact .word-card {
+        min-width: 0;
+        flex: 0 0 calc((100% - 1rem) / 3);
+        padding: .5rem .25rem;
+      }
+      .cards-compact .wc-text  { font-size: 1.125rem; line-height: 1.6rem; }
+      .cards-compact .wc-pinyin { font-size: .625rem; line-height: .9rem; }
+      .cards-compact .word-card.active { transform: scale(1.04); }
+      /* 多音字那行小字在紧凑网格里挤不下，收起来 —— ready 态另有整组提示 */
+      .cards-compact .wc-poly { display: none; }
+
+      /* 专注模式：只保留当前词及前后相邻词。远处词仍在 DOM 中，但不参与
+         布局；切词时由 scrollActiveIntoView 把新的当前词带回视区。 */
+      .cards-focus {
+        flex-direction: column; align-items: center; gap: .25rem;
+      }
+      /* 比 Tailwind CDN 生成的单类 .flex-wrap 选择器更具体，确保不会横向换列。 */
+      .cards-focus.flex-wrap { flex-wrap: nowrap; }
+      .cards-focus .word-card { min-width: 0; width: 100%; max-width: 20rem; }
+      .cards-focus .wc-focus-hide { display: none; }
+      .cards-focus .word-card.active .wc-text {
+        font-size: 3.75rem; line-height: 4.25rem;
+      }
+      .cards-focus .word-card.active .wc-pinyin {
+        font-size: 1rem; line-height: 1.5rem;
+      }
+      .cards-focus .word-card:not(.active) {
+        padding: .375rem; opacity: .3; transform: scale(.9);
+      }
+      .cards-focus .word-card:not(.active) .wc-text {
+        font-size: 1rem; line-height: 1.4rem;
+      }
+      .cards-focus .word-card:not(.active) .wc-pinyin { display: none; }
+      .cards-focus .word-card:not(.active) .wc-poly  { display: none; }
+
+      /* 控制条吸底常驻 —— 原来要滚到最下面才点得到「开始录音」 */
+      .ctl-sticky {
+        position: sticky; bottom: 0; z-index: 20;
+        margin: 0 -1.5rem -1.5rem; padding: .75rem 1rem;
+        padding-bottom: calc(.75rem + env(safe-area-inset-bottom, 0px));
+        background: rgba(15,23,42,.95);
+        border-top: 1px solid #1e293b;
+        backdrop-filter: blur(8px);
+      }
+      /* 录音中波形压扁，给词让位 */
+      canvas { max-width: 100%; height: 48px; }
+      /* 吸底条本身占约 68px，正文补出同等余量，否则最后一行卡片被压在条下面 */
+      .pad-sticky { padding-bottom: 5rem; }
+    }
+  </style>
+</head>
+<body x-data="studio()" x-init="init()" class="min-h-screen">
+<div class="max-w-5xl mx-auto p-6">
+
+  <!-- 顶栏 -->
+  <header class="flex items-center justify-between mb-6 flex-wrap gap-2">
+    <h1 class="text-xl font-bold flex items-center gap-2">
+      <i class="fas fa-microphone-rotate text-[#07C160]"></i> 重录工作台
+    </h1>
+    <div class="flex items-center gap-4 text-sm text-slate-400">
+      <a href="/check.html" class="hover:text-white"><i class="fas fa-arrow-left"></i> 返回质检</a>
+      <span x-show="words.length" x-cloak>
+        已重录 <span class="text-[#07C160] font-bold" x-text="totalRecorded"></span> / <span x-text="words.length"></span>
+        <template x-if="currentBatch >= 0 && state !== 'grid'">
+          <span>· 第 <span x-text="currentBatch+1"></span>/<span x-text="batches.length"></span> 组</span>
+        </template>
+      </span>
+    </div>
+  </header>
+
+  <!-- 载入中 -->
+  <div x-show="state==='loading'" class="bg-slate-800 rounded-2xl p-10 text-center">
+    <i class="fas fa-spinner fa-spin text-4xl text-slate-500 mb-4"></i>
+    <p class="text-slate-400">正在读取待重录词表…</p>
+  </div>
+
+  <!-- 载入失败 -->
+  <div x-show="state==='error'" x-cloak class="bg-slate-800 rounded-2xl p-8 text-center">
+    <i class="fas fa-triangle-exclamation text-4xl text-[#F59E0B] mb-4"></i>
+    <h2 class="text-lg font-bold mb-2">词表读取失败</h2>
+    <p class="text-slate-400 text-sm mb-6 break-all" x-text="errorMsg"></p>
+    <button @click="loadWords()"
+            class="bg-[#07C160] text-white font-bold py-2 px-6 rounded-xl active:scale-95 transition">
+      <i class="fas fa-rotate-right"></i> 重试
+    </button>
+  </div>
+
+  <!-- 分组网格 -->
+  <div x-show="state==='grid'" x-cloak>
+    <div class="bg-slate-800 rounded-xl p-4 mb-4 flex flex-wrap items-end gap-4 text-sm">
+      <div class="block">
+        <span class="text-slate-500 block mb-1">分组方式</span>
+        <span class="inline-block bg-slate-700 rounded px-3 py-1 text-white">每组10词</span>
+      </div>
+      <label class="block">
+        <span class="text-slate-500 block mb-1">每词朗读秒数</span>
+        <input type="number" step="0.5" min="0.5" x-model.number="wordSeconds"
+               class="cfg bg-slate-700 rounded px-2 py-1 text-white">
+      </label>
+      <label class="block">
+        <span class="text-slate-500 block mb-1">静音阈值 dBFS</span>
+        <input type="number" x-model.number="silenceThresh"
+               class="cfg bg-slate-700 rounded px-2 py-1 text-white">
+      </label>
+      <button @click="loadStatus()" class="ml-auto text-slate-400 hover:text-white py-1">
+        <i class="fas fa-rotate-right"></i> 刷新进度
+      </button>
+    </div>
+
+    <p x-show="hint" class="text-slate-400 text-sm mb-4" x-text="hint"></p>
+
+    <!-- 系统提示音：放在所有单元组之前，建议先录 -->
+    <button @click="openSys()" type="button" x-cloak
+            class="hidden w-full text-left bg-slate-800 hover:bg-slate-700 rounded-xl p-4 border-2 mb-3 transition"
+            :class="sysClass()">
+      <div class="flex items-center justify-between mb-1 gap-2">
+        <span class="font-bold"><i class="fas fa-bullhorn text-[#07C160] mr-1"></i> 系统提示音</span>
+        <span class="text-xs whitespace-nowrap" :class="sysTextClass()">
+          已录 <span x-text="sysDone"></span>/<span x-text="sysWords.length"></span>
+        </span>
+      </div>
+      <div class="text-xs text-slate-400">开场 / 第N组 / 多音字引导 / 收尾。录真人版覆盖 TTS，播放时夹在词条之间。</div>
+    </button>
+
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <template x-for="(b, gi) in batches" :key="gi">
+        <button @click="openGroup(gi)" type="button"
+                class="text-left bg-slate-800 hover:bg-slate-700 rounded-xl p-4 border-2 transition"
+                :class="groupClass(b)">
+          <div class="flex items-center justify-between mb-1 gap-2">
+            <span class="font-bold">第 <span x-text="gi+1"></span> 组</span>
+            <span class="text-xs whitespace-nowrap" :class="doneClass(b)">
+              已重录 <span x-text="groupDone(b)"></span>/<span x-text="b.length"></span>
+            </span>
+          </div>
+          <div class="text-xs text-slate-400 mb-2 truncate" x-text="groupLesson(b)"></div>
+          <div class="text-sm text-slate-200 preview-2" x-text="groupPreview(b)"></div>
+        </button>
+      </template>
+    </div>
+  </div>
+
+  <!-- 系统提示音录制 -->
+  <div x-show="state==='sys'" x-cloak>
+    <div class="flex items-center justify-between mb-4 gap-3">
+      <div class="text-sm text-slate-400">
+        <span class="text-slate-200 font-bold">系统提示音</span>
+        · 已录 <span x-text="sysDone"></span>/<span x-text="sysWords.length"></span>
+      </div>
+      <button @click="backToGrid()" class="text-sm text-slate-400 hover:text-white">
+        <i class="fas fa-arrow-left"></i> 返回分组
+      </button>
+    </div>
+    <p class="text-slate-400 text-sm mb-4">逐条录真人版覆盖 TTS。点「录音」开始，再点「停止」，试听满意后「保存」。</p>
+
+    <div class="flex flex-col gap-2">
+      <template x-for="s in sysWords" :key="s.key">
+        <div class="bg-slate-800 rounded-xl p-3 flex items-center gap-3 flex-wrap">
+          <span class="text-xs font-mono text-slate-500 w-24 shrink-0" x-text="s.key"></span>
+          <span class="flex-1 text-sm min-w-[120px]" x-text="s.text"></span>
+          <span x-show="s.recorded" class="text-[#07C160] text-xs"><i class="fas fa-check-circle"></i> 真人</span>
+          <span x-show="!s.recorded" class="text-slate-500 text-xs">TTS</span>
+          <button @click="playSys(s)" class="text-slate-400 hover:text-white" title="试听当前版本">
+            <i class="fas fa-volume-up"></i>
+          </button>
+          <template x-if="sysPending && sysPending.key===s.key">
+            <span class="flex items-center gap-2">
+              <button @click="playPending()" class="text-[#F59E0B]" title="试听刚录的"><i class="fas fa-play"></i></button>
+              <button @click="saveSys(s.key)"
+                      class="bg-[#07C160] text-white text-xs font-bold py-1 px-3 rounded-lg active:scale-95 transition">保存</button>
+              <button @click="discardPending()" class="text-slate-400 text-xs">重录</button>
+            </span>
+          </template>
+          <button @click="recordSys(s.key)"
+                  class="text-xs font-bold py-1 px-3 rounded-lg transition"
+                  :class="sysRecordingKey===s.key ? 'bg-red-500 text-white' : 'bg-slate-700 text-white'">
+            <i :class="sysRecordingKey===s.key ? 'fas fa-stop' : 'fas fa-microphone'"></i>
+            <span x-text="sysRecordingKey===s.key ? '停止' : '录音'"></span>
+          </button>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- 主工作区（单组录音）-->
+  <div x-show="inGroup" x-cloak class="pad-sticky">
+    <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+      <div class="text-sm text-slate-400">
+        <span class="text-slate-200 font-bold">第 <span x-text="currentBatch+1"></span> 组</span>
+        · <span x-text="groupLesson(currentWords)"></span>
+        · 已重录 <span x-text="groupDone(currentWords)"></span>/<span x-text="currentWords.length"></span>
+      </div>
+      <div class="flex items-center gap-4">
+        <!-- 齿轮：常态说明与参数收在这里，默认不占版面 -->
+        <button @click="showSettings = !showSettings"
+                class="text-sm text-slate-400 hover:text-white"
+                :class="showSettings ? 'text-white' : ''"
+                title="说明与参数">
+          <i class="fas fa-gear"></i>
+        </button>
+        <button @click="backToGrid()" class="text-sm text-slate-400 hover:text-white">
+          <i class="fas fa-arrow-left"></i> 返回分组
+        </button>
+      </div>
+    </div>
+
+    <!-- 出错/需处理的提示：常驻横幅，放在卡片上方，吸底控制条盖不到。
+         这类提示不能收进齿轮 —— 「切出 9 段，期望 10 段」正是告诉老师
+         该往哪个方向调阈值的那句话，藏起来就没法照着做了。 -->
+    <div x-show="hint && hintLevel === 'warn'" x-cloak
+         class="mb-4 rounded-xl border border-[#F59E0B] bg-[#3b2f14] px-4 py-3 flex items-start gap-3">
+      <i class="fas fa-triangle-exclamation text-[#F59E0B] mt-0.5"></i>
+      <p class="text-sm text-amber-100 flex-1" x-text="hint"></p>
+      <button @click="setHint('', 'info')" class="text-amber-200/60 hover:text-white" title="收起">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- 齿轮面板：说明 + 参数。点齿轮才出现，浮在最上层 -->
+    <div x-show="showSettings" x-cloak
+         class="mb-4 rounded-xl bg-slate-800 border border-slate-700 p-4 relative z-30">
+      <div class="flex items-start justify-between gap-3 mb-3">
+        <h3 class="text-sm font-bold text-slate-200">
+          <i class="fas fa-circle-info text-slate-400"></i> 说明与参数
+        </h3>
+        <button @click="showSettings = false" class="text-slate-400 hover:text-white">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <p x-show="hint && hintLevel === 'info'" class="text-sm text-slate-400 mb-4" x-text="hint"></p>
+      <div class="flex flex-wrap gap-4 text-sm">
+        <label class="block">
+          <span class="text-slate-500 block mb-1">静音阈值 dBFS</span>
+          <input type="number" x-model.number="silenceThresh"
+                 class="cfg bg-slate-700 rounded px-2 py-1 text-white">
+        </label>
+        <label class="block">
+          <span class="text-slate-500 block mb-1">每词朗读秒数</span>
+          <input type="number" step="0.5" min="0.5" x-model.number="wordSeconds"
+                 class="cfg bg-slate-700 rounded px-2 py-1 text-white">
+        </label>
+      </div>
+      <p class="text-xs text-slate-500 mt-3">
+        切出的段数与词数不符时调这里：段少了调低（如 -40），段多了调高（如 -30）。
+      </p>
+    </div>
+
+    <!-- 词语卡片区（提词器）
+         手机上两套排布，靠 cards-compact / cards-focus 切换（样式见页头）：
+         录音与倒计时走专注模式，其余走紧凑网格。PC 端两个类都不改变外观。 -->
+    <div class="flex gap-3 justify-center mb-8 flex-wrap"
+         :class="focusMode ? 'cards-focus' : 'cards-compact'"
+         x-ref="cards"
+         style="min-height:140px">
+      <template x-for="(w, i) in currentWords" :key="w.hash">
+        <!-- data-idx 而非 x-ref：Alpine 的 x-ref 在 x-for 里每轮都写同一个键，
+             $refs.card 最后只剩最后一张卡，拿不到第 i 张。改成查 DOM。 -->
+        <div class="word-card rounded-2xl p-5 flex flex-col items-center justify-center min-w-[120px]"
+             :class="[cardClass(i), focusMode && !nearActive(i) ? 'wc-focus-hide' : '']"
+             :data-idx="i"
+             @click="state==='verifying' && toggleWord(i)"
+             :style="state==='verifying' ? 'cursor:pointer' : ''">
+          <!-- 多音字：拼音就是本课该读的音，必须显眼，否则老师不知道读哪个 -->
+          <span class="wc-pinyin text-xs font-mono mb-1"
+                :class="w.poly ? 'text-[#F59E0B] font-bold' : 'text-slate-400'"
+                x-text="w.pinyin"></span>
+          <span class="wc-text text-3xl font-bold" x-text="w.text"></span>
+          <template x-if="w.poly">
+            <span class="wc-poly mt-1 text-[11px] text-[#F59E0B] whitespace-nowrap">
+              多音字 · 读<span x-text="w.pinyin"></span>
+              <template x-if="w.example"><span>（如<span x-text="w.example"></span>）</span></template>
+            </span>
+          </template>
+          <div x-show="state==='verifying'" class="mt-2 flex items-center gap-2">
+            <span x-show="segStatus[i]==='ok'" class="text-[#07C160]"><i class="fas fa-check-circle"></i></span>
+            <span x-show="segStatus[i]==='retry'" class="text-red-400"><i class="fas fa-times-circle"></i></span>
+            <button @click.stop="replayWord(i)" class="text-slate-400 hover:text-white" title="试听">
+              <i class="fas fa-volume-up"></i>
+            </button>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- 波形/倒计时：高度由当前可见内容决定，避免空状态留下固定黑框。 -->
+    <div class="flex flex-col items-center mb-6">
+      <div x-show="state==='countdown'" class="text-7xl font-black text-[#07C160]" x-text="countdown"></div>
+      <canvas x-show="state==='recording'" x-ref="wave" width="600" height="80"></canvas>
+      <div x-show="state==='splitting'" class="text-slate-400 py-6">
+        <i class="fas fa-spinner fa-spin mr-2"></i> 正在切割音频…
+      </div>
+      <div x-show="state==='saving'" class="text-slate-400 py-6">
+        <i class="fas fa-spinner fa-spin mr-2"></i> 正在保存…
+      </div>
+    </div>
+
+    <!-- 控制按钮：手机上吸底常驻，不必滚到页尾去点「开始录音」 -->
+    <div class="ctl-sticky text-center flex gap-3 justify-center flex-wrap">
+      <!-- 静音阈值已移进齿轮面板，这里只留主操作，吸底条不再挤成两行 -->
+      <template x-if="state==='ready'">
+        <button @click="startCountdown()"
+                class="bg-[#07C160] text-white font-bold py-3 px-8 rounded-xl text-lg active:scale-95 transition">
+          <i class="fas fa-microphone"></i> 开始录音
+        </button>
+      </template>
+      <button x-show="state==='recording'" @click="stopRecording()"
+              class="bg-red-500 text-white font-bold py-3 px-8 rounded-xl text-lg active:scale-95 transition">
+        <i class="fas fa-stop"></i> 提前停止
+      </button>
+      <template x-if="state==='verifying'">
+        <div class="flex gap-3 flex-wrap justify-center">
+          <button @click="saveGroup()"
+                  class="bg-[#07C160] text-white font-bold py-3 px-8 rounded-xl text-lg active:scale-95 transition">
+            <i class="fas fa-save"></i> 全部正确，保存
+          </button>
+          <button @click="enterReady()"
+                  class="bg-slate-600 text-white font-bold py-3 px-8 rounded-xl text-lg active:scale-95 transition">
+            <i class="fas fa-redo"></i> 重录本组
+          </button>
+        </div>
+      </template>
+    </div>
+    <!-- 原来这里有一段 x-text="hint" 的说明文字。它排在吸底控制条之后，
+         而控制条是 sticky + z-index:20，于是 ready/倒计时/录音/切割 各态
+         都被盖掉一部分。现在 info 级说明收进齿轮面板，warn 级走上方横幅。 -->
+  </div>
+
+  <!-- 单组确认 -->
+  <div x-show="state==='saved'" x-cloak class="bg-slate-800 rounded-2xl p-8 text-center">
+    <i class="fas fa-circle-check text-5xl text-[#07C160] mb-4"></i>
+    <h2 class="text-2xl font-bold mb-2">第 <span x-text="currentBatch+1"></span> 组已保存</h2>
+    <p class="text-slate-400 mb-6">
+      <span x-text="savedCount"></span> 个词条已写入 shared/web/audio/w/，
+      当前重录进度 <span x-text="totalRecorded"></span>/<span x-text="words.length"></span>
+    </p>
+    <div class="flex gap-3 justify-center flex-wrap">
+      <button @click="nextGroup()"
+              class="bg-[#07C160] text-white font-bold py-3 px-6 rounded-xl active:scale-95 transition">
+        <i class="fas fa-forward"></i> 录下一组
+      </button>
+      <button @click="openGroup(currentBatch)"
+              class="bg-slate-600 text-white font-bold py-3 px-6 rounded-xl active:scale-95 transition">
+        <i class="fas fa-redo"></i> 重录本组
+      </button>
+      <button @click="backToGrid()"
+              class="bg-slate-700 text-white font-bold py-3 px-6 rounded-xl active:scale-95 transition">
+        <i class="fas fa-th-large"></i> 返回分组
+      </button>
+      <a href="/check.html"
+         class="bg-slate-700 text-white font-bold py-3 px-6 rounded-xl active:scale-95 transition">
+        <i class="fas fa-headphones"></i> 返回质检
+      </a>
+    </div>
+  </div>
+
+</div>
+<script>
+function studio() {
+  return {
+    // ── 配置 ──
+    wordSeconds: 3,        // 每词朗读时长（提词器停留）
+    silenceThresh: -40,    // 静音阈值 dBFS
+    minSilenceLen: 500,    // 静音判定最短时长 ms
+    batchSize: 10,         // 每组词数
+    API: '',               // 同源
+
+    // ── 状态 ──
+    // loading|error|grid|ready|countdown|recording|splitting|verifying|saving|saved
+    // 没有「全部完成」终态 —— 录音可反复覆盖，任何一组随时能重录。
+    state: 'loading',
+    words: [],             // 全部词条 [{text,pinyin,hash,lesson_seq,lesson}]
+    recorded: {},          // 后端台账 {hash:{text,at}}，真人录音才算
+    batches: [],           // 分组后的二维数组（不过滤已录词）
+    currentBatch: -1,
+    activeIdx: -1,         // 提词器当前高亮词
+    countdown: 3,
+    hint: '',
+    // 'info' = 常态说明，收进齿轮面板；'warn' = 出错或要人处理，必须常驻可见。
+    // 「切出 9 段，期望 10 段」这类提示藏起来老师就不知道该怎么调阈值了。
+    hintLevel: 'info',
+    showSettings: false,   // 齿轮面板开关
+    errorMsg: '',
+    savedCount: 0,
+
+    // ── 系统提示音 ──
+    sysWords: [],          // [{key,text,recorded,url}]
+    sysRecordingKey: null, // 正在录的 key
+    sysPending: null,      // {key,b64,url} 录完待保存
+
+    // ── 校对 ──
+    segments: [],          // 切割结果 [{audio(base64),duration}]
+    segStatus: [],         // 每词状态 'pending'|'ok'|'retry'
+    verifyIdx: -1,
+
+    // ── 内部引用 ──
+    // 都要能被 cleanupAudio() 停掉，否则切组时上一组的音频会串台。
+    _rec: null, _chunks: [], _stream: null, _actx: null, _analyser: null,
+    _raf: null, _timer: null, _audio: null,
+    _token: 0,             // 会话令牌：cleanupAudio 递增，作废在飞的异步回调
+
+    get currentWords() { return this.batches[this.currentBatch] || []; },
+
+    get inGroup() {
+      return ['ready','countdown','recording','splitting','verifying','saving']
+             .indexOf(this.state) >= 0;
+    },
+
+    // 手机上录音/倒计时走「专注模式」：只留当前词与前后各一个。
+    // 校对必须看得见全部 10 个 —— 要逐个点喇叭试听、点卡片标重录，
+    // 只显示 5 个会逼着老师翻页找词。
+    get focusMode() {
+      return this.state === 'recording' || this.state === 'countdown';
+    },
+
+    // 专注模式里哪些卡片留着显示。activeIdx 为 -1（倒计时阶段还没开始推进）
+    // 时先亮第一个，否则整屏空着，老师不知道第一个要读什么。
+    nearActive(i) {
+      const a = this.activeIdx < 0 ? 0 : this.activeIdx;
+      return Math.abs(i - a) <= 1;
+    },
+
+    // 把高亮词滚进视区。这是老师报的那个问题的正解 —— 手机上点完「开始录音」
+    // 页面停在页尾，提词器却从第一个词开始亮，人看不到该读哪个。
+    // 每组词数可调到 30，任何「缩小塞进一屏」的做法都会在 30 词时失效，
+    // 所以这个兜底不能省。scrollIntoView 用 center，让当前词落在屏幕中间。
+    scrollActiveIntoView() {
+      const box = this.$refs.cards;
+      if (!box) return;
+      const i = this.activeIdx < 0 ? 0 : this.activeIdx;
+      const el = box.querySelector(`[data-idx="${i}"]`);
+      if (!el || typeof el.scrollIntoView !== 'function') return;
+      try {
+        el.scrollIntoView({behavior: 'smooth', block: 'center', inline: 'nearest'});
+      } catch (e) {
+        el.scrollIntoView(false);       // 老浏览器不认 options
+      }
+    },
+
+    // 进度只认台账，不看文件是否存在 —— TTS 占位与真人录音同名同路径，
+    // 用 /api/studio/check 判断会把 869 个占位全算成「已录」。
+    get totalRecorded() {
+      let n = 0;
+      for (const w of this.words) if (this.recorded[w.hash]) n++;
+      return n;
+    },
+
+    async init() { await this.loadWords(); },
+
+    // 提示分两级：warn 常驻横幅（出错、要人处理），info 收进齿轮面板（常态说明）。
+    // 统一走这里设置，避免某处只改 hint 忘了改 level，留下上一条的级别。
+    setHint(msg, level) {
+      this.hint = msg || '';
+      this.hintLevel = level || 'info';
+    },
+
+    // ── 词表 / 台账 ──
+    async loadWords() {
+      this.state = 'loading';
+      this.errorMsg = '';
+      try {
+        const r = await fetch(`${this.API}/api/studio2/words`, {cache:'no-store'});
+        if (!r.ok) throw new Error(`HTTP ${r.status}：${(await r.text()).slice(0, 200)}`);
+        const data = await r.json();
+        const words = (data && Array.isArray(data.words)) ? data.words : [];
+        if (!words.length) throw new Error('还没有重录词表。请先在 check.html 完成检查并保存需要重录的词。');
+        this.words = words;
+        await this.loadStatus();
+        this.rebuildBatches();
+        this.currentBatch = -1;
+        this.hint = '';
+        this.state = 'grid';
+      } catch (e) {
+        this.errorMsg = (e && e.message) ? e.message : String(e);
+        this.state = 'error';
+      }
+    },
+
+    async loadStatus() {
+      try {
+        const r = await fetch(`${this.API}/api/studio2/status`, {cache:'no-store'});
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const d = await r.json();
+        this.recorded = (d && d.recorded) || {};
+      } catch (e) {
+        console.warn('重录进度读取失败，进度按 0 显示', e);
+      }
+    },
+
+    // ── 分组（全部词常驻，任意组可反复重录）──
+    rebuildBatches() {
+      const size = this.clampSize(this.batchSize);
+      this.batchSize = size;
+      const out = [];
+      for (let i = 0; i < this.words.length; i += size)
+        out.push(this.words.slice(i, i + size));
+      this.batches = out;
+    },
+
+    clampSize(v) {
+      const n = parseInt(v, 10);
+      if (!n || n < 1) return 1;
+      return n > 30 ? 30 : n;
+    },
+
+    applyBatchSize(v) {
+      this.cleanupAudio();
+      this.batchSize = this.clampSize(v);
+      this.rebuildBatches();
+      this.currentBatch = -1;
+      this.state = 'grid';
+    },
+
+    groupDone(b) {
+      let n = 0;
+      for (const w of (b || [])) if (this.recorded[w.hash]) n++;
+      return n;
+    },
+
+    groupLesson(b) {
+      if (!b || !b.length) return '';
+      const a = b[0].lesson || '', z = b[b.length-1].lesson || '';
+      return a === z ? a : `${a} → ${z}`;
+    },
+
+    groupPreview(b) { return (b || []).map(w => w.text).join(' '); },
+
+    groupClass(b) {
+      const d = this.groupDone(b);
+      if (!d) return 'border-slate-700';
+      return d >= b.length ? 'border-[#07C160]' : 'border-[#F59E0B]';
+    },
+
+    doneClass(b) {
+      const d = this.groupDone(b);
+      if (!d) return 'text-slate-500';
+      return d >= b.length ? 'text-[#07C160]' : 'text-[#F59E0B]';
+    },
+
+    // ── 导航 ──
+    openGroup(gi) {
+      if (gi < 0 || gi >= this.batches.length) return;
+      this.cleanupAudio();
+      this.currentBatch = gi;
+      this.enterReady();
+    },
+
+    backToGrid() {
+      this.cleanupAudio();
+      this.showSettings = false;
+      this.discardPending();
+      this.sysRecordingKey = null;
+      this.setHint('', 'info');
+      this.state = 'grid';
+    },
+
+    // ── 系统提示音（开场/第N组/多音字前后缀/收尾）──
+    // 放在所有单元组之前。逐条录真人版覆盖 TTS，文件同名同路径，播放端无感知。
+    get sysDone() { return this.sysWords.filter(s => s.recorded).length; },
+
+    sysClass() {
+      const t = this.sysWords.length;
+      if (t && this.sysDone >= t) return 'border-[#07C160]';
+      return this.sysDone ? 'border-[#F59E0B]' : 'border-slate-700';
+    },
+    sysTextClass() {
+      const t = this.sysWords.length;
+      if (t && this.sysDone >= t) return 'text-[#07C160]';
+      return this.sysDone ? 'text-[#F59E0B]' : 'text-slate-500';
+    },
+
+    async loadSys() {
+      try {
+        const r = await fetch(`${this.API}/api/studio/syswords`);
+        if (r.ok) { const d = await r.json(); this.sysWords = d.words || []; }
+      } catch (e) { console.warn('系统提示音读取失败', e); }
+    },
+
+    openSys() {
+      this.cleanupAudio();
+      this.sysPending = null;
+      this.sysRecordingKey = null;
+      this.setHint('', 'info');
+      this.loadSys();
+      this.state = 'sys';
+    },
+
+    async recordSys(key) {
+      if (this.sysRecordingKey) { this.stopSysRec(); return; }
+      this.cleanupAudio();
+      if (!navigator.mediaDevices?.getUserMedia) {
+        this.setHint('此浏览器不支持录音（缺少 mediaDevices API）', 'warn');
+        return;
+      }
+      let stream;
+      try { stream = await navigator.mediaDevices.getUserMedia({audio:true}); }
+      catch (e) { this.setHint('无法访问麦克风：' + (e && e.message ? e.message : e), 'warn'); return; }
+      this._stream = stream; this._chunks = [];
+      this._rec = new MediaRecorder(stream);
+      this._rec.ondataavailable = e => { if (e.data.size) this._chunks.push(e.data); };
+      this._rec.onstop = () => {
+        if (this._stream) { this._stream.getTracks().forEach(t => t.stop()); this._stream = null; }
+        const blob = new Blob(this._chunks, {type: this._chunks[0]?.type || 'audio/webm'});
+        const reader = new FileReader();
+        reader.onload = () => {
+          const b64 = String(reader.result).split(',')[1] || '';
+          if (this.sysPending && this.sysPending.url) URL.revokeObjectURL(this.sysPending.url);
+          this.sysPending = { key, b64, url: URL.createObjectURL(blob) };
+        };
+        reader.readAsDataURL(blob);
+      };
+      this._rec.start();
+      this.sysRecordingKey = key;
+    },
+
+    stopSysRec() {
+      if (this._rec && this._rec.state !== 'inactive') this._rec.stop();
+      this.sysRecordingKey = null;
+    },
+
+    playSys(s) {
+      this._token++;
+      if (this._audio) { try { this._audio.pause(); } catch (e) {} }
+      const src = (this.sysPending && this.sysPending.key === s.key) ? this.sysPending.url : s.url;
+      const a = new Audio(src); this._audio = a;
+      const p = a.play();
+      if (p && typeof p.catch === 'function')
+        p.catch(err => this.setHint('试听失败：' + (err && err.message ? err.message : err), 'warn'));
+    },
+
+    playPending() {
+      if (!this.sysPending) return;
+      this._token++;
+      if (this._audio) { try { this._audio.pause(); } catch (e) {} }
+      const a = new Audio(this.sysPending.url); this._audio = a;
+      const p = a.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    },
+
+    discardPending() {
+      if (this.sysPending && this.sysPending.url) URL.revokeObjectURL(this.sysPending.url);
+      this.sysPending = null;
+    },
+
+    async saveSys(key) {
+      if (!this.sysPending || this.sysPending.key !== key) return;
+      try {
+        const r = await fetch(`${this.API}/api/studio/save_sys`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({key, audio: this.sysPending.b64})
+        });
+        if (!r.ok) throw new Error((await r.text()).slice(0, 200));
+        const w = this.sysWords.find(x => x.key === key); if (w) w.recorded = true;
+        this.discardPending();
+      } catch (e) { this.setHint('保存失败：' + (e && e.message ? e.message : e), 'warn'); }
+    },
+
+    nextGroup() {
+      const next = this.currentBatch + 1;
+      if (next >= this.batches.length) {
+        this.backToGrid();
+        this.hint = '重录词表已全部完成。返回质检页即可再次检查新录音。';
+        return;
+      }
+      this.openGroup(next);
+    },
+
+    enterReady() {
+      this.cleanupAudio();
+      this.state = 'ready';
+      this.activeIdx = -1;
+      this.segments = [];
+      this.segStatus = this.currentWords.map(() => 'pending');
+      this.verifyIdx = -1;
+      // 进新状态先降回 info，否则上一轮的 warn 横幅会一直挂着。
+      // 注意：splitAudio / saveGroup 里是先调 enterReady() 再设 warn，
+      // 顺序上 warn 在后，不会被这里覆盖掉。
+      this.hintLevel = 'info';
+      const done = this.groupDone(this.currentWords);
+      const base = '点击开始，按提词器高亮依次朗读，每词之间停顿约 1 秒';
+      this.hint = done
+        ? `本组已重录 ${done}/${this.currentWords.length}，再次录制仍会覆盖原音频。${base}`
+        : base;
+      // 多音字只读单字，且必须读卡片上标的那个音；播放时系统会自动前后接
+      // 「多音字：」和「请组词并默写，标注拼音」，老师不用念这两句。
+      const np = this.currentWords.filter(w => w.poly).length;
+      if (np) this.hint += `　本组有 ${np} 个多音字（橙色标注），只读单字本身，按卡片标的读音读。`;
+    },
+
+    // ── 统一清场 ──
+    // 切组、返回分组、进入 ready、提交成功后都要调。原代码 replayWord() 直接
+    // new Audio().play() 不留引用，切组后上一组的试听还在响。
+    cleanupAudio() {
+      this._token++;                       // 作废所有在飞的回调
+      if (this._timer) { clearTimeout(this._timer); this._timer = null; }
+      if (this._raf) { cancelAnimationFrame(this._raf); this._raf = null; }
+      if (this._audio) {
+        try { this._audio.pause(); } catch (e) {}
+        this._audio.onended = null;
+        this._audio.onerror = null;
+        this._audio.src = '';
+        this._audio = null;
+      }
+      if (this._rec) {
+        // 先摘掉 onstop，否则中途离开会触发 splitAudio 把半截录音送去切割
+        this._rec.onstop = null;
+        this._rec.ondataavailable = null;
+        try { if (this._rec.state !== 'inactive') this._rec.stop(); } catch (e) {}
+        this._rec = null;
+      }
+      if (this._stream) {
+        try { this._stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+        this._stream = null;
+      }
+      if (this._actx) {
+        try { this._actx.close(); } catch (e) {}
+        this._actx = null;
+      }
+      this._analyser = null;
+      this._chunks = [];
+      this.activeIdx = -1;
+    },
+
+    // ── 录音流程 ──
+    async startCountdown() {
+      this.cleanupAudio();
+      this.state = 'countdown';
+      this.countdown = 3;
+      // 手机上「开始录音」在吸底条里，点它时页面可能停在任意位置。
+      // 倒计时一开始就把第一个词滚进视区，三秒后开口时人已经在看着它了。
+      this.$nextTick(() => this.scrollActiveIntoView());
+      const token = this._token;
+      const tick = () => {
+        if (token !== this._token) return;
+        this.countdown--;
+        if (this.countdown > 0) this._timer = setTimeout(tick, 800);
+        else this.beginRecording();
+      };
+      this._timer = setTimeout(tick, 800);
+    },
+
+    async beginRecording() {
+      const token = this._token;
+      let stream;
+      // 浏览器只在「安全上下文」暴露 mediaDevices：HTTPS、localhost、file://。
+      // 用局域网 IP 走 http 访问时它是 undefined，直接取 .getUserMedia 会抛
+      // TypeError，报出来的是「读取 undefined 的属性」之类，看不出真实原因。
+      // 这里先判断并给出可操作的提示。
+      if (!navigator.mediaDevices?.getUserMedia) {
+        this.hintLevel = 'warn';
+        this.hint = window.isSecureContext
+          ? '此浏览器不支持录音（缺少 mediaDevices API）'
+          : `浏览器禁止在非安全来源录音。请改用 http://localhost:${location.port || 8889}/studio 在本机录制，或走 HTTPS 域名访问。`;
+        this.state = 'ready';
+        return;
+      }
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({audio:true});
+      } catch(e) {
+        this.hintLevel = 'warn';
+        this.hint = '无法访问麦克风：' + (e && e.message ? e.message : e);
+        this.state = 'ready';
+        return;
+      }
+      if (token !== this._token) {          // 授权期间用户已离开本组
+        stream.getTracks().forEach(t => t.stop());
+        return;
+      }
+      this._stream = stream;
+      this._chunks = [];
+      this._rec = new MediaRecorder(stream);
+      this._rec.ondataavailable = e => { if (e.data.size) this._chunks.push(e.data); };
+      this._rec.onstop = () => {
+        if (this._stream) {
+          this._stream.getTracks().forEach(t => t.stop());
+          this._stream = null;
+        }
+        this.splitAudio();
+      };
+      this._rec.start();
+      this.state = 'recording';
+      this.setupWaveform(stream);
+      this.runTeleprompter();
+    },
+
+    runTeleprompter() {
+      const token = this._token;
+      const ms = Math.max(500, (parseFloat(this.wordSeconds) || 3) * 1000);
+      this.activeIdx = 0;
+      // $nextTick：等 Alpine 把 active 类渲染上去再滚，否则滚的是旧位置
+      this.$nextTick(() => this.scrollActiveIntoView());
+      const step = () => {
+        if (token !== this._token) return;
+        if (this.activeIdx >= this.currentWords.length - 1) {
+          // 最后一词读完，多留半个间隔再停
+          this._timer = setTimeout(() => { if (token === this._token) this.stopRecording(); }, ms);
+          return;
+        }
+        this._timer = setTimeout(() => {
+          this.activeIdx++;
+          this.$nextTick(() => this.scrollActiveIntoView());
+          step();
+        }, ms);
+      };
+      step();
+    },
+
+    // 正常收尾：保留 onstop，让它把录音送去切割。
+    stopRecording() {
+      if (this._timer) { clearTimeout(this._timer); this._timer = null; }
+      this.activeIdx = -1;
+      if (this._raf) { cancelAnimationFrame(this._raf); this._raf = null; }
+      if (this._actx) { try { this._actx.close(); } catch(e) {} this._actx = null; }
+      this._analyser = null;
+      if (this._rec && this._rec.state !== 'inactive') this._rec.stop();
+    },
+
+    setupWaveform(stream) {
+      const cv = this.$refs.wave;
+      if (!cv) return;
+      this._actx = new (window.AudioContext||window.webkitAudioContext)();
+      const src = this._actx.createMediaStreamSource(stream);
+      this._analyser = this._actx.createAnalyser();
+      this._analyser.fftSize = 256;
+      src.connect(this._analyser);
+      const data = new Uint8Array(this._analyser.frequencyBinCount);
+      const ctx = cv.getContext('2d');
+      const draw = () => {
+        if (!this._analyser) return;
+        this._raf = requestAnimationFrame(draw);
+        this._analyser.getByteFrequencyData(data);
+        ctx.clearRect(0,0,cv.width,cv.height);
+        const bw = cv.width/data.length;
+        for (let i=0;i<data.length;i++){
+          const h = data[i]/255*cv.height;
+          ctx.fillStyle = `rgb(7,193,96)`;
+          ctx.fillRect(i*bw, cv.height-h, bw-1, h);
+        }
+      };
+      draw();
+    },
+
+    // ── 切割 ──
+    async splitAudio() {
+      const token = this._token;
+      const expect = this.currentWords.length;
+      this.state = 'splitting';
+      const blob = new Blob(this._chunks, {type: this._chunks[0]?.type || 'audio/webm'});
+      const fd = new FormData();
+      fd.append('audio', blob, 'rec.webm');
+      fd.append('word_count', expect);
+      fd.append('silence_thresh', this.silenceThresh);
+      fd.append('min_silence_len', this.minSilenceLen);
+      try {
+        const r = await fetch(`${this.API}/api/studio/split`, {method:'POST', body: fd});
+        if (!r.ok) throw new Error((await r.text()).slice(0, 200));
+        const data = await r.json();
+        if (token !== this._token) return;        // 切割期间用户已离开本组
+        // 段数与词数不符时绝不保存 —— 会整组错位写错音频。
+        if (!data.matched) {
+          this.segments = [];
+          this.enterReady();
+          this.hintLevel = 'warn';
+          this.hint = `⚠ 切出 ${data.count} 段，期望 ${data.expected} 段。段少了就调低静音阈值（如 -40）或停顿再明显些，段多了就调高（如 -30），然后重录本组。`;
+          return;
+        }
+        this.segments = data.segments;
+        this.startVerify();
+      } catch(e) {
+        if (token !== this._token) return;
+        this.enterReady();
+        // 别硬编码猜测原因 —— 后端现在会把缺哪个依赖写进 detail。
+        // 原来这句固定说「需装 ffmpeg/pydub」，而真实原因是缺 python-multipart。
+        this.hintLevel = 'warn';
+        this.hint = '切割失败：' + (e && e.message ? e.message : e);
+      }
+    },
+
+    // ── 校对（依次播放，人工确认）──
+    startVerify() {
+      this.state = 'verifying';
+      this.segStatus = this.currentWords.map(() => 'pending');
+      this.verifyIdx = -1;
+      this.hintLevel = 'info';
+      this.hint = '依次播放各词，核对发音是否正确。有问题的点词卡标记重录。';
+      this.playNext();
+    },
+
+    _newAudio(b64) {
+      if (this._audio) {
+        try { this._audio.pause(); } catch (e) {}
+        this._audio.onended = null;
+        this._audio.onerror = null;
+      }
+      const a = new Audio('data:audio/mp3;base64,' + b64);
+      this._audio = a;
+      return a;
+    },
+
+    playNext() {
+      const token = this._token;
+      this.verifyIdx++;
+      if (this.verifyIdx >= this.segments.length) {
+        this.activeIdx = -1;
+        this.hint = '全部播放完毕。全部正确则保存，或点词卡标记重录。';
+        return;
+      }
+      const idx = this.verifyIdx;
+      this.activeIdx = idx;
+      const audio = this._newAudio(this.segments[idx].audio);
+      const advance = (delay) => {
+        this._timer = setTimeout(() => {
+          if (token === this._token) this.playNext();
+        }, delay);
+      };
+      audio.onended = () => {
+        if (token !== this._token) return;
+        if (this.segStatus[idx] === 'pending') this.segStatus[idx] = 'ok';
+        advance(400);
+      };
+      audio.onerror = () => { if (token === this._token) advance(200); };
+      const p = audio.play();
+      // 浏览器可能因「没有用户手势」拦截自动连播。不能卡死在校对流程里：
+      // 提示改为逐个试听，保存按钮照常可用（只有标记 retry 才拦保存）。
+      if (p && typeof p.catch === 'function') {
+        p.catch(err => {
+          if (token !== this._token) return;
+          this.activeIdx = -1;
+          this.hintLevel = 'warn';
+          this.hint = '浏览器拦截了自动连播（' + ((err && err.name) || 'NotAllowedError')
+                    + '）。请点各词的喇叭图标逐个试听，确认无误后保存。';
+        });
+      }
+    },
+
+    toggleWord(i) {
+      if (this.state !== 'verifying') return;
+      this.segStatus[i] = this.segStatus[i] === 'retry' ? 'ok' : 'retry';
+    },
+
+    replayWord(i) {
+      const seg = this.segments[i];
+      if (!seg) return;
+      // 手动试听即接管播放：中断自动连播链，避免两个音源同时响。
+      this._token++;
+      const token = this._token;
+      if (this._timer) { clearTimeout(this._timer); this._timer = null; }
+      this.activeIdx = i;
+      const a = this._newAudio(seg.audio);
+      a.onended = () => {
+        if (token !== this._token) return;
+        if (this.segStatus[i] === 'pending') this.segStatus[i] = 'ok';
+        this.activeIdx = -1;
+      };
+      const p = a.play();
+      if (p && typeof p.catch === 'function') {
+        p.catch(err => { this.hintLevel = 'warn'; this.hint = '试听失败：' + (err && err.message ? err.message : err); });
+      }
+    },
+
+    // ── 保存 ──
+    async saveGroup() {
+      const retries = this.segStatus.filter(s => s === 'retry').length;
+      if (retries) {
+        this.enterReady();
+        this.hintLevel = 'warn';
+        this.hint = `有 ${retries} 个词标记重录，请重录本组。`;
+        return;
+      }
+      if (!this.segments.length || this.segments.length !== this.currentWords.length) {
+        this.enterReady();
+        this.hintLevel = 'warn';
+        this.hint = '切片数与词数不符，请重录本组。';
+        return;
+      }
+      const token = this._token;
+      const items = this.currentWords.map((w,i) => ({
+        hash: w.hash, text: w.text, audio: this.segments[i].audio,
+      }));
+      this.state = 'saving';
+      try {
+        const r = await fetch(`${this.API}/api/studio/save`, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({items})
+        });
+        if (!r.ok) throw new Error((await r.text()).slice(0, 200));
+        const d = await r.json();
+        if (token !== this._token) return;
+        this.savedCount = (d && d.saved) || items.length;
+        // 先本地记账，进度条立刻反映；随后用后端台账校准。
+        const now = new Date().toISOString().slice(0,19).replace('T',' ');
+        items.forEach(it => { this.recorded[it.hash] = {text: it.text, at: now}; });
+        this.cleanupAudio();
+        this.state = 'saved';
+        this.hint = '';
+        this.loadStatus();
+      } catch(e) {
+        if (token !== this._token) return;
+        this.hintLevel = 'warn';
+        this.hint = '保存失败：' + (e && e.message ? e.message : e);
+        this.state = 'verifying';
+      }
+    },
+
+    // ── UI 辅助 ──
+    cardClass(i) {
+      if (this.state==='verifying') {
+        if (this.segStatus[i]==='retry') return 'retry';
+        if (i===this.activeIdx) return 'active';
+        if (this.segStatus[i]==='ok') return 'done';
+        return '';
+      }
+      return i===this.activeIdx ? 'active' : '';
+    },
+
+  };
+}
+</script>
+</body>
+</html>

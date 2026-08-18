@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>录音质检 · 听写小助手</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root { --green:#07C160; --amber:#F59E0B; }
+    body { font-family: sans-serif; background:#0f172a; color:#e2e8f0; }
+    [x-cloak] { display:none !important; }
+    .word-card { background:#172033; border:2px solid #263449; }
+    .word-card.playing { border-color:var(--green); box-shadow:0 0 34px rgba(7,193,96,.22); }
+    .btn { border-radius:.9rem; font-weight:700; transition:transform .12s, opacity .12s; }
+    .btn:active { transform:scale(.97); }
+    .safe-bottom { padding-bottom:calc(1rem + env(safe-area-inset-bottom, 0px)); }
+  </style>
+</head>
+<body x-data="checker()" x-init="init()" @beforeunload.window="stopAudio()" class="min-h-[100dvh]">
+<div class="max-w-3xl mx-auto min-h-[100dvh] p-4 sm:p-6 flex flex-col">
+  <header class="flex items-start justify-between gap-3 mb-5">
+    <div>
+      <h1 class="text-xl sm:text-2xl font-bold flex items-center gap-2">
+        <i class="fas fa-headphones text-[#07C160]"></i> 录音质检
+      </h1>
+      <p class="text-xs text-slate-500 mt-1">原速播放 · 词间隔 2000ms</p>
+    </div>
+    <div class="flex items-center gap-3 text-sm">
+      <a href="/studio.html" class="text-slate-400 hover:text-white">录音台</a>
+      <a x-show="listInfo.count>0" x-cloak href="/studio2.html"
+         class="text-[#07C160] font-bold whitespace-nowrap">重录 <span x-text="listInfo.done"></span>/<span x-text="listInfo.count"></span></a>
+    </div>
+  </header>
+
+  <section x-show="words.length" x-cloak class="grid grid-cols-4 gap-2 mb-5 text-center">
+    <div class="bg-slate-800 rounded-xl px-2 py-3"><div class="text-xl font-bold" x-text="words.length"></div><div class="text-[11px] text-slate-500">人工录音</div></div>
+    <div class="bg-slate-800 rounded-xl px-2 py-3"><div class="text-xl font-bold text-slate-300" x-text="pendingCount"></div><div class="text-[11px] text-slate-500">未检查</div></div>
+    <div class="bg-slate-800 rounded-xl px-2 py-3"><div class="text-xl font-bold text-[#07C160]" x-text="checkedCount"></div><div class="text-[11px] text-slate-500">已检查</div></div>
+    <div class="bg-slate-800 rounded-xl px-2 py-3"><div class="text-xl font-bold text-[#F59E0B]" x-text="rerecordCount"></div><div class="text-[11px] text-slate-500">需重录</div></div>
+  </section>
+
+  <div x-show="state==='loading'" class="flex-1 flex flex-col items-center justify-center text-slate-400">
+    <i class="fas fa-spinner fa-spin text-4xl mb-4"></i><p>正在读取人工录音…</p>
+  </div>
+
+  <div x-show="state==='error'" x-cloak class="bg-slate-800 rounded-2xl p-8 text-center">
+    <i class="fas fa-triangle-exclamation text-4xl text-[#F59E0B] mb-4"></i>
+    <p class="font-bold mb-2">读取失败</p><p class="text-sm text-slate-400 break-all mb-5" x-text="errorMsg"></p>
+    <button @click="init()" class="btn bg-[#07C160] px-6 py-3">重试</button>
+  </div>
+
+  <div x-show="state==='empty'" x-cloak class="bg-slate-800 rounded-2xl p-8 text-center">
+    <i class="fas fa-microphone-slash text-5xl text-slate-600 mb-4"></i>
+    <h2 class="text-xl font-bold mb-2">还没有人工录音</h2>
+    <p class="text-sm text-slate-400 mb-5">质检页只播放录音台账中已保存的真人录音。</p>
+    <a href="/studio.html" class="inline-block btn bg-[#07C160] px-6 py-3">前往录音台</a>
+  </div>
+
+  <main x-show="['ready','playing','paused'].includes(state)" x-cloak class="flex-1 flex flex-col">
+    <audio x-ref="player" preload="auto" playsinline @ended="onEnded()"></audio>
+
+    <div class="flex items-center justify-between text-xs text-slate-500 mb-3">
+      <span>第 <b class="text-slate-300" x-text="index+1"></b> / <span x-text="words.length"></span> 条</span>
+      <span x-text="current ? current.lesson : ''"></span>
+    </div>
+
+    <button type="button" @click="pauseForDecision()"
+            class="word-card flex-1 min-h-[18rem] rounded-3xl px-6 py-10 flex flex-col items-center justify-center active:scale-[.99] transition"
+            :class="state==='playing' ? 'playing' : ''">
+      <template x-if="current">
+        <div class="text-center">
+          <div class="text-lg sm:text-xl font-mono text-slate-400 mb-4" x-text="current.pinyin"></div>
+          <div class="text-5xl sm:text-6xl font-black tracking-wide" x-text="current.text"></div>
+          <div class="mt-7 text-sm" :class="current.status==='rerecord' ? 'text-[#F59E0B]' : 'text-slate-500'">
+            <span x-show="current.status==='pending'">未检查</span>
+            <span x-show="current.status==='checked'"><i class="fas fa-check-circle"></i> 已检查</span>
+            <span x-show="current.status==='rerecord'"><i class="fas fa-triangle-exclamation"></i> 需要重录</span>
+          </div>
+        </div>
+      </template>
+      <div x-show="state==='playing'" class="mt-8 text-sm text-[#07C160]">
+        <i class="fas" :class="phase==='gap' ? 'fa-hourglass-half' : 'fa-volume-high'"></i>
+        <span x-text="phase==='gap' ? '间隔中，点击暂停' : '播放中，点击暂停'"></span>
+      </div>
+    </button>
+
+    <p x-show="notice" class="mt-3 text-sm text-center text-[#F59E0B]" x-text="notice"></p>
+
+    <div class="safe-bottom pt-5 flex flex-wrap justify-center gap-3">
+      <template x-if="state==='ready'">
+        <div class="w-full flex flex-col items-center gap-3">
+          <button @click="start(false)" class="btn bg-[#07C160] text-white px-9 py-4 text-lg">
+            <i class="fas fa-play mr-1"></i> 从第一个未检查词开始
+          </button>
+          <button @click="start(true)" class="text-sm text-slate-400 underline">从头开始</button>
+        </div>
+      </template>
+
+      <template x-if="state==='playing'">
+        <div class="flex gap-3">
+          <button @click="pauseForDecision()" class="btn bg-slate-600 text-white px-7 py-3">
+            <i class="fas fa-pause mr-1"></i> 暂停
+          </button>
+          <button @click="replay()" class="btn bg-slate-800 text-white px-7 py-3">
+            <i class="fas fa-rotate-left mr-1"></i> 重听
+          </button>
+        </div>
+      </template>
+
+      <template x-if="state==='paused'">
+        <div class="w-full flex flex-col items-center gap-3">
+          <div class="flex gap-3 w-full max-w-md">
+            <button @click="decide('rerecord')" class="btn flex-1 bg-[#F59E0B] text-slate-950 px-5 py-4">
+              <i class="fas fa-flag mr-1"></i> 标记
+            </button>
+            <button @click="decide('checked')" class="btn flex-1 bg-[#07C160] text-white px-5 py-4">
+              <i class="fas fa-forward mr-1"></i> 继续
+            </button>
+          </div>
+          <button @click="replay()" class="btn bg-slate-800 text-white px-7 py-3">
+            <i class="fas fa-rotate-left mr-1"></i> 重听当前词
+          </button>
+          <p class="text-xs text-slate-500">标记或继续后都会进入下一个词；重听不会改变状态。</p>
+        </div>
+      </template>
+    </div>
+  </main>
+
+  <main x-show="state==='finished'" x-cloak class="flex-1">
+    <div class="bg-slate-800 rounded-2xl p-5 sm:p-7 mb-5 text-center">
+      <i class="fas fa-clipboard-check text-5xl text-[#07C160] mb-3"></i>
+      <h2 class="text-2xl font-bold">本轮检查完成</h2>
+      <p class="text-slate-400 mt-2">已检查 <span x-text="checkedCount"></span> 条，需要重录 <span class="text-[#F59E0B] font-bold" x-text="rerecordCount"></span> 条</p>
+      <p x-show="notice" class="mt-3 text-sm text-[#F59E0B]" x-text="notice"></p>
+      <div class="mt-5 flex flex-wrap justify-center gap-3">
+        <button x-show="rerecordCount>0" @click="saveRerecordList()" :disabled="savingList"
+                class="btn bg-[#F59E0B] text-slate-950 px-6 py-3 disabled:opacity-50">
+          <i class="fas" :class="savingList ? 'fa-spinner fa-spin' : 'fa-floppy-disk'"></i>
+          <span x-text="savingList ? '正在保存…' : '保存重录词表'"></span>
+        </button>
+        <a x-show="listInfo.count>0" href="/studio2.html"
+           class="btn bg-[#07C160] text-white px-6 py-3">进入重录工作台</a>
+        <button @click="start(true)" class="btn bg-slate-700 text-white px-6 py-3">从头开始</button>
+      </div>
+    </div>
+
+    <div class="bg-slate-800 rounded-2xl overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-700 font-bold">Check 表格</div>
+      <div class="overflow-x-auto max-h-[55vh] overflow-y-auto">
+        <table class="w-full text-sm">
+          <thead class="sticky top-0 bg-slate-800 text-slate-500">
+            <tr><th class="text-left p-3 w-14">序号</th><th class="text-left p-3">词语</th><th class="text-left p-3">拼音</th><th class="text-left p-3 whitespace-nowrap">结果</th></tr>
+          </thead>
+          <tbody class="divide-y divide-slate-700/60">
+            <template x-for="(word, i) in words" :key="word.hash">
+              <tr :class="word.status==='rerecord' ? 'bg-amber-950/30' : ''">
+                <td class="p-3 text-slate-500" x-text="i+1"></td>
+                <td class="p-3 font-bold" x-text="word.text"></td>
+                <td class="p-3 font-mono text-slate-400" x-text="word.pinyin"></td>
+                <td class="p-3 whitespace-nowrap" :class="word.status==='rerecord' ? 'text-[#F59E0B]' : 'text-[#07C160]'"
+                    x-text="word.status==='rerecord' ? '需要重录' : '已检查'"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+function checker() {
+  return {
+    state: 'loading', // loading|error|empty|ready|playing|paused|finished
+    phase: 'word',    // word|gap|replay|decision
+    words: [], index: 0, errorMsg: '', notice: '', savingList: false,
+    listInfo: {count: 0, done: 0, created_at: ''},
+    _silenceUrl: '', _session: 0, _saveChain: Promise.resolve(),
+
+    get current() { return this.words[this.index] || null; },
+    get pendingCount() { return this.words.filter(w => w.status === 'pending').length; },
+    get checkedCount() { return this.words.filter(w => w.status === 'checked').length; },
+    get rerecordCount() { return this.words.filter(w => w.status === 'rerecord').length; },
+
+    async init() {
+      this.stopAudio();
+      this.state = 'loading'; this.errorMsg = ''; this.notice = '';
+      try {
+        const r = await fetch('/api/check/words', {cache: 'no-store'});
+        if (!r.ok) throw new Error(`HTTP ${r.status}：${(await r.text()).slice(0, 200)}`);
+        const data = await r.json();
+        this.words = Array.isArray(data.words) ? data.words : [];
+        this.listInfo = data.rerecord_list || {count:0, done:0, created_at:''};
+        if (!this.words.length) { this.state = 'empty'; return; }
+        const first = this.words.findIndex(w => w.status === 'pending');
+        this.index = first >= 0 ? first : 0;
+        this.state = first >= 0 ? 'ready' : 'finished';
+      } catch (e) {
+        this.errorMsg = e && e.message ? e.message : String(e);
+        this.state = 'error';
+      }
+    },
+
+    start(fromBeginning) {
+      if (!this.words.length) return;
+      this.stopAudio(); this.notice = '';
+      const first = fromBeginning ? 0 : this.words.findIndex(w => w.status === 'pending');
+      this.index = first >= 0 ? first : 0;
+      this.state = 'playing'; this.phase = 'word';
+      this.playCurrentWord();
+    },
+
+    playCurrentWord() {
+      if (!this.current) { this.finish(); return; }
+      this.phase = 'word';
+      this.playTrack(this.current.audio_url);
+    },
+
+    playTrack(url) {
+      const audio = this.$refs.player;
+      if (!audio) return;
+      const session = this._session;
+      try { audio.pause(); } catch (e) {}
+      audio.src = url;
+      const p = audio.play();
+      if (p && typeof p.catch === 'function') {
+        p.catch(err => {
+          if (session !== this._session) return;
+          this.state = 'paused'; this.phase = 'decision';
+          this.notice = '浏览器暂停了播放，请点击“重听”或作出标记后继续。' +
+                        (err && err.name ? `（${err.name}）` : '');
+        });
+      }
+    },
+
+    getSilenceUrl() {
+      if (this._silenceUrl) return this._silenceUrl;
+      const ms = 2000, sampleRate = 8000;
+      const count = Math.ceil(sampleRate * ms / 1000);
+      const buffer = new ArrayBuffer(44 + count), view = new DataView(buffer);
+      const text = (offset, value) => {
+        for (let i=0; i<value.length; i++) view.setUint8(offset+i, value.charCodeAt(i));
+      };
+      text(0,'RIFF'); view.setUint32(4,36+count,true); text(8,'WAVE'); text(12,'fmt ');
+      view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,1,true);
+      view.setUint32(24,sampleRate,true); view.setUint32(28,sampleRate,true);
+      view.setUint16(32,1,true); view.setUint16(34,8,true); text(36,'data');
+      view.setUint32(40,count,true); new Uint8Array(buffer,44).fill(128);
+      this._silenceUrl = URL.createObjectURL(new Blob([buffer], {type:'audio/wav'}));
+      return this._silenceUrl;
+    },
+
+    onEnded() {
+      if (this.phase === 'replay') {
+        this.phase = 'decision'; this.state = 'paused';
+        return;
+      }
+      if (this.state !== 'playing') return;
+      if (this.phase === 'word') {
+        this.phase = 'gap';
+        this.playTrack(this.getSilenceUrl());
+        return;
+      }
+      if (this.phase === 'gap') {
+        // 从头复查时保留已有结果；只有未检查词才自动记为已检查。
+        if (this.current && this.current.status === 'pending') this.setStatus('checked');
+        this.moveNext();
+      }
+    },
+
+    pauseForDecision() {
+      if (this.state !== 'playing') return;
+      this._session++;
+      try { this.$refs.player.pause(); } catch (e) {}
+      this.state = 'paused'; this.phase = 'decision'; this.notice = '';
+    },
+
+    replay() {
+      if (!this.current) return;
+      this._session++;
+      try { this.$refs.player.pause(); } catch (e) {}
+      this.state = 'paused'; this.phase = 'replay'; this.notice = '';
+      this.playTrack(this.current.audio_url);
+    },
+
+    decide(status) {
+      if (!this.current) return;
+      this._session++;
+      try { this.$refs.player.pause(); } catch (e) {}
+      this.setStatus(status);
+      this.moveNext();
+    },
+
+    setStatus(status) {
+      const word = this.current;
+      if (!word) return;
+      word.status = status;
+      const body = JSON.stringify({hash: word.hash, status});
+      this._saveChain = this._saveChain.catch(() => {}).then(async () => {
+        const r = await fetch('/api/check/mark', {
+          method:'POST', headers:{'Content-Type':'application/json'}, body, keepalive:true,
+        });
+        if (!r.ok) throw new Error((await r.text()).slice(0,160));
+      }).catch(e => {
+        this.notice = '检查进度保存失败，请保持页面打开并重试：' + (e && e.message ? e.message : e);
+      });
+    },
+
+    moveNext() {
+      this.index++;
+      if (this.index >= this.words.length) { this.finish(); return; }
+      this.state = 'playing'; this.phase = 'word';
+      // 直接在 ended/按钮点击事件栈内调用 play()，避免手机浏览器把延迟后的
+      // 下一段判定为新的自动播放。
+      this.playCurrentWord();
+    },
+
+    finish() {
+      this.stopAudio();
+      this.index = Math.max(0, this.words.length - 1);
+      this.state = 'finished'; this.phase = 'word';
+    },
+
+    async saveRerecordList() {
+      if (this.pendingCount || !this.rerecordCount) return;
+      this.savingList = true; this.notice = '';
+      await this._saveChain;
+      try {
+        const r = await fetch('/api/check/save_rerecord', {method:'POST'});
+        if (!r.ok) throw new Error(`HTTP ${r.status}：${(await r.text()).slice(0,180)}`);
+        const data = await r.json();
+        this.listInfo = {count:data.count || 0, done:0, created_at:new Date().toISOString()};
+        this.notice = `已保存 ${data.count || 0} 个需要重录的词，可进入重录工作台。`;
+      } catch (e) {
+        this.notice = '重录词表保存失败：' + (e && e.message ? e.message : e);
+      } finally { this.savingList = false; }
+    },
+
+    stopAudio() {
+      this._session++;
+      const audio = this.$refs && this.$refs.player;
+      if (audio) {
+        try { audio.pause(); audio.removeAttribute('src'); audio.load(); } catch (e) {}
+      }
+    },
+  };
+}
+</script>
+</body>
+</html>
