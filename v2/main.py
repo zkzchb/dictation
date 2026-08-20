@@ -7,13 +7,13 @@
   * /api/generate_audio 接口已移除；
   * 前端用播放列表驱动 <audio>，选好词表即可直接播放。
 """
-import os, re, sys, json, hashlib, sqlite3, random
+import os, re, sys, json, hashlib, sqlite3, random, shutil, tempfile, threading
 from datetime import datetime, timedelta
 from typing import List
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 # 引入共用选词引擎（shared/selector.py）
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "shared"))
@@ -25,16 +25,20 @@ DB_PATH          = os.getenv("DICTATION_DB", os.path.join(BASE_DIR, "dictation.d
 USER_ID          = 1
 DAILY_TARGET     = 30
 EXCLUDE_CATEGORY = "易混淆字"
+APP_TIMEZONE      = os.getenv("APP_TIMEZONE", "Asia/Shanghai")
+
+try:
+    _TZ = ZoneInfo(APP_TIMEZONE)
+except ZoneInfoNotFoundError as exc:
+    raise RuntimeError(f"无效的 APP_TIMEZONE: {APP_TIMEZONE}") from exc
 
 app = FastAPI(title="听写小助手 V2 API")
-app.add_middleware(
-    CORSMiddleware, allow_origins=["*"],
-    allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
-)
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA busy_timeout = 30000")
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 # ── 数据模型 ─────────────────────────────────────────────────────────────
@@ -45,11 +49,12 @@ class WordResult(BaseModel):
 class SubmitPayload(BaseModel):
     dictation_type: str
     scope_id: int
-    results: List[WordResult]
+    results: List[WordResult] = Field(min_length=1, max_length=50)
     user_id: int = USER_ID
+    submission_id: str = Field(default="", max_length=64)
     # 本次实际播报的多音字 kp_id。多音字不判分、不入 dictation_items，
     # 所以只有前端知道播了哪些 —— 记下来才能实现「连续两次出现则休息一轮」。
-    poly_ids: List[int] = []
+    poly_ids: List[int] = Field(default_factory=list, max_length=10)
 
 # ── 辅助函数 ─────────────────────────────────────────────────────────────
 def word_hash(text: str) -> str:
@@ -57,6 +62,10 @@ def word_hash(text: str) -> str:
 
 def audio_url_for(text: str) -> str:
     return f"/audio/w/{word_hash(text)}.mp3"
+
+def _now() -> datetime:
+    """应用业务时间；与打卡日期和录音台账保持同一时区。"""
+    return datetime.now(_TZ)
 
 def extract_word_info(target, options_json):
     text, pinyin = target, ""
@@ -72,7 +81,17 @@ def extract_word_info(target, options_json):
     return text, pinyin
 
 def _next_review(days: int) -> str:
-    return (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d")
+    return (_now() + timedelta(days=days)).strftime("%Y-%m-%d")
+
+
+def _ensure_v2_schema(conn) -> None:
+    """V2 自有的小型迁移；旧数据库可原地升级。"""
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS submission_receipts ("
+        "submission_id TEXT PRIMARY KEY, response_json TEXT NOT NULL, "
+        "created_at TEXT NOT NULL)"
+    )
+    conn.commit()
 
 # ── 接口 ─────────────────────────────────────────────────────────────────
 
@@ -141,10 +160,20 @@ def generate_daily(lesson_seq: int, mode: str = "daily"):
     梯队算法在 shared/selector.py 中实现（见设计文档 §5）：
       * 正式课（lid 末位非 0）：30 词，7 级梯队，附 2 个多音字段落
       * 复习课（lid 末位为 0）：50 词，3 级梯队，无多音字
-    模式由 lesson_seq 自动判定，mode 参数仅作兼容保留。
+    模式由 lesson_seq 自动判定；mode 仅用于拒绝前端课程/模式错配。
     """
+    if mode not in ("daily", "unit"):
+        raise HTTPException(status_code=400, detail="mode 必须是 daily 或 unit")
+    if (mode == "unit") != selector.is_review_lesson(lesson_seq):
+        raise HTTPException(status_code=400, detail="mode 与课程类型不匹配")
+
     conn = get_db()
     try:
+        exists = conn.execute(
+            "SELECT 1 FROM lessons WHERE lesson_seq=?", (lesson_seq,)
+        ).fetchone()
+        if not exists:
+            raise HTTPException(status_code=404, detail="课程不存在")
         words, poly = selector.build_word_list(conn, lesson_seq, user_id=USER_ID)
     finally:
         conn.close()
@@ -167,19 +196,64 @@ def generate_daily(lesson_seq: int, mode: str = "daily"):
 
 @app.post("/api/submit_dictation")
 def submit_dictation(payload: SubmitPayload):
-    if not payload.results:
-        raise HTTPException(status_code=400, detail="results 不能为空")
+    if payload.user_id != USER_ID:
+        raise HTTPException(status_code=400, detail="user_id 不受客户端控制")
+    if payload.dictation_type not in ("daily", "unit"):
+        raise HTTPException(status_code=400, detail="dictation_type 必须是 daily 或 unit")
+    if payload.submission_id and not re.fullmatch(r"[A-Za-z0-9_-]{8,64}", payload.submission_id):
+        raise HTTPException(status_code=400, detail="submission_id 格式不合法")
+
+    result_ids = [r.kp_id for r in payload.results]
+    if len(result_ids) != len(set(result_ids)):
+        raise HTTPException(status_code=400, detail="results 含重复 kp_id")
+    if len(payload.poly_ids) != len(set(payload.poly_ids)):
+        raise HTTPException(status_code=400, detail="poly_ids 含重复 kp_id")
+
     conn = get_db(); cursor = conn.cursor()
-    today   = datetime.now().strftime("%Y-%m-%d")
+    today = _now().strftime("%Y-%m-%d")
+    created_at = _now().strftime("%Y-%m-%d %H:%M:%S")
     correct = sum(1 for r in payload.results if r.is_correct)
     score   = round(correct / len(payload.results) * 100, 2)
     try:
+        _ensure_v2_schema(conn)
+        lesson = cursor.execute(
+            "SELECT lesson_seq FROM lessons WHERE lesson_seq=?", (payload.scope_id,)
+        ).fetchone()
+        if not lesson:
+            raise HTTPException(status_code=400, detail="scope_id 对应课程不存在")
+
+        placeholders = ",".join("?" for _ in result_ids)
+        known = cursor.execute(
+            f"SELECT id FROM knowledge_points WHERE id IN ({placeholders})", result_ids
+        ).fetchall()
+        if len(known) != len(result_ids):
+            raise HTTPException(status_code=400, detail="results 含未知 kp_id")
+        if payload.poly_ids:
+            poly_placeholders = ",".join("?" for _ in payload.poly_ids)
+            known_poly = cursor.execute(
+                f"SELECT id FROM knowledge_points WHERE category=? "
+                f"AND id IN ({poly_placeholders})",
+                (selector.CAT_POLY, *payload.poly_ids),
+            ).fetchall()
+            if len(known_poly) != len(payload.poly_ids):
+                raise HTTPException(status_code=400, detail="poly_ids 含非多音字或未知 kp_id")
+
+        cursor.execute("BEGIN IMMEDIATE")
+        if payload.submission_id:
+            prior = cursor.execute(
+                "SELECT response_json FROM submission_receipts WHERE submission_id=?",
+                (payload.submission_id,),
+            ).fetchone()
+            if prior:
+                conn.rollback()
+                return json.loads(prior["response_json"])
+
         cursor.execute(
             "INSERT INTO dictation_history "
-            "(user_id, dictation_type, scope_id, score, poly_ids) "
-            "VALUES (?, ?, ?, ?, ?)",
-            (payload.user_id, payload.dictation_type, payload.scope_id, score,
-             ",".join(str(i) for i in payload.poly_ids)),
+            "(user_id, dictation_type, scope_id, score, poly_ids, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (USER_ID, payload.dictation_type, payload.scope_id, score,
+             ",".join(str(i) for i in payload.poly_ids), created_at),
         )
         hid = cursor.lastrowid
         for r in payload.results:
@@ -189,7 +263,7 @@ def submit_dictation(payload: SubmitPayload):
             )
             mem = cursor.execute(
                 "SELECT id, error_count, correct_streak FROM user_memory "
-                "WHERE user_id=? AND kp_id=?", (payload.user_id, r.kp_id)
+                "WHERE user_id=? AND kp_id=?", (USER_ID, r.kp_id)
             ).fetchone()
             if r.is_correct:
                 streak = (mem["correct_streak"] if mem else 0) + 1
@@ -204,7 +278,7 @@ def submit_dictation(payload: SubmitPayload):
                     cursor.execute(
                         "INSERT INTO user_memory (user_id,kp_id,status,error_count,"
                         "correct_streak,last_tested_date,next_review_date) VALUES (?,?,?,0,?,?,?)",
-                        (payload.user_id, r.kp_id, *vals))
+                        (USER_ID, r.kp_id, *vals))
             else:
                 err = (mem["error_count"] if mem else 0) + 1
                 if mem:
@@ -216,17 +290,40 @@ def submit_dictation(payload: SubmitPayload):
                     cursor.execute(
                         "INSERT INTO user_memory (user_id,kp_id,status,error_count,"
                         "correct_streak,last_tested_date,next_review_date) VALUES (?,?,0,?,0,?,?)",
-                        (payload.user_id, r.kp_id, err, today, _next_review(1)))
+                        (USER_ID, r.kp_id, err, today, _next_review(1)))
+        response = {
+            "status": "success", "score": score, "correct": correct,
+            "total": len(payload.results),
+        }
+        if payload.submission_id:
+            cursor.execute(
+                "INSERT INTO submission_receipts (submission_id,response_json,created_at) "
+                "VALUES (?,?,?)",
+                (payload.submission_id, json.dumps(response, ensure_ascii=False), created_at),
+            )
         conn.commit()
+    except HTTPException:
+        conn.rollback()
+        raise
+    except sqlite3.OperationalError as e:
+        conn.rollback()
+        raise HTTPException(status_code=503, detail=f"数据库暂时繁忙，请重试：{e}")
     except Exception as e:
         conn.rollback(); raise HTTPException(status_code=500, detail=str(e))
     finally:
         conn.close()
-    return {"status": "success", "score": score, "correct": correct, "total": len(payload.results)}
+    return response
 
 
 @app.get("/api/dictation_history")
 def get_dictation_history(start_date: str, end_date: str):
+    try:
+        start = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end = datetime.strptime(end_date, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="日期必须是 YYYY-MM-DD")
+    if end < start or (end - start).days > 62:
+        raise HTTPException(status_code=400, detail="日期范围必须为 0-62 天")
     conn = get_db()
     try:
         rows = conn.execute(
@@ -280,41 +377,99 @@ STUDIO_LEDGER = os.path.join(STUDIO_AUDIO_DIR, "..", ".recorded.json")
 STUDIO_CHECK_LEDGER = os.path.join(STUDIO_AUDIO_DIR, "..", ".checked.json")
 STUDIO_RERECORD_LIST = os.path.join(STUDIO_AUDIO_DIR, "..", ".rerecord.json")
 
+MAX_RECORDING_BYTES = 32 * 1024 * 1024
+MAX_SLICE_BYTES     = 4 * 1024 * 1024
+MAX_BATCH_BYTES     = 32 * 1024 * 1024
+MAX_SYS_BYTES       = 8 * 1024 * 1024
+MAX_WORD_COUNT      = 20
+MAX_RECORDING_MS    = 5 * 60 * 1000
+_STATE_LOCK         = threading.RLock()
+
 
 def _load_json(path, fallback):
-    """读取录音工作流的 JSON 状态；损坏或缺失时返回给定默认值。"""
-    try:
-        with open(path, encoding="utf-8") as f:
-            data = json.load(f)
-        return data
-    except Exception:
-        return fallback
+    """读取状态；主文件损坏时读备份，不能静默重置已录进度。"""
+    with _STATE_LOCK:
+        if not os.path.exists(path) and not os.path.exists(path + ".bak"):
+            return fallback
+        errors = []
+        for candidate in (path, path + ".bak"):
+            if not os.path.exists(candidate):
+                continue
+            try:
+                with open(candidate, encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as exc:
+                errors.append(f"{os.path.basename(candidate)}: {exc}")
+        raise HTTPException(
+            status_code=500,
+            detail="录音状态文件损坏，请从备份恢复：" + "; ".join(errors),
+        )
 
 
 def _save_json(path, data) -> None:
-    """先写临时文件再原子替换，避免页面关闭或服务中断留下半截 JSON。"""
-    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-    tmp = path + ".part"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=1)
-    os.replace(tmp, path)
+    """唯一临时文件 + 原子替换 + 最近一份有效备份。"""
+    with _STATE_LOCK:
+        parent = os.path.dirname(os.path.abspath(path))
+        os.makedirs(parent, exist_ok=True)
+        if os.path.exists(path):
+            try:
+                with open(path, encoding="utf-8") as current:
+                    json.load(current)
+                shutil.copy2(path, path + ".bak")
+            except Exception:
+                # 主文件已坏时不能用它覆盖最后一份好备份。
+                pass
+        fd, tmp = tempfile.mkstemp(
+            prefix=os.path.basename(path) + ".", suffix=".part", dir=parent,
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=1)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp, path)
+        finally:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+
+
+def _save_bytes(path: str, data: bytes) -> None:
+    """把音频原子写入目标路径；并发请求不共用 .part 文件。"""
+    parent = os.path.dirname(os.path.abspath(path))
+    os.makedirs(parent, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(
+        prefix=os.path.basename(path) + ".", suffix=".part", dir=parent,
+    )
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
 
 
 def _load_ledger() -> dict:
-    """读台账。读不出来就当空 —— 它只影响进度显示，不该阻塞录音。"""
+    """读取真人录音台账；结构错误必须显式阻塞，避免覆盖真实进度。"""
     data = _load_json(STUDIO_LEDGER, {})
-    return data if isinstance(data, dict) else {}
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=500, detail=".recorded.json 结构错误，应为对象")
+    return data
 
 
 def _load_check_ledger() -> dict:
     data = _load_json(STUDIO_CHECK_LEDGER, {})
-    return data if isinstance(data, dict) else {}
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=500, detail=".checked.json 结构错误，应为对象")
+    return data
 
 
 def _load_rerecord_list() -> dict:
     data = _load_json(STUDIO_RERECORD_LIST, {"words": []})
     if not isinstance(data, dict) or not isinstance(data.get("words"), list):
-        return {"words": []}
+        raise HTTPException(status_code=500, detail=".rerecord.json 结构错误，应含 words 数组")
     return data
 
 
@@ -324,28 +479,29 @@ def _mark_recorded(pairs) -> None:
     无论来自 studio 还是 studio2，新录音都必须重新质检，所以删除旧检查状态；
     如果它属于当前重录词表，则同时把该词记为已重录。
     """
-    led = _load_ledger()
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    for h, text in pairs:
-        led[h] = {"text": text, "at": now}
-    _save_json(STUDIO_LEDGER, led)
+    with _STATE_LOCK:
+        led = _load_ledger()
+        now = _now().strftime("%Y-%m-%d %H:%M:%S")
+        for h, text in pairs:
+            led[h] = {"text": text, "at": now}
+        _save_json(STUDIO_LEDGER, led)
 
-    changed_hashes = {h for h, _text in pairs}
-    checked = _load_check_ledger()
-    if any(h in checked for h in changed_hashes):
-        for h in changed_hashes:
-            checked.pop(h, None)
-        _save_json(STUDIO_CHECK_LEDGER, checked)
+        changed_hashes = {h for h, _text in pairs}
+        checked = _load_check_ledger()
+        if any(h in checked for h in changed_hashes):
+            for h in changed_hashes:
+                checked.pop(h, None)
+            _save_json(STUDIO_CHECK_LEDGER, checked)
 
-    rerecord = _load_rerecord_list()
-    changed = False
-    for word in rerecord.get("words", []):
-        if isinstance(word, dict) and word.get("hash") in changed_hashes:
-            word["done"] = True
-            word["rerecorded_at"] = now
-            changed = True
-    if changed:
-        _save_json(STUDIO_RERECORD_LIST, rerecord)
+        rerecord = _load_rerecord_list()
+        changed = False
+        for word in rerecord.get("words", []):
+            if isinstance(word, dict) and word.get("hash") in changed_hashes:
+                word["done"] = True
+                word["rerecorded_at"] = now
+                changed = True
+        if changed:
+            _save_json(STUDIO_RERECORD_LIST, rerecord)
 
 
 @app.get("/studio")
@@ -523,18 +679,19 @@ async def check_mark(payload: dict):
     status = payload.get("status")
     if status not in ("checked", "rerecord"):
         raise HTTPException(status_code=400, detail="status 必须是 checked 或 rerecord")
-    recorded = _load_ledger()
-    rec = recorded.get(h)
-    if not isinstance(rec, dict):
-        raise HTTPException(status_code=404, detail="该词没有真人录音")
-    checked = _load_check_ledger()
-    checked[h] = {
-        "status": status,
-        "text": rec.get("text", ""),
-        "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "recorded_at": rec.get("at", ""),
-    }
-    _save_json(STUDIO_CHECK_LEDGER, checked)
+    with _STATE_LOCK:
+        recorded = _load_ledger()
+        rec = recorded.get(h)
+        if not isinstance(rec, dict):
+            raise HTTPException(status_code=404, detail="该词没有真人录音")
+        checked = _load_check_ledger()
+        checked[h] = {
+            "status": status,
+            "text": rec.get("text", ""),
+            "at": _now().strftime("%Y-%m-%d %H:%M:%S"),
+            "recorded_at": rec.get("at", ""),
+        }
+        _save_json(STUDIO_CHECK_LEDGER, checked)
     return {"status": "success", "hash": h, "result": status}
 
 
@@ -542,24 +699,25 @@ async def check_mark(payload: dict):
 async def check_save_rerecord():
     """把已标记问题的词保存成 studio2 可直接读取的新词表。"""
     _require_studio()
-    words = _check_words_data()
-    stats = _check_stats(words)
-    if stats["pending"]:
-        raise HTTPException(status_code=409, detail=f"还有 {stats['pending']} 个词未检查")
-    selected = []
-    for word in words:
-        if word.get("status") != "rerecord":
-            continue
-        item = {k: word[k] for k in
-                ("text", "pinyin", "hash", "lesson_seq", "lesson", "poly", "example")
-                if k in word}
-        item["done"] = False
-        selected.append(item)
-    data = {
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "words": selected,
-    }
-    _save_json(STUDIO_RERECORD_LIST, data)
+    with _STATE_LOCK:
+        words = _check_words_data()
+        stats = _check_stats(words)
+        if stats["pending"]:
+            raise HTTPException(status_code=409, detail=f"还有 {stats['pending']} 个词未检查")
+        selected = []
+        for word in words:
+            if word.get("status") != "rerecord":
+                continue
+            item = {k: word[k] for k in
+                    ("text", "pinyin", "hash", "lesson_seq", "lesson", "poly", "example")
+                    if k in word}
+            item["done"] = False
+            selected.append(item)
+        data = {
+            "created_at": _now().strftime("%Y-%m-%d %H:%M:%S"),
+            "words": selected,
+        }
+        _save_json(STUDIO_RERECORD_LIST, data)
     return {"status": "success", "count": len(selected), "studio_url": "/studio2.html"}
 
 
@@ -603,8 +761,11 @@ async def studio_check(payload: dict):
     保留此接口是为了兼容；判断「是否已由真人录过」请用 /api/studio/status。
     """
     _require_studio()
+    hashes = payload.get("hashes", [])
+    if not isinstance(hashes, list) or len(hashes) > 1000:
+        raise HTTPException(status_code=400, detail="hashes 必须是至多 1000 项的数组")
     out = {}
-    for h in payload.get("hashes", []):
+    for h in hashes:
         # 查询接口对非法值宽容处理：标记 False 而非整个请求失败
         out[h] = bool(isinstance(h, str) and _HASH_RE.match(h)
                       and os.path.exists(os.path.join(STUDIO_AUDIO_DIR, f"{h}.mp3")))
@@ -634,16 +795,33 @@ async def studio_split(request: Request):
             status_code=500,
             detail=f"服务器缺少 python-multipart，无法接收录音表单：{e}",
         )
-    audio_file = form["audio"]
-    word_count = int(form.get("word_count", 0))
-    min_silence_len = int(form.get("min_silence_len", 500))
-    silence_thresh = int(form.get("silence_thresh", -40))
+    audio_file = form.get("audio")
+    if not audio_file or not hasattr(audio_file, "read"):
+        raise HTTPException(status_code=400, detail="缺少 audio 录音文件")
+    try:
+        word_count = int(form.get("word_count", 0))
+        min_silence_len = int(form.get("min_silence_len", 500))
+        silence_thresh = int(form.get("silence_thresh", -40))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="切分参数必须是整数")
+    if not 1 <= word_count <= MAX_WORD_COUNT:
+        raise HTTPException(status_code=400, detail=f"word_count 必须在 1-{MAX_WORD_COUNT} 之间")
+    if not 100 <= min_silence_len <= 5000:
+        raise HTTPException(status_code=400, detail="min_silence_len 必须在 100-5000ms 之间")
+    if not -80 <= silence_thresh <= -5:
+        raise HTTPException(status_code=400, detail="silence_thresh 必须在 -80 至 -5 dBFS 之间")
 
-    raw = await audio_file.read()
+    raw = await audio_file.read(MAX_RECORDING_BYTES + 1)
+    if len(raw) > MAX_RECORDING_BYTES:
+        raise HTTPException(status_code=413, detail="录音文件超过 32MB")
+    if not raw:
+        raise HTTPException(status_code=400, detail="录音文件为空")
     try:
         seg = AudioSegment.from_file(io.BytesIO(raw))
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"音频解码失败: {e}")
+    if len(seg) > MAX_RECORDING_MS:
+        raise HTTPException(status_code=413, detail="单次录音超过 5 分钟")
 
     chunks = split_on_silence(
         seg, min_silence_len=min_silence_len,
@@ -672,30 +850,41 @@ async def studio_save(payload: dict):
     _require_studio()
 
     items = payload.get("items", [])
-    if not isinstance(items, list):
-        raise HTTPException(status_code=400, detail="items 必须是数组")
+    if not isinstance(items, list) or not 1 <= len(items) <= MAX_WORD_COUNT:
+        raise HTTPException(status_code=400, detail=f"items 必须是 1-{MAX_WORD_COUNT} 项的数组")
 
     # 先全部校验再落盘：避免写了一半才发现有非法项
     planned = []
+    total_bytes = 0
     for item in items:
         if not isinstance(item, dict):
             raise HTTPException(status_code=400, detail="items 每项必须是对象")
         h = item.get("hash")
         path = _safe_slice_path(h)
+        text = item.get("text")
+        if not isinstance(text, str) or not text.strip() or len(text.strip()) > 64:
+            raise HTTPException(status_code=400, detail="text 必须是 1-64 字符的非空字符串")
+        text = text.strip()
+        if word_hash(text) != h:
+            raise HTTPException(status_code=400, detail=f"切片标识与词语不匹配: {text}")
+        encoded_audio = item.get("audio") or ""
+        if not isinstance(encoded_audio, str) or len(encoded_audio) > (MAX_SLICE_BYTES * 4 // 3 + 8):
+            raise HTTPException(status_code=413, detail="单个切片的 base64 数据过大")
         try:
-            data = b64.b64decode(item.get("audio") or "", validate=True)
+            data = b64.b64decode(encoded_audio, validate=True)
         except Exception:
             raise HTTPException(status_code=400, detail="audio 不是合法的 base64")
         if not data:
             raise HTTPException(status_code=400, detail="audio 为空")
-        planned.append((h, path, data, item.get("text") or ""))
+        if len(data) > MAX_SLICE_BYTES:
+            raise HTTPException(status_code=413, detail="单个切片超过 4MB")
+        total_bytes += len(data)
+        if total_bytes > MAX_BATCH_BYTES:
+            raise HTTPException(status_code=413, detail="本批切片超过 32MB")
+        planned.append((h, path, data, text))
 
-    os.makedirs(STUDIO_AUDIO_DIR, exist_ok=True)
     for _h, path, data, _t in planned:
-        tmp = path + ".part"          # 先写临时文件再原子替换，避免半截文件被播放
-        with open(tmp, "wb") as f:
-            f.write(data)
-        os.replace(tmp, path)
+        _save_bytes(path, data)
 
     # 记账：切片文件名是内容 MD5，真人录音与 TTS 占位同名，磁盘上无从区分。
     # 台账让工作台知道哪些是真人录的，从而显示准确进度。重录会刷新时间戳。
@@ -719,12 +908,10 @@ def _sys_keys():
 
 
 def _load_sys_ledger() -> dict:
-    try:
-        with open(SYS_LEDGER, encoding="utf-8") as f:
-            data = json.load(f)
-        return data if isinstance(data, dict) else {}
-    except Exception:
-        return {}
+    data = _load_json(SYS_LEDGER, {})
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=500, detail=".recorded_sys.json 结构错误，应为对象")
+    return data
 
 
 @app.get("/api/studio/syswords")
@@ -746,34 +933,58 @@ def studio_syswords():
 async def studio_save_sys(payload: dict):
     """保存一条系统提示音的真人录音，覆盖 TTS 文件并记账。"""
     import base64 as b64
+    import io
+    from pydub import AudioSegment
     from gen_slices import SYS_PHRASES
     _require_studio()
     key = (payload.get("key") or "").strip()
     if key not in _sys_keys():                      # 白名单，防路径穿越
         raise HTTPException(status_code=400, detail=f"非法 key: {key}")
+    encoded_audio = payload.get("audio") or ""
+    if not isinstance(encoded_audio, str) or len(encoded_audio) > (MAX_SYS_BYTES * 4 // 3 + 8):
+        raise HTTPException(status_code=413, detail="系统提示音的 base64 数据过大")
     try:
-        data = b64.b64decode(payload.get("audio") or "", validate=True)
+        data = b64.b64decode(encoded_audio, validate=True)
     except Exception:
         raise HTTPException(status_code=400, detail="audio 不是合法的 base64")
     if not data:
         raise HTTPException(status_code=400, detail="audio 为空")
+    if len(data) > MAX_SYS_BYTES:
+        raise HTTPException(status_code=413, detail="系统提示音录音超过 8MB")
 
-    os.makedirs(SYS_AUDIO_DIR, exist_ok=True)
+    # 浏览器 MediaRecorder 产出 WebM；必须真正转成 MP3，不能只改扩展名。
+    try:
+        segment = AudioSegment.from_file(io.BytesIO(data))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"系统提示音解码失败: {e}")
+    if len(segment) > 30_000:
+        raise HTTPException(status_code=413, detail="单条系统提示音超过 30 秒")
+    encoded = io.BytesIO()
+    try:
+        segment.export(encoded, format="mp3", bitrate="64k")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"系统提示音转码失败: {e}")
+
     dest = os.path.join(SYS_AUDIO_DIR, f"{key}.mp3")
-    tmp = dest + ".part"
-    with open(tmp, "wb") as f:
-        f.write(data)
-    os.replace(tmp, dest)
+    _save_bytes(dest, encoded.getvalue())
 
-    led = _load_sys_ledger()
-    led[key] = {"text": SYS_PHRASES.get(key, ""),
-                "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-    os.makedirs(os.path.dirname(os.path.abspath(SYS_LEDGER)), exist_ok=True)
-    stmp = SYS_LEDGER + ".part"
-    with open(stmp, "w", encoding="utf-8") as f:
-        json.dump(led, f, ensure_ascii=False, indent=1)
-    os.replace(stmp, SYS_LEDGER)
+    with _STATE_LOCK:
+        led = _load_sys_ledger()
+        led[key] = {"text": SYS_PHRASES.get(key, ""),
+                    "at": _now().strftime("%Y-%m-%d %H:%M:%S")}
+        _save_json(SYS_LEDGER, led)
     return {"status": "success", "saved": 1}
+
+
+@app.get("/api/health")
+def health():
+    """供 systemd/Docker 健康检查；同时验证数据库可读。"""
+    conn = get_db()
+    try:
+        conn.execute("SELECT 1").fetchone()
+    finally:
+        conn.close()
+    return {"status": "ok", "version": "v2", "timezone": APP_TIMEZONE}
 
 
 # ================= 📁 静态文件 =================

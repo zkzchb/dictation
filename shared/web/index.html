@@ -137,6 +137,7 @@
              playsinline
              @playing="playbackBlocked=false"
              @pause="onAudioPause()"
+             @error="onAudioError()"
              @ended="onAudioEnded()"></audio>
       <div class="mb-2 text-center h-10">
         <span class="text-sm text-gray-400" x-show="!currentPlaylistWord">
@@ -161,35 +162,35 @@
               <input type="number" min="1" max="6" x-model.number="cfg.group_size"
                      class="w-full border rounded px-1 py-0.5"></label>
             <label>重复遍数
-              <input type="number" min="1" max="5" x-model.number="cfg.repeat_times"
+              <input type="number" min="1" max="3" x-model.number="cfg.repeat_times"
                      class="w-full border rounded px-1 py-0.5"></label>
             <label>词间隔ms
-              <input type="number" step="100" x-model.number="cfg.gap_between_words_ms"
+              <input type="number" min="0" max="60000" step="100" x-model.number="cfg.gap_between_words_ms"
                      class="w-full border rounded px-1 py-0.5"></label>
           </div>
           <div class="text-gray-500 pt-1">基础书写停顿 ms（写汉字 / 写拼音 / 检查）</div>
           <div class="grid grid-cols-3 gap-2">
             <template x-for="i in [0,1,2]" :key="'b'+i">
-              <input type="number" step="500" x-model.number="cfg.base_gap_ms[i]"
+              <input type="number" min="0" max="60000" step="500" x-model.number="cfg.base_gap_ms[i]"
                      class="w-full border rounded px-1 py-0.5">
             </template>
           </div>
           <div class="text-gray-500 pt-1">每字增量 ms（同上三遍）</div>
           <div class="grid grid-cols-3 gap-2">
             <template x-for="i in [0,1,2]" :key="'p'+i">
-              <input type="number" step="100" x-model.number="cfg.per_char_gap_ms[i]"
+              <input type="number" min="0" max="30000" step="100" x-model.number="cfg.per_char_gap_ms[i]"
                      class="w-full border rounded px-1 py-0.5">
             </template>
           </div>
           <div class="grid grid-cols-3 gap-2 pt-1">
             <label>停顿上限
-              <input type="number" step="1000" x-model.number="cfg.max_write_gap_ms"
+              <input type="number" min="500" max="60000" step="1000" x-model.number="cfg.max_write_gap_ms"
                      class="w-full border rounded px-1 py-0.5"></label>
             <label>组间隔
-              <input type="number" step="500" x-model.number="cfg.gap_between_groups_ms"
+              <input type="number" min="0" max="60000" step="500" x-model.number="cfg.gap_between_groups_ms"
                      class="w-full border rounded px-1 py-0.5"></label>
             <label>多音字间隔
-              <input type="number" step="1000" x-model.number="cfg.gap_polyphonic_ms"
+              <input type="number" min="0" max="60000" step="1000" x-model.number="cfg.gap_polyphonic_ms"
                      class="w-full border rounded px-1 py-0.5"></label>
           </div>
           <div class="flex items-center justify-between pt-2">
@@ -225,11 +226,11 @@
       <!-- 播报期间不因切片边界的短暂 pause 改变提示。只有用户自己点了暂停
            才显示暂停，或浏览器确实拦下连播时提示点一下。 -->
       <p class="font-medium"
-         :class="playbackBlocked ? 'text-[#F59E0B]' : 'text-gray-500'"
-         x-text="playbackBlocked ? '被浏览器拦下了，点一下继续'
+         :class="playbackBlocked || playbackError ? 'text-[#F59E0B]' : 'text-gray-500'"
+         x-text="playbackError || (playbackBlocked ? '被浏览器拦下了，点一下继续'
                  : (playerState==='playing' ? '正在朗读...'
                  : (playerState==='paused' ? '已暂停 (点击继续)'
-                 : (playerState==='ended' ? '听写结束' : '点击开始')))"></p>
+                 : (playerState==='ended' ? '听写结束' : '点击开始'))))"></p>
     </div>
 
     <!-- Step 5: 核对 -->
@@ -337,8 +338,9 @@ document.addEventListener('alpine:init', () => {
     _silenceUrls: {},
     // 浏览器拦下了自动连播，需要用户点一下解锁。这不是"用户想暂停"，
     // 所以单独记一个标记，不去动 playerState。
-    playbackBlocked: false,
+    playbackBlocked: false, playbackError: '', scoreSubmissionId: '',
     API_BASE: '',
+    AUDIO_REV: 'v2-freeze-20260820',
 
     // 多音字段落（仅播报，不判分、核对页不列出）
     polyphonic: [],
@@ -369,9 +371,34 @@ document.addEventListener('alpine:init', () => {
         const saved = localStorage.getItem('playbackCfg');
         if (saved) Object.assign(this.cfg, JSON.parse(saved));
       } catch (e) { /* 忽略损坏的本地值 */ }
+      this.normalizeCfg();
+    },
+
+    clampInt(value, min, max, fallback) {
+      const n = Math.round(Number(value));
+      return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
+    },
+
+    normalizeCfg() {
+      const c = this.cfg;
+      c.group_size = this.clampInt(c.group_size, 1, 6, 3);
+      c.repeat_times = this.clampInt(c.repeat_times, 1, 3, 3);
+      for (const key of ['gap_intro_ms','gap_group_head_ms','gap_between_words_ms',
+                         'gap_between_groups_ms','gap_polyphonic_ms']) {
+        c[key] = this.clampInt(c[key], 0, 60000, 2000);
+      }
+      c.max_write_gap_ms = this.clampInt(c.max_write_gap_ms, 500, 60000, 14000);
+      const defaults = [[3000,2000,2500], [1500,1000,600]];
+      c.base_gap_ms = Array.isArray(c.base_gap_ms) ? c.base_gap_ms.slice(0,3) : [];
+      c.per_char_gap_ms = Array.isArray(c.per_char_gap_ms) ? c.per_char_gap_ms.slice(0,3) : [];
+      while (c.base_gap_ms.length < 3) c.base_gap_ms.push(defaults[0][c.base_gap_ms.length]);
+      while (c.per_char_gap_ms.length < 3) c.per_char_gap_ms.push(defaults[1][c.per_char_gap_ms.length]);
+      c.base_gap_ms = c.base_gap_ms.map((v,i) => this.clampInt(v, 0, 60000, defaults[0][i]));
+      c.per_char_gap_ms = c.per_char_gap_ms.map((v,i) => this.clampInt(v, 0, 30000, defaults[1][i]));
     },
 
     saveCfgLocal() {
+      this.normalizeCfg();
       localStorage.setItem('playbackCfg', JSON.stringify(this.cfg));
     },
 
@@ -383,12 +410,14 @@ document.addEventListener('alpine:init', () => {
     // 估算总时长，便于调参时即时看到影响
     get estMinutes() {
       const c = this.cfg, n = this.selectedCount || 30;
-      const groups = Math.ceil(n / c.group_size);
+      const groupSize = this.clampInt(c.group_size, 1, 6, 3);
+      const repeats = this.clampInt(c.repeat_times, 1, 3, 3);
+      const groups = Math.ceil(n / groupSize);
       let ms = 2000 + c.gap_intro_ms;
       for (let g = 0; g < groups; g++) {
         ms += 1200 + c.gap_group_head_ms;
-        for (let p = 0; p < c.repeat_times; p++) {
-          ms += c.group_size * (2 * 550 + c.gap_between_words_ms);
+        for (let p = 0; p < repeats; p++) {
+          ms += groupSize * (2 * 550 + c.gap_between_words_ms);
           ms += Math.min(c.base_gap_ms[p] + 1 * c.per_char_gap_ms[p], c.max_write_gap_ms);
         }
         ms += c.gap_between_groups_ms;
@@ -411,6 +440,7 @@ document.addEventListener('alpine:init', () => {
       this.generateCalendar();
       try {
         const res = await fetch(`${this.API_BASE}/api/lessons`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         this.lessons = await res.json();
         this.syncSelectedLesson();   // 课程可能在 setMode 之后才到，补一次校正
       } catch(e) { console.error('课程加载失败', e); }
@@ -443,6 +473,7 @@ document.addEventListener('alpine:init', () => {
       this.step = 2;
       try {
         const res  = await fetch(`${this.API_BASE}/api/generate_daily/${this.selectedLesson}?mode=${this.dictationMode}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}：${(await res.text()).slice(0,160)}`);
         const data = await res.json();
         // 按梯队显示顺序重排（稳定排序保留同级内后端原有间距）：
         // 生字听写：上次错词 → 本课生字组词 → 本课词语表 → 其余（近期错词/复习/凑数）
@@ -459,11 +490,13 @@ document.addEventListener('alpine:init', () => {
         }
         this.wordList = words;
         this.polyphonic = data.polyphonic_section || [];
+        this.scoreSubmissionId = '';
       } catch(e) { console.error('获取词表失败', e); }
     },
 
     confirmAndPlay() {
       if (!this.selectedCount) return;
+      this.normalizeCfg();
       this.playlist        = this.buildPlaylist();
       this.playlistIndex   = 0;
       this.currentPlaylistWord = null;
@@ -471,6 +504,7 @@ document.addEventListener('alpine:init', () => {
       this._inGap          = false;
       this._switchingTrack = false;
       this.playbackBlocked = false;
+      this.playbackError   = '';
       this.goToStep(4);
     },
 
@@ -534,7 +568,7 @@ document.addEventListener('alpine:init', () => {
     // 现在把停顿也做成真正的静音 WAV，并始终交给同一个 <audio> 元素播放。
     // 音频片段和静音片段在 ended 事件里直接衔接，整场听写因此只需要首次点击。
     getSilenceUrl(durationMs) {
-      const ms = Math.max(20, Math.round(Number(durationMs) || 0));
+      const ms = Math.min(60000, Math.max(20, Math.round(Number(durationMs) || 0)));
       if (this._silenceUrls[ms]) return this._silenceUrls[ms];
 
       const sampleRate = 8000;
@@ -564,10 +598,17 @@ document.addEventListener('alpine:init', () => {
       return url;
     },
 
+    versionedAudioUrl(url) {
+      if (!url || url.startsWith('blob:') || url.startsWith('data:')) return url;
+      const sep = url.includes('?') ? '&' : '?';
+      return `${url}${sep}rev=${this.AUDIO_REV}`;
+    },
+
     async playTrack(url) {
       const audio = this.$refs.audioPlayer;
       this._switchingTrack = true;
-      audio.src = url;
+      this.playbackError = '';
+      audio.src = this.versionedAudioUrl(url);
       try {
         await audio.play();
         this.playbackBlocked = false;
@@ -653,6 +694,14 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
+    onAudioError() {
+      const audio = this.$refs.audioPlayer;
+      if (!audio || !audio.src || this._switchingTrack) return;
+      this.playerState = 'paused';
+      this.playbackBlocked = false;
+      this.playbackError = '音频加载失败，请检查网络后点一下重试';
+    },
+
     togglePlay() {
       const audio = this.$refs.audioPlayer;
       if (this.playerState === 'playing') {
@@ -668,12 +717,14 @@ document.addEventListener('alpine:init', () => {
       } else if (this.playerState === 'paused') {
         this.playerState = 'playing';
         this.playbackBlocked = false;
+        this.playbackError = '';
         // 音频或静音停顿都从原位置继续，不再跳过剩余停顿。
         audio.play().catch(() => { this.playbackBlocked = true; });
       } else {
         // idle 或 ended：从头开始
         this.playlistIndex = 0; this.currentPlaylistWord = null;
         this.playbackBlocked = false;
+        this.playbackError = '';
         this.playerState = 'playing'; this.playNextItem();
       }
     },
@@ -684,6 +735,11 @@ document.addEventListener('alpine:init', () => {
       this.score = total ? (correct / total) * 100 : 0;
       this.mistakesSaved = false; this.saveFailed = false;
       this.goToStep(6);
+      if (!this.scoreSubmissionId) {
+        this.scoreSubmissionId = (globalThis.crypto && crypto.randomUUID)
+          ? crypto.randomUUID()
+          : `s_${Date.now()}_${Math.random().toString(36).slice(2,12)}`;
+      }
       try {
         const res = await fetch(`${this.API_BASE}/api/submit_dictation`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -691,9 +747,10 @@ document.addEventListener('alpine:init', () => {
           // 但要记下来供「连续两次出现则休息一轮」的规则读取。
           body: JSON.stringify({ user_id: 1, dictation_type: this.dictationMode,
                                  scope_id: this.selectedLesson, results,
-                                 poly_ids: this.polyphonic.map(p => p.id) }),
+                                 poly_ids: this.polyphonic.map(p => p.id),
+                                 submission_id: this.scoreSubmissionId }),
         });
-        if (!res.ok) throw new Error('API failed');
+        if (!res.ok) throw new Error(`HTTP ${res.status}：${(await res.text()).slice(0,160)}`);
         const data = await res.json();
         this.score = data.score; this.mistakesSaved = true;
       } catch(e) { console.error('入库失败', e); this.saveFailed = true; }
@@ -705,6 +762,7 @@ document.addEventListener('alpine:init', () => {
         // 尝试续播，顺序颠倒会让它把我们正要停掉的音频又续上。
         this.playerState = 'paused';
         this.playbackBlocked = false;
+        this.playbackError = '';
         this._inGap = false;
         this._switchingTrack = false;
         const audio = this.$refs.audioPlayer;
@@ -733,6 +791,7 @@ document.addEventListener('alpine:init', () => {
       try {
         const s = this.calendarDays[0].fullDate, e = this.calendarDays[34].fullDate;
         const res = await fetch(`${this.API_BASE}/api/dictation_history?start_date=${s}&end_date=${e}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const map = await res.json();
         this.calendarDays.forEach(d => { if (map[d.fullDate] !== undefined) d.score = map[d.fullDate]; });
       } catch(e) { /* 未连接后端时静默忽略 */ }

@@ -29,7 +29,7 @@
     </div>
     <div class="flex items-center gap-3 text-sm">
       <a href="/studio.html" class="text-slate-400 hover:text-white">录音台</a>
-      <a x-show="listInfo.count>0" x-cloak href="/studio2.html"
+      <a x-show="listInfo.count>listInfo.done" x-cloak href="/studio2.html"
          class="text-[#07C160] font-bold whitespace-nowrap">重录 <span x-text="listInfo.done"></span>/<span x-text="listInfo.count"></span></a>
     </div>
   </header>
@@ -59,7 +59,7 @@
   </div>
 
   <main x-show="['ready','playing','paused'].includes(state)" x-cloak class="flex-1 flex flex-col">
-    <audio x-ref="player" preload="auto" playsinline @ended="onEnded()"></audio>
+    <audio x-ref="player" preload="auto" playsinline @ended="onEnded()" @error="onAudioError()"></audio>
 
     <div class="flex items-center justify-between text-xs text-slate-500 mb-3">
       <span>第 <b class="text-slate-300" x-text="index+1"></b> / <span x-text="words.length"></span> 条</span>
@@ -112,10 +112,10 @@
       <template x-if="state==='paused'">
         <div class="w-full flex flex-col items-center gap-3">
           <div class="flex gap-3 w-full max-w-md">
-            <button @click="decide('rerecord')" class="btn flex-1 bg-[#F59E0B] text-slate-950 px-5 py-4">
+            <button @click="decide('rerecord')" :disabled="savingDecision" class="btn flex-1 bg-[#F59E0B] text-slate-950 px-5 py-4 disabled:opacity-50">
               <i class="fas fa-flag mr-1"></i> 标记
             </button>
-            <button @click="decide('checked')" class="btn flex-1 bg-[#07C160] text-white px-5 py-4">
+            <button @click="decide('checked')" :disabled="savingDecision" class="btn flex-1 bg-[#07C160] text-white px-5 py-4 disabled:opacity-50">
               <i class="fas fa-forward mr-1"></i> 继续
             </button>
           </div>
@@ -140,7 +140,7 @@
           <i class="fas" :class="savingList ? 'fa-spinner fa-spin' : 'fa-floppy-disk'"></i>
           <span x-text="savingList ? '正在保存…' : '保存重录词表'"></span>
         </button>
-        <a x-show="listInfo.count>0" href="/studio2.html"
+        <a x-show="listInfo.count>listInfo.done" href="/studio2.html"
            class="btn bg-[#07C160] text-white px-6 py-3">进入重录工作台</a>
         <button @click="start(true)" class="btn bg-slate-700 text-white px-6 py-3">从头开始</button>
       </div>
@@ -175,9 +175,9 @@ function checker() {
   return {
     state: 'loading', // loading|error|empty|ready|playing|paused|finished
     phase: 'word',    // word|gap|replay|decision
-    words: [], index: 0, errorMsg: '', notice: '', savingList: false,
+    words: [], index: 0, errorMsg: '', notice: '', savingList: false, savingDecision: false,
     listInfo: {count: 0, done: 0, created_at: ''},
-    _silenceUrl: '', _session: 0, _saveChain: Promise.resolve(),
+    _silenceUrls: {}, _session: 0,
 
     get current() { return this.words[this.index] || null; },
     get pendingCount() { return this.words.filter(w => w.status === 'pending').length; },
@@ -235,9 +235,17 @@ function checker() {
       }
     },
 
-    getSilenceUrl() {
-      if (this._silenceUrl) return this._silenceUrl;
-      const ms = 2000, sampleRate = 8000;
+    onAudioError() {
+      if (!this.current || this.state === 'loading') return;
+      this._session++;
+      this.state = 'paused'; this.phase = 'decision';
+      this.notice = '当前录音加载失败。请检查网络后点“重听”；不要直接标记，以免误判录音。';
+    },
+
+    getSilenceUrl(durationMs=2000) {
+      const ms = Math.min(60000, Math.max(20, Math.round(Number(durationMs) || 2000)));
+      if (this._silenceUrls[ms]) return this._silenceUrls[ms];
+      const sampleRate = 8000;
       const count = Math.ceil(sampleRate * ms / 1000);
       const buffer = new ArrayBuffer(44 + count), view = new DataView(buffer);
       const text = (offset, value) => {
@@ -248,11 +256,11 @@ function checker() {
       view.setUint32(24,sampleRate,true); view.setUint32(28,sampleRate,true);
       view.setUint16(32,1,true); view.setUint16(34,8,true); text(36,'data');
       view.setUint32(40,count,true); new Uint8Array(buffer,44).fill(128);
-      this._silenceUrl = URL.createObjectURL(new Blob([buffer], {type:'audio/wav'}));
-      return this._silenceUrl;
+      this._silenceUrls[ms] = URL.createObjectURL(new Blob([buffer], {type:'audio/wav'}));
+      return this._silenceUrls[ms];
     },
 
-    onEnded() {
+    async onEnded() {
       if (this.phase === 'replay') {
         this.phase = 'decision'; this.state = 'paused';
         return;
@@ -265,7 +273,19 @@ function checker() {
       }
       if (this.phase === 'gap') {
         // 从头复查时保留已有结果；只有未检查词才自动记为已检查。
-        if (this.current && this.current.status === 'pending') this.setStatus('checked');
+        if (this.current && this.current.status === 'pending') {
+          // 保存期间播放一条静音保持同一个媒体会话，避免手机浏览器把
+          // 等待网络后的下一词视为新的自动播放。
+          this.phase = 'saving';
+          this.playTrack(this.getSilenceUrl(60000));
+          const session = this._session;
+          if (!await this.setStatus('checked')) {
+            try { this.$refs.player.pause(); } catch (e) {}
+            this.state = 'paused'; this.phase = 'decision';
+            return;
+          }
+          if (session !== this._session) return;
+        }
         this.moveNext();
       }
     },
@@ -285,27 +305,33 @@ function checker() {
       this.playTrack(this.current.audio_url);
     },
 
-    decide(status) {
+    async decide(status) {
       if (!this.current) return;
       this._session++;
       try { this.$refs.player.pause(); } catch (e) {}
-      this.setStatus(status);
-      this.moveNext();
+      this.state = 'paused'; this.phase = 'decision';
+      if (await this.setStatus(status)) this.moveNext();
     },
 
-    setStatus(status) {
+    async setStatus(status) {
       const word = this.current;
-      if (!word) return;
-      word.status = status;
-      const body = JSON.stringify({hash: word.hash, status});
-      this._saveChain = this._saveChain.catch(() => {}).then(async () => {
+      if (!word || this.savingDecision) return false;
+      this.savingDecision = true; this.notice = '';
+      try {
         const r = await fetch('/api/check/mark', {
-          method:'POST', headers:{'Content-Type':'application/json'}, body, keepalive:true,
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({hash: word.hash, status}), keepalive:true,
         });
         if (!r.ok) throw new Error((await r.text()).slice(0,160));
-      }).catch(e => {
-        this.notice = '检查进度保存失败，请保持页面打开并重试：' + (e && e.message ? e.message : e);
-      });
+        word.status = status;
+        return true;
+      } catch (e) {
+        this.notice = '检查进度未保存，仍停留在当前词，请重试：' +
+                      (e && e.message ? e.message : e);
+        return false;
+      } finally {
+        this.savingDecision = false;
+      }
     },
 
     moveNext() {
@@ -326,7 +352,6 @@ function checker() {
     async saveRerecordList() {
       if (this.pendingCount || !this.rerecordCount) return;
       this.savingList = true; this.notice = '';
-      await this._saveChain;
       try {
         const r = await fetch('/api/check/save_rerecord', {method:'POST'});
         if (!r.ok) throw new Error(`HTTP ${r.status}：${(await r.text()).slice(0,180)}`);
