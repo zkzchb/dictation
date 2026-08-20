@@ -82,8 +82,9 @@ Thumbs.db
 *.xlsx
 *.xlsx.bak*
 
-# 设计文档不入库（本地保留）
-docs/
+# 设计草稿不入库；正式冻结/运维文档例外。
+docs/*
+!docs/V2-FREEZE.md
 
 # 一次性/过期工具（本地保留，不入库）
 tools/add_lesson_cols.py

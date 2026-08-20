@@ -11,7 +11,7 @@
 - **间隔重复引擎** — 答对连续 3 次晋级"已掌握"，答错次日必听，复习间隔按 2ⁿ 天指数后延（上限 30 天）
 - **田字格实时高亮** — 播放时当前词的拼音与汉字同步显示
 - **35 天打卡日历** — 以颜色区分优秀 / 良好 / 需加强
-- **题库** — `43 课，815 条知识点（生字 250 / 词语 418 / 易错字 108 / 多音字 39）`
+- **题库** — `42 门可选课程 + 1 个冷启动池，814 条知识点（生字 250 / 词语 418 / 易错字 108 / 多音字 38）`
 
 ---
 
@@ -23,7 +23,7 @@
 | **部署目标** | Ubuntu VPS | Ubuntu VPS | Cloudflare Workers |
 | **音频方案** | 运行时调用有道 TTS，ffmpeg 拼接 | 预录切片，浏览器播放列表 | 预录切片，静态资源 CDN |
 | **数据库** | SQLite | SQLite | Cloudflare D1 |
-| **需要 ffmpeg** | ✅ | ❌ | ❌ |
+| **需要 ffmpeg** | ✅ | 播放不需要；录音台需要 | ❌ |
 | **服务器** | uvicorn + Caddy | uvicorn + Caddy | 无（全边缘） |
 
 V1 是最初的完整版本（适合对 TTS 效果有要求时），V2/V3 使用预先录好的切片（启动更快，无等待），三版 API 合约完全一致，可随时切换。
@@ -113,6 +113,7 @@ bash deploy/cloudflare-deploy.sh
 | `AUDIO_OUTPUT_DIR` | 成品音频目录 | V1 |
 | `AUDIO_CACHE_DIR` | TTS 分词缓存目录 | V1 |
 | `DICTATION_DB` | 数据库路径（默认脚本同目录） | V1 / V2 |
+| `APP_TIMEZONE` | V2 打卡与录音台账业务时区（默认 `Asia/Shanghai`） | V2 |
 
 ---
 
@@ -124,6 +125,7 @@ bash deploy/cloudflare-deploy.sh
 | `GET` | `/api/generate_daily/{lesson_seq}?mode=daily\|unit` | 生成词表 |
 | `POST` | `/api/submit_dictation` | 提交批改，服务端算分并更新记忆库 |
 | `GET` | `/api/dictation_history?start_date=&end_date=` | 打卡日历数据 |
+| `GET` | `/api/health`（仅 V2） | 服务与数据库健康检查 |
 | `POST` | `/api/generate_audio`（仅 V1）| 合成听写音频，返回 URL + 时间轴 |
 
 ---
@@ -158,4 +160,6 @@ uvicorn main:app --reload --port 8888
 
 ## 许可
 
-GNU AGPL v3.0 — 使用本项目的代码（包括部署为网络服务）须开放全部源码，且不得用于闭源商业产品。
+GNU AGPL v3.0 — 允许商业使用；通过网络向用户提供修改版程序时，需要按许可证要求向这些用户提供对应源码。闭源发行或不同授权方式需要版权所有者另行许可。
+
+V2 冻结、部署验收和回滚步骤见 [V2-FREEZE.md](docs/V2-FREEZE.md)。

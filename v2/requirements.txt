@@ -1,20 +1,31 @@
 # V2 依赖 —— 预录切片版，运行时不调 TTS
 # 仅录音工作台 /api/studio/split 用到 pydub（需系统装 ffmpeg）
 #
-# 版本说明：不钉死旧版。pydantic==2.5.2 在 Python 3.13+ 上会尝试从源码
-# 编译 pydantic-core（需 Rust 工具链），在新系统上必然失败。放宽下限，
-# 让 pip 直接选带预编译 wheel 的版本。
-fastapi>=0.115
-uvicorn>=0.32
-pydantic>=2.9
-pydub>=0.25.1
+# V2 冻结版直接依赖。Docker 版本以这份清单为基线，不再安装“当时最新版”。
+fastapi==0.141.1
+uvicorn==0.52.4
+pydantic==2.13.4
+pydub==0.25.1
 
 # /api/studio/split 收的是 multipart/form-data（录音 blob）。starlette 解析
 # 表单要靠它，缺了就在 await request.form() 处抛 AssertionError，前端只看到
 # 500，而 catch 里那句「服务器需装 ffmpeg/pydub」会把人往错方向引。
 # fastapi 不会自动带上它 —— 要装 fastapi[standard] 才有，这里显式钉住。
-python-multipart>=0.0.9
+python-multipart==0.0.32
 
 # Python 3.13 起标准库移除了 audioop，而 pydub 依赖它。
 # audioop-lts 是官方替代实现，仅在 3.13+ 上安装。
-audioop-lts>=0.2.1; python_version >= "3.13"
+audioop-lts==0.2.1; python_version >= "3.13"
+
+# 冻结时在 Python 3.12 解析出的运行时传递依赖。显式列出，避免未来重新安装
+# 时 FastAPI/uvicorn 的宽范围依赖漂移；升级必须走完整回归测试。
+annotated-doc==0.0.5
+annotated-types==0.8.0
+anyio==4.14.2
+click==8.4.2
+h11==0.16.0
+idna==3.19
+pydantic-core==2.46.4
+starlette==1.6.0
+typing-extensions==4.16.0
+typing-inspection==0.4.4

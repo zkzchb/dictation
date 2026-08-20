@@ -78,6 +78,13 @@ CREATE TABLE IF NOT EXISTS dictation_items (
     FOREIGN KEY (history_id) REFERENCES dictation_history(id)
 );
 
+-- V2 提交幂等回执：浏览器网络重试不能重复写历史或增加记忆连续答对次数。
+CREATE TABLE IF NOT EXISTS submission_receipts (
+    submission_id TEXT PRIMARY KEY,
+    response_json TEXT NOT NULL,
+    created_at    TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_kp_lesson ON knowledge_points(lesson_seq, category);
 CREATE INDEX IF NOT EXISTS idx_items_history ON dictation_items(history_id);
 CREATE INDEX IF NOT EXISTS idx_items_kp ON dictation_items(kp_id, is_correct);

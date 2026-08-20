@@ -40,6 +40,7 @@ set -a; . "$ENV_FILE"; set +a
 : "${YOUDAO_VOICE:=youxiaoxun}" ; : "${YOUDAO_SPEED:=0.6}"
 : "${TTS_MIN_INTERVAL:=0.2}"    ; : "${TTS_MAX_RETRY:=3}"
 : "${BACKUP_KEEP_DAYS:=30}"
+: "${APP_TIMEZONE:=Asia/Shanghai}"
 # 录音工作台默认开启：VPS 上有 Caddy 的 HTTPS（浏览器录音的前提）和
 # basic_auth（挡住陌生人），是邀请老师录真人音频最合适的环境。
 : "${STUDIO_ENABLED:=1}"
@@ -214,6 +215,7 @@ DICTATION_DB=$APP_ROOT/v2/dictation.db
 WEB_ROOT=$APP_ROOT/shared/web
 STUDIO_AUDIO_DIR=$APP_ROOT/shared/web/audio/w
 STUDIO_ENABLED=$STUDIO_ENABLED
+APP_TIMEZONE=$APP_TIMEZONE
 EOF
   chmod 600 /etc/dictation/v2.env
   chown root:root /etc/dictation/v2.env
@@ -347,6 +349,15 @@ $V2_DOMAIN {
         $BASIC_AUTH_USER $PW_HASH
     }
     encode zstd gzip
+    request_body {
+        max_size 48MB
+    }
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy no-referrer
+        Permissions-Policy "microphone=(self)"
+    }
 
     handle /api/* {
         reverse_proxy 127.0.0.1:$V2_PORT {
@@ -367,10 +378,14 @@ $V2_DOMAIN {
         }
     }
 
-    # 预录切片：内容不变，长缓存
+    # 录音/质检台账是服务端状态，不作为静态文件公开。
+    @audioState path /audio/.recorded.json /audio/.checked.json /audio/.rerecord.json /audio/.recorded_sys.json /audio/*.bak /audio/*.part /audio/w/*.part /audio/sys/*.part
+    respond @audioState 404
+
+    # 真人录音会覆盖同名切片；禁止共享/长期缓存，确保重录立即生效。
     handle /audio/* {
         root * $APP_ROOT/shared/web
-        header Cache-Control "public, max-age=604800"
+        header Cache-Control "private, no-store"
         file_server
     }
 
@@ -401,7 +416,7 @@ ok "已放行 22 / 80 / 443（8888、8889 仅回环，不对外）"
 
 # ── 数据库自动备份 ───────────────────────────────────────────────────────
 step "安装每日备份"
-mkdir -p /var/backups/dictation/v1 /var/backups/dictation/v2
+mkdir -p /var/backups/dictation/v1 /var/backups/dictation/v2 /var/backups/dictation/audio
 
 cat > /usr/local/bin/backup-dictation.sh <<EOF
 #!/bin/bash
@@ -414,7 +429,14 @@ for v in v1 v2; do
     sqlite3 "\$SRC" ".backup '\$DEST'"
     gzip -f "\$DEST"
 done
+# 真人录音和四份 JSON 台账都在 audio/ 下；数据库备份不能替代它。
+AUDIO_SRC="$APP_ROOT/shared/web/audio"
+if [ -d "\$AUDIO_SRC" ]; then
+    tar -C "$APP_ROOT/shared/web" -czf \
+        "/var/backups/dictation/audio/audio_\$(date +%F).tar.gz" audio
+fi
 find /var/backups/dictation -name '*.db.gz' -mtime +$BACKUP_KEEP_DAYS -delete
+find /var/backups/dictation/audio -name 'audio_*.tar.gz' -mtime +$BACKUP_KEEP_DAYS -delete
 EOF
 
 chmod +x /usr/local/bin/backup-dictation.sh
@@ -445,8 +467,19 @@ check_api() {
   fi
 }
 
+check_v2_health() {
+  local body
+  body="$(curl -fsS --max-time 15 "http://127.0.0.1:$V2_PORT/api/health" 2>/dev/null || echo "")"
+  if [[ "$body" == *'"status":"ok"'* ]]; then
+    ok "v2 健康检查正常"
+  else
+    warn "v2 /api/health 异常 —— journalctl -u dictation-v2 -n 30 --no-pager"
+    return 1
+  fi
+}
+
 [[ "$DEPLOY_V1" == "yes" ]] && check_api v1 "$V1_PORT" || true
-[[ "$DEPLOY_V2" == "yes" ]] && check_api v2 "$V2_PORT" || true
+[[ "$DEPLOY_V2" == "yes" ]] && check_v2_health || true
 
 # V2 音频切片
 if [[ "$DEPLOY_V2" == "yes" ]]; then
