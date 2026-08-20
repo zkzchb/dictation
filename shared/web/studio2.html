@@ -21,8 +21,6 @@
       border-color: var(--green); background: #14352a;
       box-shadow: 0 0 30px rgba(7,193,96,.45);
     }
-    .word-card.done { opacity: .7; border-color: var(--green); }
-    .word-card.retry { opacity: .9; border-color: #ef4444; background: #3f1d1d; }
     .pulse { animation: pulse 1.5s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
     /* 波形直接绘制在页面底色上；静音时不再留下突兀的纯黑矩形。 */
@@ -41,7 +39,7 @@
        结果是「开始录音」在折叠线以下，点完又跳回第一个词，页面却不动。
 
        两套排布，只在手机生效：
-         · ready / 校对 → 紧凑网格，字号与内边距调小、一行 3 个，10 词进 3 行
+         · ready / 保存 → 紧凑网格，字号与内边距调小、一行 3 个，10 词进 3 行
          · 录音中       → 专注模式，只留当前词（超大）与前后各一个（小、暗）
        PC 端（>640px）完全走原样式，一行代码不受影响。               */
     @media (max-width: 640px) {
@@ -291,6 +289,7 @@
       </div>
       <p class="text-xs text-slate-500 mt-3">
         切出的段数与词数不符时调这里：段少了调低（如 -40），段多了调高（如 -30）。
+        数量匹配后会自动保存，录音质量统一到 check.html 批量检查。
       </p>
     </div>
 
@@ -306,9 +305,7 @@
              $refs.card 最后只剩最后一张卡，拿不到第 i 张。改成查 DOM。 -->
         <div class="word-card rounded-2xl p-5 flex flex-col items-center justify-center min-w-[120px]"
              :class="[cardClass(i), focusMode && !nearActive(i) ? 'wc-focus-hide' : '']"
-             :data-idx="i"
-             @click="state==='verifying' && toggleWord(i)"
-             :style="state==='verifying' ? 'cursor:pointer' : ''">
+             :data-idx="i">
           <!-- 多音字：拼音就是本课该读的音，必须显眼，否则老师不知道读哪个 -->
           <span class="wc-pinyin text-xs font-mono mb-1"
                 :class="w.poly ? 'text-[#F59E0B] font-bold' : 'text-slate-400'"
@@ -320,13 +317,6 @@
               <template x-if="w.example"><span>（如<span x-text="w.example"></span>）</span></template>
             </span>
           </template>
-          <div x-show="state==='verifying'" class="mt-2 flex items-center gap-2">
-            <span x-show="segStatus[i]==='ok'" class="text-[#07C160]"><i class="fas fa-check-circle"></i></span>
-            <span x-show="segStatus[i]==='retry'" class="text-red-400"><i class="fas fa-times-circle"></i></span>
-            <button @click.stop="replayWord(i)" class="text-slate-400 hover:text-white" title="试听">
-              <i class="fas fa-volume-up"></i>
-            </button>
-          </div>
         </div>
       </template>
     </div>
@@ -356,11 +346,11 @@
               class="bg-red-500 text-white font-bold py-3 px-8 rounded-xl text-lg active:scale-95 transition">
         <i class="fas fa-stop"></i> 提前停止
       </button>
-      <template x-if="state==='verifying'">
+      <template x-if="state==='save-failed'">
         <div class="flex gap-3 flex-wrap justify-center">
           <button @click="saveGroup()"
                   class="bg-[#07C160] text-white font-bold py-3 px-8 rounded-xl text-lg active:scale-95 transition">
-            <i class="fas fa-save"></i> 全部正确，保存
+            <i class="fas fa-rotate-right"></i> 重试保存
           </button>
           <button @click="enterReady()"
                   class="bg-slate-600 text-white font-bold py-3 px-8 rounded-xl text-lg active:scale-95 transition">
@@ -414,7 +404,7 @@ function studio() {
     API: '',               // 同源
 
     // ── 状态 ──
-    // loading|error|grid|ready|countdown|recording|splitting|verifying|saving|saved
+    // loading|error|grid|ready|countdown|recording|splitting|saving|save-failed|saved
     // 没有「全部完成」终态 —— 录音可反复覆盖，任何一组随时能重录。
     state: 'loading',
     words: [],             // 全部词条 [{text,pinyin,hash,lesson_seq,lesson}]
@@ -436,10 +426,8 @@ function studio() {
     sysRecordingKey: null, // 正在录的 key
     sysPending: null,      // {key,b64,url} 录完待保存
 
-    // ── 校对 ──
+    // ── 切割结果（数量匹配后直接保存，试听统一放到 check.html）──
     segments: [],          // 切割结果 [{audio(base64),duration}]
-    segStatus: [],         // 每词状态 'pending'|'ok'|'retry'
-    verifyIdx: -1,
 
     // ── 内部引用 ──
     // 都要能被 cleanupAudio() 停掉，否则切组时上一组的音频会串台。
@@ -450,13 +438,11 @@ function studio() {
     get currentWords() { return this.batches[this.currentBatch] || []; },
 
     get inGroup() {
-      return ['ready','countdown','recording','splitting','verifying','saving']
+      return ['ready','countdown','recording','splitting','saving','save-failed']
              .indexOf(this.state) >= 0;
     },
 
     // 手机上录音/倒计时走「专注模式」：只留当前词与前后各一个。
-    // 校对必须看得见全部 10 个 —— 要逐个点喇叭试听、点卡片标重录，
-    // 只显示 5 个会逼着老师翻页找词。
     get focusMode() {
       return this.state === 'recording' || this.state === 'countdown';
     },
@@ -718,8 +704,6 @@ function studio() {
       this.state = 'ready';
       this.activeIdx = -1;
       this.segments = [];
-      this.segStatus = this.currentWords.map(() => 'pending');
-      this.verifyIdx = -1;
       // 进新状态先降回 info，否则上一轮的 warn 横幅会一直挂着。
       // 注意：splitAudio / saveGroup 里是先调 enterReady() 再设 warn，
       // 顺序上 warn 在后，不会被这里覆盖掉。
@@ -736,8 +720,7 @@ function studio() {
     },
 
     // ── 统一清场 ──
-    // 切组、返回分组、进入 ready、提交成功后都要调。原代码 replayWord() 直接
-    // new Audio().play() 不留引用，切组后上一组的试听还在响。
+    // 切组、返回分组、进入 ready、提交成功后都要调；系统提示音仍可能正在播放。
     cleanupAudio() {
       this._token++;                       // 作废所有在飞的回调
       if (this._timer) { clearTimeout(this._timer); this._timer = null; }
@@ -913,7 +896,7 @@ function studio() {
           return;
         }
         this.segments = data.segments;
-        this.startVerify();
+        await this.saveGroup();
       } catch(e) {
         if (token !== this._token) return;
         this.enterReady();
@@ -924,97 +907,8 @@ function studio() {
       }
     },
 
-    // ── 校对（依次播放，人工确认）──
-    startVerify() {
-      this.state = 'verifying';
-      this.segStatus = this.currentWords.map(() => 'pending');
-      this.verifyIdx = -1;
-      this.hintLevel = 'info';
-      this.hint = '依次播放各词，核对发音是否正确。有问题的点词卡标记重录。';
-      this.playNext();
-    },
-
-    _newAudio(b64) {
-      if (this._audio) {
-        try { this._audio.pause(); } catch (e) {}
-        this._audio.onended = null;
-        this._audio.onerror = null;
-      }
-      const a = new Audio('data:audio/mp3;base64,' + b64);
-      this._audio = a;
-      return a;
-    },
-
-    playNext() {
-      const token = this._token;
-      this.verifyIdx++;
-      if (this.verifyIdx >= this.segments.length) {
-        this.activeIdx = -1;
-        this.hint = '全部播放完毕。全部正确则保存，或点词卡标记重录。';
-        return;
-      }
-      const idx = this.verifyIdx;
-      this.activeIdx = idx;
-      const audio = this._newAudio(this.segments[idx].audio);
-      const advance = (delay) => {
-        this._timer = setTimeout(() => {
-          if (token === this._token) this.playNext();
-        }, delay);
-      };
-      audio.onended = () => {
-        if (token !== this._token) return;
-        if (this.segStatus[idx] === 'pending') this.segStatus[idx] = 'ok';
-        advance(400);
-      };
-      audio.onerror = () => { if (token === this._token) advance(200); };
-      const p = audio.play();
-      // 浏览器可能因「没有用户手势」拦截自动连播。不能卡死在校对流程里：
-      // 提示改为逐个试听，保存按钮照常可用（只有标记 retry 才拦保存）。
-      if (p && typeof p.catch === 'function') {
-        p.catch(err => {
-          if (token !== this._token) return;
-          this.activeIdx = -1;
-          this.hintLevel = 'warn';
-          this.hint = '浏览器拦截了自动连播（' + ((err && err.name) || 'NotAllowedError')
-                    + '）。请点各词的喇叭图标逐个试听，确认无误后保存。';
-        });
-      }
-    },
-
-    toggleWord(i) {
-      if (this.state !== 'verifying') return;
-      this.segStatus[i] = this.segStatus[i] === 'retry' ? 'ok' : 'retry';
-    },
-
-    replayWord(i) {
-      const seg = this.segments[i];
-      if (!seg) return;
-      // 手动试听即接管播放：中断自动连播链，避免两个音源同时响。
-      this._token++;
-      const token = this._token;
-      if (this._timer) { clearTimeout(this._timer); this._timer = null; }
-      this.activeIdx = i;
-      const a = this._newAudio(seg.audio);
-      a.onended = () => {
-        if (token !== this._token) return;
-        if (this.segStatus[i] === 'pending') this.segStatus[i] = 'ok';
-        this.activeIdx = -1;
-      };
-      const p = a.play();
-      if (p && typeof p.catch === 'function') {
-        p.catch(err => { this.hintLevel = 'warn'; this.hint = '试听失败：' + (err && err.message ? err.message : err); });
-      }
-    },
-
-    // ── 保存 ──
+    // ── 自动保存 ──
     async saveGroup() {
-      const retries = this.segStatus.filter(s => s === 'retry').length;
-      if (retries) {
-        this.enterReady();
-        this.hintLevel = 'warn';
-        this.hint = `有 ${retries} 个词标记重录，请重录本组。`;
-        return;
-      }
       if (!this.segments.length || this.segments.length !== this.currentWords.length) {
         this.enterReady();
         this.hintLevel = 'warn';
@@ -1045,19 +939,13 @@ function studio() {
       } catch(e) {
         if (token !== this._token) return;
         this.hintLevel = 'warn';
-        this.hint = '保存失败：' + (e && e.message ? e.message : e);
-        this.state = 'verifying';
+        this.hint = '保存失败：' + (e && e.message ? e.message : e) + '。可重试保存，不必重新录音。';
+        this.state = 'save-failed';
       }
     },
 
     // ── UI 辅助 ──
     cardClass(i) {
-      if (this.state==='verifying') {
-        if (this.segStatus[i]==='retry') return 'retry';
-        if (i===this.activeIdx) return 'active';
-        if (this.segStatus[i]==='ok') return 'done';
-        return '';
-      }
       return i===this.activeIdx ? 'active' : '';
     },
 
