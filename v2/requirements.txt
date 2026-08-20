@@ -3,7 +3,7 @@
 #
 # V2 冻结版直接依赖。Docker 版本以这份清单为基线，不再安装“当时最新版”。
 fastapi==0.141.1
-uvicorn==0.52.4
+uvicorn==0.52.3
 pydantic==2.13.4
 pydub==0.25.1
 
