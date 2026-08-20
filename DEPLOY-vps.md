@@ -124,10 +124,10 @@ sudo bash deploy/vps-install.sh
 
 脚本按顺序完成：
 
-1. 校验 `vps.env` 配置与域名解析
+1. 校验 `vps.env` 配置并确认域名存在 A 记录（不获取或比对公网 IP）
 2. 安装系统包（python3-venv、sqlite3、ffmpeg、ufw、Caddy）
 3. 创建 `dictation` 系统用户
-4. 为启用的版本建 venv、装依赖
+4. 为启用的版本建 venv；V2 从仓库 wheelhouse 校验哈希并离线装依赖
 5. 初始化数据库（已存在则跳过并保留数据）
 6. 写 `/etc/dictation/v{1,2}.env`（权限 600）
 7. 装并启动 systemd 服务
@@ -137,6 +137,9 @@ sudo bash deploy/vps-install.sh
 11. 打印健康检查结果
 
 脚本幂等 —— 可重复运行，不会覆盖已有数据库。
+
+V2 的依赖安装固定使用 Python 3.12 和 `pip --no-index`，不会访问 PyPI、百度镜像或
+其他 pip 配置的软件源。Caddy 来自 Ubuntu 24.04 官方软件源，不访问 Cloudsmith。
 
 完成后确认服务状态：
 

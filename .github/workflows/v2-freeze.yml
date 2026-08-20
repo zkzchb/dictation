@@ -16,12 +16,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
-          cache-dependency-path: v2/requirements.txt
       - name: Install ffmpeg
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Verify frozen wheelhouse
+        run: python shared/tools/verify_wheelhouse.py v2/wheelhouse
       - name: Install runtime dependencies
-        run: pip install -r v2/requirements.txt
+        run: pip install --no-index --find-links v2/wheelhouse -r v2/requirements.txt
+      - name: Check dependency consistency
+        run: pip check
       - name: Compile Python
         run: python -m compileall -q v2 shared tests
       - name: Run V2 regression tests

@@ -45,7 +45,7 @@ dictation-app/
 ├── tools/
 │   └── stage.py       把 shared/web/ 铺装到 v2/v3
 ├── v1/                V1 代码（FastAPI + ffmpeg TTS）
-├── v2/                V2 代码（FastAPI + 预录切片）
+├── v2/                V2 代码（FastAPI + 预录切片 + 离线 wheelhouse）
 └── v3/                V3 代码（Python Workers + D1）
 ```
 
@@ -57,7 +57,7 @@ dictation-app/
 
 ### 前置条件
 
-- Python ≥ 3.10
+- Python ≥ 3.10；冻结版 V2 离线安装基线固定为 Ubuntu 24.04 / Python 3.12
 - 仅 V1 运行时合成或重新生成 TTS 时需要有道智云账号；标准 V2/V3 不需要
 - V3 额外需要：Node.js ≥ 18，[uv](https://docs.astral.sh/uv/)，Cloudflare 账号
 
@@ -70,7 +70,8 @@ bash deploy/local-install.sh
 ```
 
 完整基线为 869 个词条音频和 25 个系统提示音。正式 V2 安装直接使用
-`chinese/3a/tts` 中随仓库版本化的标准音频，不需要再次调用 TTS。
+`chinese/3a/tts` 中随仓库版本化的标准音频，不需要再次调用 TTS。V2 的 Python
+运行依赖也随仓库冻结在 `v2/wheelhouse`，安装时不访问 PyPI 或地区镜像。
 
 详见 [DEPLOY-local.md](DEPLOY-local.md)。
 
@@ -139,7 +140,10 @@ bash deploy/cloudflare-deploy.sh
 ```bash
 cd v1   # 或 v2
 python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
+# V1：pip install -r requirements.txt
+# V2（Python 3.12 / Linux）：
+python ../shared/tools/verify_wheelhouse.py wheelhouse
+pip install --no-index --find-links wheelhouse -r requirements.txt
 python ../shared/init_db.py --db dictation.db   # 首次初始化数据库
 uvicorn main:app --reload --port 8888
 ```

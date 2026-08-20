@@ -148,9 +148,13 @@ command -v ffmpeg >/dev/null 2>&1 && ok "ffmpeg $(ffmpeg -version 2>/dev/null | 
 # 题库文件
 for f in chinese/3a/dataset.json chinese/3a/lessons.json chinese/3a/knowledge_points.json \
          chinese/3a/studio_manifest.json chinese/3a/tts.sha256 \
-         shared/init_db.py shared/tools/audio_bundle.py; do
+         shared/init_db.py shared/tools/audio_bundle.py shared/tools/verify_wheelhouse.py; do
   [[ -f "$REPO_ROOT/$f" ]] || die "缺少关键文件: $f（代码不完整？）"
 done
+if [[ "$SETUP_V2" == "yes" ]]; then
+  [[ -f "$REPO_ROOT/v2/wheelhouse/sha256" ]] \
+    || die "缺少 V2 离线依赖清单: v2/wheelhouse/sha256"
+fi
 ok "题库与建库脚本就位"
 
 # 正式教材包随仓库分发。运行目录为空或不完整时只补缺失文件；-n 保证本地真人
@@ -184,6 +188,11 @@ setup_version() {
   step "配置 $ver 本地环境"
   [[ -d "$dir" ]] || die "找不到目录 $dir"
 
+  if [[ "$ver" == "v2" ]]; then
+    python3 "$REPO_ROOT/shared/tools/verify_wheelhouse.py" "$dir/wheelhouse" \
+      || die "V2 离线依赖校验失败"
+  fi
+
   if [[ ! -x "$dir/venv/bin/python" ]]; then
     python3 -m venv "$dir/venv"
     ok "已建 venv"
@@ -191,9 +200,17 @@ setup_version() {
     ok "venv 已存在"
   fi
 
-  "$dir/venv/bin/pip" install --quiet --upgrade pip
-  "$dir/venv/bin/pip" install --quiet -r "$dir/requirements.txt"
-  ok "依赖已安装"
+  if [[ "$ver" == "v2" ]]; then
+    "$dir/venv/bin/pip" install --quiet --disable-pip-version-check \
+      --no-index --find-links "$dir/wheelhouse" -r "$dir/requirements.txt"
+    "$dir/venv/bin/pip" check >/dev/null
+    ok "V2 依赖已从仓库离线安装（未访问 pip 软件源）"
+  else
+    "$dir/venv/bin/pip" install --quiet --upgrade pip
+    "$dir/venv/bin/pip" install --quiet -r "$dir/requirements.txt"
+    "$dir/venv/bin/pip" check >/dev/null
+    ok "V1 依赖已安装"
+  fi
 
   if [[ -f "$dir/dictation.db" ]]; then
     ok "数据库已存在，跳过初始化（数据保留）"

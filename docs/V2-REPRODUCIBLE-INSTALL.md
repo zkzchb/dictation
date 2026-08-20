@@ -7,7 +7,8 @@
 2. 安装与教材版本严格绑定的标准 TTS 音频；
 3. 可选导入真人录音覆盖层；
 4. 配置 systemd、Caddy、HTTPS、防火墙和每日备份；
-5. 校验题库、音频和健康接口。
+5. 从仓库内经过哈希校验的 wheelhouse 离线安装 Python 依赖；
+6. 校验题库、音频和健康接口。
 
 ## 发行物边界
 
@@ -15,12 +16,17 @@
 |---|---|---|
 | 源码 | Git 仓库 | 程序、教材 JSON、Studio 清单、建库与安装工具 |
 | 标准音频 | `chinese/3a/tts/` | 869 个词条、25 个系统提示音，与源码一起版本化 |
+| V2 Python 依赖 | `v2/wheelhouse/` | Python 3.12、x86_64/ARM64 的冻结 wheel 与 SHA-256 |
 | 真人录音 | 私有覆盖包 | 仅真人 MP3、`.recorded.json`、`.recorded_sys.json` |
 | 运行数据 | VPS | SQLite 学习历史、Check 状态、待重录词表、备份 |
 
 当前教材的短 MP3 直接进入 Git，保证一次 clone 即取得完整运行基线，不要求安装者
 另有 TTS 账号或二次下载。安装器仍会逐文件检查，并把音频与三份教材/Studio JSON
 绑定；教材改变后，缺失或冒充 MP3 的文件会被拒绝。
+
+V2 的 Python 依赖同样直接进入 Git。安装器要求 Ubuntu 24.04 的 Python 3.12，先验证
+wheel 文件集合及 SHA-256，再用 `pip --no-index` 安装；VPS 不访问 PyPI、百度镜像或
+其他 Python 软件源。wheelhouse 同时包含 x86_64 与 aarch64 所需的二进制 wheel。
 
 ## 1. 教材包结构
 
@@ -100,6 +106,7 @@ V2_HUMAN_BUNDLE_SHA256=REPLACE_WITH_EXACT_SHA256
 不包含另一套部署逻辑。首次运行会：
 
 - 从 `chinese/3a/lessons.json` 与 `knowledge_points.json` 建立新数据库；
+- 校验 `v2/wheelhouse/sha256` 并完全离线安装 V2 Python 依赖；
 - 创建 43 门课程、814 条知识点，学习动态表为空；
 - 从仓库教材包复制并校验标准音频；
 - 覆盖真人录音并恢复必要录音台账；
@@ -109,6 +116,9 @@ V2_HUMAN_BUNDLE_SHA256=REPLACE_WITH_EXACT_SHA256
 
 真人覆盖包按 SHA-256 记录已导入状态。重复执行安装脚本不会再次清空后来产生的
 Check 进度；数据库和现有完整音频同样默认保留，因此安装器保持幂等。
+
+域名检查只确认 A 记录存在，不获取、推断或比对 VPS 公网 IP。Caddy 直接使用 Ubuntu
+24.04 官方软件源中的软件包，安装过程不依赖 Cloudsmith。
 
 ## 4. 重新生成标准 TTS 时的维护模式
 

@@ -1,7 +1,8 @@
 # V2 依赖 —— 预录切片版，运行时不调 TTS
 # 仅录音工作台 /api/studio/split 用到 pydub（需系统装 ffmpeg）
 #
-# V2 冻结版直接依赖。Docker 版本以这份清单为基线，不再安装“当时最新版”。
+# V2 冻结版直接依赖。Ubuntu 24.04 / Python 3.12 安装器只使用 v2/wheelhouse，
+# 不访问 pip 软件源。Docker 版本以这份清单为基线，不安装“当时最新版”。
 fastapi==0.141.1
 uvicorn==0.52.3
 pydantic==2.13.4

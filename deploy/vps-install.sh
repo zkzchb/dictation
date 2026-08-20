@@ -98,28 +98,21 @@ if [[ "$DEPLOY_V2" == "yes" ]]; then
   ok "V2: $V2_DOMAIN (端口 $V2_PORT)"
 fi
 
-# ── 校验域名解析 ─────────────────────────────────────────────────────────
+# ── 校验域名解析（只确认记录存在，不探测或比对公网 IP）──────────────────
 step "校验域名解析"
-MY_IP="$(curl -fsS --max-time 10 https://api.ipify.org || echo "")"
-if [[ -z "$MY_IP" ]]; then
-  warn "无法取得本机公网 IP，跳过 DNS 校验"
-else
-  ok "本机公网 IP: $MY_IP"
-  command -v dig >/dev/null 2>&1 || apt-get install -y -qq dnsutils >/dev/null 2>&1 || true
-  for pair in "V1:${V1_DOMAIN-}" "V2:${V2_DOMAIN-}"; do
-    ver="${pair%%:*}"; dom="${pair#*:}"
-    [[ "$ver" == "V1" && "$DEPLOY_V1" != "yes" ]] && continue
-    [[ "$ver" == "V2" && "$DEPLOY_V2" != "yes" ]] && continue
-    [[ -n "$dom" ]] || continue
-    resolved="$(dig +short "$dom" A | tail -1 || echo "")"
-    if [[ "$resolved" == "$MY_IP" ]]; then
-      ok "$dom → $resolved"
-    else
-      warn "$dom 解析为 '${resolved:-无记录}'，与本机 $MY_IP 不符"
-      warn "  Caddy 将无法签发证书。可继续安装，但需先修正 DNS 再访问。"
-    fi
-  done
-fi
+for pair in "V1:${V1_DOMAIN-}" "V2:${V2_DOMAIN-}"; do
+  ver="${pair%%:*}"; dom="${pair#*:}"
+  [[ "$ver" == "V1" && "$DEPLOY_V1" != "yes" ]] && continue
+  [[ "$ver" == "V2" && "$DEPLOY_V2" != "yes" ]] && continue
+  [[ -n "$dom" ]] || continue
+  resolved="$(getent ahostsv4 "$dom" | awk '{print $1}' | sort -u | paste -sd, - || true)"
+  if [[ -n "$resolved" ]]; then
+    ok "已发现 A 记录：$dom → $resolved"
+  else
+    warn "$dom 暂无 A 记录；代码会继续安装，但 Caddy 暂时无法签发证书"
+  fi
+done
+ok "按部署策略，不获取或比对 VPS 公网 IP"
 
 # ── 安装系统包 ───────────────────────────────────────────────────────────
 step "安装系统包"
@@ -127,7 +120,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq \
   python3 python3-venv python3-pip sqlite3 curl ufw rsync dnsutils \
-  debian-keyring debian-archive-keyring apt-transport-https
+  ca-certificates
 ok "基础包就绪"
 
 # ffmpeg：V1 拼接音频必需；V2 仅录音工作台切割用到，统一装上省事
@@ -135,11 +128,13 @@ apt-get install -y -qq ffmpeg
 ok "ffmpeg $(ffmpeg -version 2>/dev/null | head -1 | awk '{print $3}')"
 
 if ! command -v caddy >/dev/null 2>&1; then
-  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
-    | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \
-    > /etc/apt/sources.list.d/caddy-stable.list
-  apt-get update -qq && apt-get install -y -qq caddy
+  if ! apt-get install -y -qq caddy; then
+    warn "当前 Ubuntu 软件源未启用 universe，正在启用后重试 Caddy"
+    apt-get install -y -qq software-properties-common
+    add-apt-repository -y universe
+    apt-get update -qq
+    apt-get install -y -qq caddy
+  fi
 fi
 CADDY_VER="$(caddy version | awk '{print $1}')"
 ok "Caddy $CADDY_VER"
@@ -164,9 +159,13 @@ ok "部署根目录: $APP_ROOT"
 
 for f in chinese/3a/dataset.json chinese/3a/lessons.json chinese/3a/knowledge_points.json \
          chinese/3a/studio_manifest.json chinese/3a/tts.sha256 \
-         shared/init_db.py shared/tools/audio_bundle.py; do
+         shared/init_db.py shared/tools/audio_bundle.py shared/tools/verify_wheelhouse.py; do
   [[ -f "$APP_ROOT/$f" ]] || die "缺少关键文件: $f（代码不完整？）"
 done
+if [[ "$DEPLOY_V2" == "yes" ]]; then
+  [[ -f "$APP_ROOT/v2/wheelhouse/sha256" ]] \
+    || die "缺少 V2 离线依赖清单: v2/wheelhouse/sha256"
+fi
 ok "题库与建库脚本就位"
 
 # ── 建 venv、装依赖、初始化数据库 ────────────────────────────────────────
@@ -177,6 +176,11 @@ setup_version() {
   step "配置 $ver"
   [[ -d "$dir" ]] || die "找不到目录 $dir"
 
+  if [[ "$ver" == "v2" ]]; then
+    python3 "$APP_ROOT/shared/tools/verify_wheelhouse.py" "$dir/wheelhouse" \
+      || die "V2 离线依赖校验失败"
+  fi
+
   if [[ ! -x "$dir/venv/bin/python" ]]; then
     python3 -m venv "$dir/venv"
     ok "已建 venv"
@@ -184,9 +188,17 @@ setup_version() {
     ok "venv 已存在"
   fi
 
-  "$dir/venv/bin/pip" install --quiet --upgrade pip
-  "$dir/venv/bin/pip" install --quiet -r "$dir/requirements.txt"
-  ok "依赖已安装"
+  if [[ "$ver" == "v2" ]]; then
+    "$dir/venv/bin/pip" install --quiet --disable-pip-version-check \
+      --no-index --find-links "$dir/wheelhouse" -r "$dir/requirements.txt"
+    "$dir/venv/bin/pip" check >/dev/null
+    ok "V2 依赖已从仓库离线安装（未访问 pip 软件源）"
+  else
+    "$dir/venv/bin/pip" install --quiet --upgrade pip
+    "$dir/venv/bin/pip" install --quiet -r "$dir/requirements.txt"
+    "$dir/venv/bin/pip" check >/dev/null
+    ok "V1 依赖已安装"
+  fi
 
   # 数据库：已存在则保留，只补 poly_ids 列
   if [[ -f "$dir/dictation.db" ]]; then

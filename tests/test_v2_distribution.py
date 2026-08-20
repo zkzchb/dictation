@@ -17,6 +17,13 @@ audio_bundle = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(audio_bundle)
 
+WHEELHOUSE_SPEC = importlib.util.spec_from_file_location(
+    "verify_wheelhouse", ROOT / "shared" / "tools" / "verify_wheelhouse.py"
+)
+verify_wheelhouse = importlib.util.module_from_spec(WHEELHOUSE_SPEC)
+assert WHEELHOUSE_SPEC.loader is not None
+WHEELHOUSE_SPEC.loader.exec_module(verify_wheelhouse)
+
 STAGE_SPEC = importlib.util.spec_from_file_location("stage", ROOT / "tools" / "stage.py")
 stage = importlib.util.module_from_spec(STAGE_SPEC)
 assert STAGE_SPEC.loader is not None
@@ -37,6 +44,23 @@ class V2DistributionTests(unittest.TestCase):
         self.assertEqual(len(audio_bundle.expected_word_files()), 869)
         self.assertEqual(len(audio_bundle.expected_system_files()), 25)
         self.assertEqual(len(audio_bundle.expected_baseline_files()), 894)
+
+    def test_frozen_wheelhouse_file_set_and_hashes_are_valid(self):
+        count = verify_wheelhouse.verify_wheelhouse(
+            ROOT / "v2" / "wheelhouse", check_platform=False
+        )
+        self.assertEqual(count, 16)
+
+    def test_frozen_wheelhouse_rejects_modified_wheel(self):
+        with tempfile.TemporaryDirectory() as temp:
+            wheelhouse = Path(temp) / "wheelhouse"
+            shutil.copytree(ROOT / "v2" / "wheelhouse", wheelhouse)
+            target = next(wheelhouse.glob("*.whl"))
+            target.write_bytes(target.read_bytes() + b"tampered")
+            with self.assertRaises(verify_wheelhouse.WheelhouseError):
+                verify_wheelhouse.verify_wheelhouse(
+                    wheelhouse, check_platform=False
+                )
 
     def test_distribution_json_matches_legacy_shared_sources(self):
         pairs = (
