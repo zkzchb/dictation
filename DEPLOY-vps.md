@@ -1,27 +1,28 @@
 # VPS 部署指南（V1 / V2）
 
-从 GitHub 拉取代码开始，到 HTTPS 可访问为止。全程使用一键脚本，密钥集中在脚本顶部占位符，拉取后手动填写再运行。
+从 GitHub 拉取代码开始，到 HTTPS 可访问为止。正式 V2 已把教材 JSON 与标准 TTS
+封装在 `chinese/3a`，全新安装不再要求先在本地生成、上传音频，也不需要有道密钥。
+详细的冷启动与真人录音覆盖规范见
+[V2 可复现安装规范](docs/V2-REPRODUCIBLE-INSTALL.md)。
 
 | 版本 | 端口 | 音频方案 | 需要 ffmpeg | 需要有道密钥 |
 |---|---|---|---|---|
 | V1 | 8888 | 运行时调有道 TTS，pydub 拼接 | 是 | 是 |
-| V2 | 8889 | 预录切片，浏览器播放列表 | 仅录音工作台 | 仅生成切片时 |
+| V2 | 8889 | 仓库教材包中的预录切片 | 仅录音工作台 | 否 |
 
 两版共用一台 Ubuntu 24.04、一个 `caddy` 进程、一个 `dictation` 系统用户，数据库各自独立。
 
 ---
 
-## 总览：五步
+## 总览：V2 三步
 
 | 步骤 | 在哪执行 | 做什么 |
 |---|---|---|
-| 1 | 本地 | 生成音频切片（V2 必需） |
-| 2 | 服务器 | 拉取代码 |
-| 3 | 服务器 | 填写 `deploy/vps.env` 密钥 |
-| 4 | 服务器 | 跑 `deploy/vps-install.sh` |
-| 5 | 本地 | 上传切片（V2） + 验收 |
+| 1 | 服务器 | 拉取包含 `chinese/3a` 教材包的代码 |
+| 2 | 服务器 | 填写 `deploy/vps.env` 域名和访问口令 |
+| 3 | 服务器 | 跑 `deploy/vps-install.sh` 并验收 |
 
-> 只部署 V1 可跳过第 1、5 步中的切片部分。
+> V1 或自定义教材仍可使用后文的 TTS 生成工具；正式 V2 冷启动无需执行。
 
 ---
 
@@ -31,7 +32,8 @@
 - 域名 A 记录已指向服务器公网 IP：
   - `v1.dictation.de5.net`（部署 V1 时）
   - `v2.dictation.de5.net`（部署 V2 时）
-- 有道智云 APP_KEY / APP_SECRET（[控制台](https://ai.youdao.com/)）
+- 仅部署 V1 或重新生成 TTS 时，需要有道智云 APP_KEY / APP_SECRET
+  （[控制台](https://ai.youdao.com/)）；标准 V2 冷启动不需要。
 
 验证 DNS 与本机 IP 一致：
 
@@ -43,9 +45,10 @@ dig +short v1.dictation.de5.net; dig +short v2.dictation.de5.net; curl -s https:
 
 ---
 
-## 1. 本地：生成音频切片（V2 必需）
+## 1. 本地：生成音频切片（仅维护/自定义教材）
 
-V2 播放预录切片，切片不入 Git（`.gitignore` 已排除），需在本地生成后上传。
+正式 `chinese/3a` 已随 Git 包含完整切片。本节只用于维护者重新制作标准 TTS，或
+开发尚未进入仓库的新教材；普通 V2 安装请直接从第 2 节开始。
 
 完整步骤见 **[DEPLOY-local.md](DEPLOY-local.md)**。简版：
 
@@ -57,12 +60,12 @@ nano deploy/local.env          # 填有道密钥
 bash deploy/local-install.sh
 ```
 
-首次约需数分钟，生成 500+ 个 MP3 到 `shared/web/audio/`。增量执行，中断可重跑。
+首次约需数分钟，生成完整的 894 个 MP3。增量执行，中断可重跑。
 
 验证：
 
 ```bash
-find shared/web/audio -name '*.mp3' | wc -l    # 应为 500+
+find shared/web/audio -name '*.mp3' | wc -l    # 应为 894
 ls shared/web/audio/sys/intro.mp3
 ```
 
@@ -87,7 +90,7 @@ cd /opt/dictation
 
 ---
 
-## 3. 服务器：填写密钥
+## 3. 服务器：填写配置
 
 复制配置模板：
 
@@ -151,15 +154,19 @@ journalctl -u caddy -f
 
 ---
 
-## 5. 本地：上传切片（V2）
+## 5. 本地：同步运行音频（维护/迁移用）
 
-回到本机（第 1 步生成切片的那台），一条命令同步：
+标准 V2 安装已经从仓库复制完整音频，不需要执行本节。只有迁移运行目录中的真人
+录音、维护自定义教材，或兼容旧部署时才使用：
 
 ```bash
 bash deploy/sync-slices.sh root@你的服务器IP
 ```
 
-脚本会 rsync 增量传输、修正远端属主、重启 `dictation-v2`，并核对两边文件数是否一致。
+脚本会 rsync 增量传输、修正远端属主、重启 `dictation-v2`，并严格核对 869 个词条
+和 25 个系统提示音。若目标是新站只导入真人录音、不带 Check 状态，请使用
+[V2 可复现安装规范](docs/V2-REPRODUCIBLE-INSTALL.md)中的真人覆盖包，不要直接同步
+整个运行目录。
 
 先看会传什么（不改动远端）：
 
@@ -218,7 +225,7 @@ curl -su '用户名:密码' -X POST https://v1.dictation.de5.net/api/generate_au
 
 ### 可选：预热 V1 缓存
 
-V1 每次听写要连发 40+ 次 TTS 请求，容易被限流。若已上传 V2 切片，可零 API 调用预热：
+V1 每次听写要连发 40+ 次 TTS 请求，容易被限流。若已安装 V2 切片，可零 API 调用预热：
 
 ```bash
 ssh root@你的服务器IP
@@ -295,16 +302,13 @@ bash deploy/sync-slices.sh root@你的服务器IP
 是录音最合适的环境，也便于邀请校外的老师参与。
 
 ```bash
-# 1. 本地先把 TTS 切片推上去，保证词表完整，老师只需覆盖想重录的
-bash deploy/sync-slices.sh root@你的服务器IP
-
-# 2. 把地址和口令给老师
+# 1. 把地址和口令给老师（标准 TTS 已随一键安装完成）
 #    https://v2.你的域名/studio
 
-# 3. 老师录完，拉回本地（会先备份本地切片，可回退）
+# 2. 老师录完，拉回本地（会先备份本地切片，可回退）
 bash deploy/sync-slices.sh root@你的服务器IP --pull
 
-# 4. 同步到 Cloudflare（若已部署 V3）
+# 3. 同步到 Cloudflare（若已部署 V3）
 bash deploy/cloudflare-deploy.sh --skip-slices
 ```
 
@@ -373,13 +377,15 @@ systemctl restart dictation-v2
 dig +short v2.dictation.de5.net; ufw status
 ```
 
-**V2 音频 404** — 切片未上传：
+**V2 音频 404** — 运行音频没有从教材包正确安装：
 
 ```bash
-find /opt/dictation/shared/web/audio -name '*.mp3' | wc -l   # 应为数百
+python3 /opt/dictation/shared/tools/audio_bundle.py inventory \
+  --audio-dir /opt/dictation/shared/web/audio
 ```
 
-为 0 则回到第 5 步。
+若 `complete` 不是 `true`，重新运行 `sudo bash deploy/vps-install.sh`；仍失败则检查
+`chinese/3a/tts.sha256` 与 Git 工作区是否完整。
 
 **V1 报 `ffmpeg not found`**
 

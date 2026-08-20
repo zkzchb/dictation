@@ -51,6 +51,10 @@ ls -lh /var/backups/dictation/audio/
 全部通过后，从已部署的精确提交创建 `v2.0.0` 标签和 GitHub Release；Docker 分支只从
 该标签创建，禁止从后续漂移的 `main` 直接复制。
 
+冻结前还必须完成一次[全新 VPS 可复现安装](V2-REPRODUCIBLE-INSTALL.md)：从仓库教材
+JSON 建立 `43|814|0` 的空白数据库，安装带 SHA-256 的 894 个标准 TTS 音频，再以独立
+覆盖包导入真人录音。不能把旧 V2 的 SQLite 或质检历史复制过去充当冷启动验收。
+
 ## 回滚
 
 代码回滚到冻结前提交并重启 V2：

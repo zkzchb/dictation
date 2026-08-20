@@ -156,6 +156,11 @@ class V2HardeningTests(unittest.TestCase):
             main.submit_dictation(payload)
         self.assertEqual(ctx.exception.status_code, 400)
 
+    def test_health_reports_static_database_counts(self):
+        result = main.health()
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["database"], {"lessons": 1, "knowledge_points": 2})
+
 
 if __name__ == "__main__":
     unittest.main()

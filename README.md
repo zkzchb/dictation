@@ -34,12 +34,14 @@ V1 是最初的完整版本（适合对 TTS 效果有要求时），V2/V3 使用
 
 ```
 dictation-app/
+├── chinese/3a/       自包含教材包（JSON + 纯净标准 TTS）
 ├── shared/
-│   ├── data/          词库 JSON（唯一副本）
-│   ├── web/           前端母本 index.html + audio/ 切片
+│   ├── data/          V1/V3 兼容数据副本（CI 强制与教材包一致）
+│   ├── web/           前端母本（audio/ 为部署时安装的发行资源）
 │   ├── gen_slices.py  预录切片生成脚本（调用有道 TTS）
 │   └── tools/
-│       └── export_d1.py  D1 种子 SQL 生成脚本
+│       ├── audio_bundle.py  V2 音频发行包校验/导入工具
+│       └── export_d1.py     D1 种子 SQL 生成脚本
 ├── tools/
 │   └── stage.py       把 shared/web/ 铺装到 v2/v3
 ├── v1/                V1 代码（FastAPI + ffmpeg TTS）
@@ -56,19 +58,19 @@ dictation-app/
 ### 前置条件
 
 - Python ≥ 3.10
-- 有道智云账号（APP_KEY / APP_SECRET）→ [控制台](https://ai.youdao.com/)
+- 仅 V1 运行时合成或重新生成 TTS 时需要有道智云账号；标准 V2/V3 不需要
 - V3 额外需要：Node.js ≥ 18，[uv](https://docs.astral.sh/uv/)，Cloudflare 账号
 
-### 本地部署 / 生成音频切片（V2 / V3 必须）
+### 本地部署 / 生成音频切片
 
 ```bash
 cp deploy/local.env.example deploy/local.env
-nano deploy/local.env          # 填有道密钥
+nano deploy/local.env          # 标准 V2 可直接保留有道占位符
 bash deploy/local-install.sh
 ```
 
-约 500+ 个文件，首次约需数分钟，后续增量更新不重复消耗额度。
-切片是 V2/V3 的共同前置，生成一次即可分发到 VPS 与 Cloudflare。
+完整基线为 869 个词条音频和 25 个系统提示音。正式 V2 安装直接使用
+`chinese/3a/tts` 中随仓库版本化的标准音频，不需要再次调用 TTS。
 
 详见 [DEPLOY-local.md](DEPLOY-local.md)。
 
@@ -80,11 +82,13 @@ bash deploy/local-install.sh
 git clone https://github.com/zkzchb/dictation.git /opt/dictation
 cd /opt/dictation
 cp deploy/vps.env.example deploy/vps.env
-nano deploy/vps.env          # 填有道密钥、域名、访问口令
+nano deploy/vps.env          # 填域名、访问口令和标准音频来源
 sudo bash deploy/vps-install.sh
 ```
 
-详见 [DEPLOY-vps.md](DEPLOY-vps.md)。
+全新 V2 的数据库、TTS 基线和真人录音分层流程见
+[V2 可复现安装规范](docs/V2-REPRODUCIBLE-INSTALL.md)，完整运维见
+[DEPLOY-vps.md](DEPLOY-vps.md)。
 
 ### 部署 V3（Cloudflare Workers）
 
