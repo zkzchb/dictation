@@ -1,0 +1,32 @@
+name: V2 offline freeze checks
+
+on:
+  push:
+    branches: [main-offline]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Verify wheelhouse
+        run: python shared/tools/verify_wheelhouse.py v2/wheelhouse
+      - name: Install without package index
+        run: pip install --no-index --find-links v2/wheelhouse -r v2/requirements.txt
+      - name: Verify frozen application
+        run: |
+          pip check
+          python -m compileall -q v2 shared tests
+          python -m unittest discover -s tests -p 'test_*.py' -v
+          python tests/check_inline_js.py
+          python shared/tools/audio_bundle.py inventory --audio-dir chinese/3a/tts
+          for script in deploy/*.sh; do bash -n "$script"; done
+

@@ -1,0 +1,79 @@
+name: Publish V2 offline release
+
+on:
+  push:
+    branches: [main-offline]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: contains(github.event.head_commit.message, '[release v2.0.0-offline.1]')
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: v2.0.0-offline.1
+      PACKAGE_NAME: dictation-v2.0.0-offline.1.tar.gz
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install validation tools
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Validate offline distribution
+        run: |
+          set -euo pipefail
+          python shared/tools/verify_wheelhouse.py v2/wheelhouse
+          pip install --no-index --find-links v2/wheelhouse -r v2/requirements.txt
+          pip check
+          python -m compileall -q v2 shared tests
+          python -m unittest discover -s tests -p 'test_*.py' -v
+          python tests/check_inline_js.py
+          python shared/tools/audio_bundle.py inventory --audio-dir chinese/3a/tts
+          for script in deploy/*.sh; do bash -n "$script"; done
+      - name: Build deterministic package
+        run: |
+          set -euo pipefail
+          release_dir="$RUNNER_TEMP/release"
+          stage_name="dictation-$RELEASE_VERSION"
+          stage_dir="$RUNNER_TEMP/$stage_name"
+          mkdir -p "$release_dir" "$stage_dir"
+          git archive HEAD | tar -x -C "$stage_dir"
+          {
+            cat OFFLINE-BASE
+            printf 'release=%s\n' "$RELEASE_VERSION"
+            printf 'offline_commit=%s\n' "$GITHUB_SHA"
+            printf 'built_at=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } > "$stage_dir/RELEASE-METADATA"
+          source_date_epoch="$(git show -s --format=%ct HEAD)"
+          tar --sort=name --mtime="@$source_date_epoch" \
+            --owner=0 --group=0 --numeric-owner \
+            -cf - -C "$RUNNER_TEMP" "$stage_name" \
+            | gzip -n > "$release_dir/$PACKAGE_NAME"
+          (cd "$release_dir" && sha256sum "$PACKAGE_NAME" > SHA256SUMS)
+          verify_dir="$RUNNER_TEMP/verify"
+          mkdir -p "$verify_dir"
+          tar -xzf "$release_dir/$PACKAGE_NAME" -C "$verify_dir"
+          grep -Fxq 'application_version=v2.0.0' \
+            "$verify_dir/$stage_name/RELEASE-METADATA"
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release_dir="$RUNNER_TEMP/release"
+          notes="$RUNNER_TEMP/release-notes.md"
+          {
+            printf '# Dictation V2.0.0 Offline Revision 1\n\n'
+            printf '与标准版 V2.0.0 功能一致，增加 Python 3.12 x86_64/ARM64 wheelhouse。\n\n'
+            printf '安装时不访问 GitHub/PyPI；Ubuntu 系统包仍通过 APT 安装。\n\n'
+            printf '下载 `%s` 与 `SHA256SUMS`，按包内 `docs/V2-DEPLOY-OFFLINE.md` 操作。\n' "$PACKAGE_NAME"
+          } > "$notes"
+          gh release create "$RELEASE_VERSION" \
+            --target "$GITHUB_SHA" \
+            --title "Dictation V2.0.0 Offline Revision 1" \
+            --notes-file "$notes" \
+            "$release_dir/$PACKAGE_NAME" "$release_dir/SHA256SUMS"
+
