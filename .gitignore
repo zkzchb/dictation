@@ -39,20 +39,13 @@ deploy/local.env
 *.db.backup
 
 # ── 音频文件 ───────────────────────────────────────────────────────
-# shared/web/audio/ 是切片的唯一来源，由 gen_slices.py 生成。
-# 默认不提交（下面注释掉的行），重新生成会消耗有道 TTS 额度。
-# 如果你希望把切片提交进 git（clone 即可部署，不用重新生成），
-# 注释掉下面三行，取消注释"提交切片"那一节。
-#
-# 【不提交切片（默认）】
+# chinese/<教材>/tts 是只读发行基线，可以提交；shared/web/audio、
+# v2/audio、v3/public/audio 是可写/生成的运行副本，绝不能提交真人录音台账。
 shared/web/audio/
 v2/audio/
 v3/public/audio/
 *.mp3
-#
-# 【提交切片（可选）—— 注释掉上面四行，取消注释下面两行】
-# !shared/web/audio/**
-# attic/*.mp3
+!chinese/**/*.mp3
 
 # ── V3 stage 产物（由 tools/stage.py 生成，不提交）─────────────────
 # v3/public/index.html 来自 shared/web/，wrangler 部署前需先运行 stage
@@ -85,6 +78,7 @@ Thumbs.db
 # 设计草稿不入库；正式冻结/运维文档例外。
 docs/*
 !docs/V2-FREEZE.md
+!docs/V2-REPRODUCIBLE-INSTALL.md
 
 # 一次性/过期工具（本地保留，不入库）
 tools/add_lesson_cols.py

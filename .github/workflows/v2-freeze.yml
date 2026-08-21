@@ -22,6 +22,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Install runtime dependencies
         run: pip install -r v2/requirements.txt
+      - name: Check dependency consistency
+        run: pip check
       - name: Compile Python
         run: python -m compileall -q v2 shared tests
       - name: Run V2 regression tests
@@ -31,4 +33,6 @@ jobs:
       - name: Parse browser scripts
         run: python tests/check_inline_js.py
       - name: Parse deployment scripts
-        run: bash -n deploy/*.sh
+        run: |
+          for script in deploy/*.sh; do bash -n "$script"; done
+

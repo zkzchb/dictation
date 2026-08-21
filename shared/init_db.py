@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""shared/init_db.py —— 建库并灌入三年级词表（V1/V2 共用）
+"""shared/init_db.py —— 从教材包建库（V1/V2 共用）
 
 用法:
     python shared/init_db.py --db v2/dictation.db            # 建新库
@@ -16,11 +16,12 @@ import json
 import shutil
 import sqlite3
 import argparse
+import tempfile
 from datetime import datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
-DATA_DIR = os.path.join(HERE, "data")
+DEFAULT_CONTENT_ROOT = os.path.join(ROOT, "chinese", "3a")
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS lessons (
@@ -95,6 +96,10 @@ CREATE INDEX IF NOT EXISTS idx_history_user ON dictation_history(user_id, create
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", required=True, help="目标数据库路径")
+    ap.add_argument(
+        "--content-root", default=DEFAULT_CONTENT_ROOT,
+        help="教材包目录（默认 chinese/3a）",
+    )
     ap.add_argument("--force", action="store_true", help="已存在则备份后重建")
     args = ap.parse_args()
 
@@ -109,14 +114,14 @@ def main():
         bak = f"{db}.bak_{stamp}"
         shutil.copy(db, bak)
         print(f"[OK] 已备份原库 -> {os.path.basename(bak)}")
-        os.remove(db)
 
-    p_lessons = os.path.join(DATA_DIR, "lessons_grade3.json")
-    p_kp = os.path.join(DATA_DIR, "kp_grade3.json")
+    content_root = os.path.abspath(args.content_root)
+    p_lessons = os.path.join(content_root, "lessons.json")
+    p_kp = os.path.join(content_root, "knowledge_points.json")
     for p in (p_lessons, p_kp):
         if not os.path.exists(p):
             print(f"[X] 缺少数据文件: {p}")
-            print("    请先运行 python shared/tools/convert_wordlist.py")
+            print("    请确认完整克隆了教材包，或运行 shared/tools/convert_wordlist.py")
             sys.exit(1)
 
     with open(p_lessons, encoding="utf-8") as f:
@@ -124,30 +129,49 @@ def main():
     with open(p_kp, encoding="utf-8") as f:
         kps = json.load(f)
 
-    os.makedirs(os.path.dirname(db), exist_ok=True)
-    conn = sqlite3.connect(db)
-    conn.executescript(SCHEMA)
-
-    conn.executemany(
-        "INSERT INTO lessons (lesson_seq, unit_id, unit_name, lesson_title, lesson_name)"
-        " VALUES (?,?,?,?,?)",
-        [(l["lesson_seq"], l["unit_id"], l["unit_name"],
-          l.get("lesson_title", ""), l["lesson_name"]) for l in lessons]
+    db_dir = os.path.dirname(db)
+    os.makedirs(db_dir, exist_ok=True)
+    fd, tmp_db = tempfile.mkstemp(
+        prefix=f".{os.path.basename(db)}.", suffix=".part", dir=db_dir
     )
-    conn.executemany(
-        "INSERT INTO knowledge_points (lesson_seq, target, category, options_json) VALUES (?,?,?,?)",
-        [(k["lesson_seq"], k["target"], k["category"],
-          json.dumps(k["options_json"], ensure_ascii=False)) for k in kps]
-    )
-    conn.execute("INSERT OR IGNORE INTO user_progress (user_id, current_lesson_seq) VALUES (1, 3111)")
-    conn.commit()
+    os.close(fd)
+    conn = None
+    try:
+        conn = sqlite3.connect(tmp_db)
+        conn.execute("PRAGMA foreign_keys = ON")
+        conn.executescript(SCHEMA)
 
-    n_les = conn.execute("SELECT COUNT(*) FROM lessons").fetchone()[0]
-    n_kp = conn.execute("SELECT COUNT(*) FROM knowledge_points").fetchone()[0]
-    cats = conn.execute(
-        "SELECT category, COUNT(*) FROM knowledge_points GROUP BY category"
-    ).fetchall()
-    conn.close()
+        conn.executemany(
+            "INSERT INTO lessons (lesson_seq, unit_id, unit_name, lesson_title, lesson_name)"
+            " VALUES (?,?,?,?,?)",
+            [(l["lesson_seq"], l["unit_id"], l["unit_name"],
+              l.get("lesson_title", ""), l["lesson_name"]) for l in lessons]
+        )
+        conn.executemany(
+            "INSERT INTO knowledge_points (lesson_seq, target, category, options_json) VALUES (?,?,?,?)",
+            [(k["lesson_seq"], k["target"], k["category"],
+              json.dumps(k["options_json"], ensure_ascii=False)) for k in kps]
+        )
+        conn.execute("INSERT INTO user_progress (user_id, current_lesson_seq) VALUES (1, 3111)")
+        conn.commit()
+
+        n_les = conn.execute("SELECT COUNT(*) FROM lessons").fetchone()[0]
+        n_kp = conn.execute("SELECT COUNT(*) FROM knowledge_points").fetchone()[0]
+        cats = conn.execute(
+            "SELECT category, COUNT(*) FROM knowledge_points GROUP BY category"
+        ).fetchall()
+        if conn.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+            raise RuntimeError("SQLite integrity_check 失败")
+        if conn.execute("PRAGMA foreign_key_check").fetchone() is not None:
+            raise RuntimeError("SQLite foreign_key_check 失败")
+        conn.close()
+        conn = None
+        os.replace(tmp_db, db)
+    finally:
+        if conn is not None:
+            conn.close()
+        if os.path.exists(tmp_db):
+            os.remove(tmp_db)
 
     print(f"[OK] 建库完成: {db}")
     print(f"     课程 {n_les} 门, 知识点 {n_kp} 条")

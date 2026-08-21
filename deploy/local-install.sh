@@ -4,14 +4,14 @@
 #
 # 用法：
 #   cp deploy/local.env.example deploy/local.env
-#   nano deploy/local.env          # 填有道密钥
+#   nano deploy/local.env          # V1 / 重新生成 TTS 时填写有道密钥
 #   chmod 600 deploy/local.env
 #   bash deploy/local-install.sh
 #
 # 做三件事：
 #   1. 建 venv 装依赖（V1 / V2）
 #   2. 初始化本地数据库（已存在则保留）
-#   3. 生成音频切片到 shared/web/audio/（增量，可中断重跑）
+#   3. 从仓库教材包安装音频；缺失时可调用 TTS 增量生成
 #
 # 不需要 root（除了缺 ffmpeg / python3-venv 时装系统包）。
 #
@@ -78,31 +78,6 @@ if [[ "$UNINSTALL_SVC" == "yes" ]]; then
   exit 0
 fi
 
-# ── 移除服务（独立分支，不需要配置文件）─────────────────────────────────────
-if [[ "$UNINSTALL_SVC" == "yes" ]]; then
-  step "移除本地 systemd 服务"
-  found=no
-  for v in v1 v2; do
-    unit="dictation-local-$v"
-    if [[ -f "/etc/systemd/system/$unit.service" ]]; then
-      sudo systemctl disable --now "$unit" 2>/dev/null || true
-      sudo rm -f "/etc/systemd/system/$unit.service"
-      ok "已移除 $unit"
-      found=yes
-    fi
-  done
-  if [[ "$found" == "no" ]]; then
-    warn "没有找到 dictation-local-* 服务"
-  else
-    sudo systemctl daemon-reload
-    sudo systemctl reset-failed 2>/dev/null || true
-  fi
-  echo
-  echo "  ${C_DIM}数据库、切片、venv 均未改动。${C_OFF}"
-  echo
-  exit 0
-fi
-
 # ── 读取配置 ─────────────────────────────────────────────────────────────
 step "读取配置"
 [[ -f "$ENV_FILE" ]] || die "缺少 $ENV_FILE
@@ -110,7 +85,7 @@ step "读取配置"
 
 set -a; . "$ENV_FILE"; set +a
 
-: "${SETUP_V1:=yes}"      ; : "${SETUP_V2:=yes}"
+: "${SETUP_V1:=no}"       ; : "${SETUP_V2:=yes}"
 : "${YOUDAO_VOICE:=youxiaoxun}" ; : "${YOUDAO_SPEED:=0.6}"
 : "${TTS_INTERVAL:=1.0}"  ; : "${TTS_RETRY:=3}"
 : "${V1_PORT:=8888}"      ; : "${V2_PORT:=8889}"
@@ -129,20 +104,12 @@ is_placeholder() {
 
 # 切片生成需要真实密钥；已有足够切片时可以不填
 AUDIO_DIR="$REPO_ROOT/shared/web/audio"
+CONTENT_ROOT="$REPO_ROOT/chinese/3a"
+CONTENT_AUDIO_DIR="$CONTENT_ROOT/tts"
+AUDIO_TOOL="$REPO_ROOT/shared/tools/audio_bundle.py"
+export DICTATION_CONTENT_ROOT="$CONTENT_ROOT"
 EXISTING="$(find "$AUDIO_DIR" -name '*.mp3' 2>/dev/null | wc -l | tr -d ' ')"
 
-NEED_KEYS=no
-if [[ "$SKIP_SLICES" != "yes" && "$EXISTING" -lt 500 ]]; then
-  NEED_KEYS=yes
-fi
-if [[ "$NEED_KEYS" == "yes" ]]; then
-  if is_placeholder "${YOUDAO_APP_KEY-}" || is_placeholder "${YOUDAO_APP_SECRET-}"; then
-    die "需要生成切片（当前只有 $EXISTING 个），但 YOUDAO_APP_KEY / YOUDAO_APP_SECRET 仍是占位符。
-  请编辑 deploy/local.env 填入真实密钥；
-  若不想现在生成切片，加 --skip-slices 重跑。"
-  fi
-  ok "有道密钥已配置"
-fi
 ok "仓库根目录: $REPO_ROOT"
 ok "现有切片: $EXISTING 个"
 
@@ -179,10 +146,35 @@ ok "Python $(python3 -V 2>&1 | awk '{print $2}')"
 command -v ffmpeg >/dev/null 2>&1 && ok "ffmpeg $(ffmpeg -version 2>/dev/null | head -1 | awk '{print $3}')"
 
 # 题库文件
-for f in shared/data/kp_grade3.json shared/data/lessons_grade3.json shared/init_db.py; do
+for f in chinese/3a/dataset.json chinese/3a/lessons.json chinese/3a/knowledge_points.json \
+         chinese/3a/studio_manifest.json chinese/3a/tts.sha256 \
+         shared/init_db.py shared/tools/audio_bundle.py; do
   [[ -f "$REPO_ROOT/$f" ]] || die "缺少关键文件: $f（代码不完整？）"
 done
 ok "题库与建库脚本就位"
+
+# 正式教材包随仓库分发。运行目录为空或不完整时只补缺失文件；-n 保证本地真人
+# 录音不会被标准 TTS 覆盖。依赖和关键文件就位后再调用严格校验工具。
+if ! python3 "$AUDIO_TOOL" inventory --audio-dir "$AUDIO_DIR" >/dev/null 2>&1; then
+  if python3 "$AUDIO_TOOL" verify-dataset --content-root "$CONTENT_ROOT" >/dev/null 2>&1; then
+    mkdir -p "$AUDIO_DIR"
+    cp -an "$CONTENT_AUDIO_DIR/." "$AUDIO_DIR/"
+    EXISTING="$(find "$AUDIO_DIR" -name '*.mp3' 2>/dev/null | wc -l | tr -d ' ')"
+    ok "已从 chinese/3a 教材包补齐标准音频"
+  fi
+fi
+
+if ! python3 "$AUDIO_TOOL" inventory --audio-dir "$AUDIO_DIR" >/dev/null 2>&1; then
+  if [[ "$SKIP_SLICES" == "yes" ]]; then
+    [[ "$SETUP_V2" != "yes" ]] \
+      || die "V2 音频未通过完整性校验，不能用 --skip-slices 跳过"
+  elif is_placeholder "${YOUDAO_APP_KEY-}" || is_placeholder "${YOUDAO_APP_SECRET-}"; then
+    die "仓库音频不完整（当前只有 $EXISTING 个），且有道密钥仍是占位符。
+  请先确认 chinese/3a 教材包完整；维护者也可填写密钥后重新生成。"
+  else
+    ok "仓库音频不完整，将使用已配置的有道密钥补齐"
+  fi
+fi
 
 # ── 建 venv、装依赖、初始化数据库 ────────────────────────────────────────
 setup_version() {
@@ -201,7 +193,8 @@ setup_version() {
 
   "$dir/venv/bin/pip" install --quiet --upgrade pip
   "$dir/venv/bin/pip" install --quiet -r "$dir/requirements.txt"
-  ok "依赖已安装"
+  "$dir/venv/bin/pip" check >/dev/null
+  ok "$ver 依赖已从在线软件源安装"
 
   if [[ -f "$dir/dictation.db" ]]; then
     ok "数据库已存在，跳过初始化（数据保留）"
@@ -210,7 +203,8 @@ setup_version() {
       && ok "poly_ids 列已就绪" \
       || warn "poly_ids 迁移未执行，多音字轮换可能失效"
   else
-    "$dir/venv/bin/python" "$REPO_ROOT/shared/init_db.py" --db "$dir/dictation.db"
+    "$dir/venv/bin/python" "$REPO_ROOT/shared/init_db.py" \
+      --db "$dir/dictation.db" --content-root "$CONTENT_ROOT"
     ok "数据库已初始化"
   fi
 }
@@ -241,7 +235,7 @@ if [[ "$SKIP_SLICES" == "yes" ]]; then
 else
   GEN_PY="$(pick_python)"
   ok "使用 $(basename "$(dirname "$(dirname "$GEN_PY")")")/venv 运行生成脚本"
-  echo "${C_DIM}  首次生成约 500+ 个文件，需数分钟。中断后重跑会接着做。${C_OFF}"
+  echo "${C_DIM}  完整基线是 894 个文件。中断后重跑会接着做。${C_OFF}"
   echo
 
   YOUDAO_APP_KEY="${YOUDAO_APP_KEY-}" \
@@ -253,8 +247,8 @@ else
     "$GEN_PY" "$REPO_ROOT/shared/gen_slices.py"
 
   NOW="$(find "$AUDIO_DIR" -name '*.mp3' 2>/dev/null | wc -l | tr -d ' ')"
-  if [[ "$NOW" -lt 100 ]]; then
-    die "切片生成后仍只有 $NOW 个，请检查上方错误。
+  if ! python3 "$AUDIO_TOOL" inventory --audio-dir "$AUDIO_DIR" >/dev/null 2>&1; then
+    die "切片生成后仍未通过严格清单校验（当前 $NOW 个），请检查上方错误。
   若是 errorCode 411（限流），把 deploy/local.env 里的 TTS_INTERVAL 调大到 2.0 后重跑。"
   fi
   ok "切片共 $NOW 个（本次新增 $((NOW - EXISTING)) 个）"
@@ -330,9 +324,9 @@ if [[ "$SETUP_V1" == "yes" ]]; then
   echo "    cd v1 && ./venv/bin/uvicorn main:app --reload --port $V1_PORT"
 fi
 echo
-echo "${C_HEAD}下一步：同步切片到 VPS${C_OFF}"
-echo "  VPS 部署完成后，回到本机执行："
-echo "    bash deploy/sync-slices.sh root@你的VPS_IP"
+echo "${C_HEAD}VPS 部署${C_OFF}"
+echo "  标准 V2 会直接使用仓库教材包，无需从本机同步 TTS。"
+echo "  sync-slices.sh 仅用于维护自定义教材或同步运行中的真人录音。"
 echo
 echo "${C_HEAD}下一步：部署 Cloudflare（V3）${C_OFF}"
 echo "    cp deploy/cloudflare.env.example deploy/cloudflare.env"

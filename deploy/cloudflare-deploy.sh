@@ -4,7 +4,7 @@
 #
 # 用法：
 #   cp deploy/cloudflare.env.example deploy/cloudflare.env
-#   nano deploy/cloudflare.env        # 填有道密钥
+#   nano deploy/cloudflare.env        # 填 Cloudflare 配置；维护 TTS 时才需有道密钥
 #   chmod 600 deploy/cloudflare.env
 #   bash deploy/cloudflare-deploy.sh
 #
@@ -94,17 +94,27 @@ fi
 # ── 生成音频切片 ─────────────────────────────────────────────────────────
 step "音频切片"
 AUDIO_DIR="$REPO_ROOT/shared/web/audio"
+CONTENT_ROOT="$REPO_ROOT/chinese/3a"
+CONTENT_AUDIO_DIR="$CONTENT_ROOT/tts"
+AUDIO_TOOL="$REPO_ROOT/shared/tools/audio_bundle.py"
+export DICTATION_CONTENT_ROOT="$CONTENT_ROOT"
 EXISTING="$(find "$AUDIO_DIR" -name '*.mp3' 2>/dev/null | wc -l | tr -d ' ')"
 
-if [[ "$SKIP_SLICES" == "yes" ]]; then
-  ok "按 --skip-slices 跳过（现有 $EXISTING 个）"
-elif [[ "$EXISTING" -gt 500 ]]; then
-  ok "已有 $EXISTING 个切片，跳过生成（需强制重生成请删除 $AUDIO_DIR）"
+if ! python3 "$AUDIO_TOOL" inventory --audio-dir "$AUDIO_DIR" >/dev/null 2>&1 \
+   && python3 "$AUDIO_TOOL" verify-dataset --content-root "$CONTENT_ROOT" >/dev/null 2>&1; then
+  mkdir -p "$AUDIO_DIR"
+  cp -an "$CONTENT_AUDIO_DIR/." "$AUDIO_DIR/"
+  EXISTING="$(find "$AUDIO_DIR" -name '*.mp3' 2>/dev/null | wc -l | tr -d ' ')"
+  ok "已从 chinese/3a 教材包补齐标准音频"
+fi
+
+if python3 "$AUDIO_TOOL" inventory --audio-dir "$AUDIO_DIR" >/dev/null 2>&1; then
+  ok "音频严格清单通过（$EXISTING 个 MP3）"
+elif [[ "$SKIP_SLICES" == "yes" ]]; then
+  die "--skip-slices 不能跳过失败的音频完整性校验"
 else
   if is_placeholder "${YOUDAO_APP_KEY-}" || is_placeholder "${YOUDAO_APP_SECRET-}"; then
-    die "音频切片只有 $EXISTING 个，需要生成，但 YOUDAO_APP_KEY / YOUDAO_APP_SECRET 仍是占位符。
-  请在 deploy/cloudflare.env 填入真实密钥；
-  若切片已在别处生成好，把它们放到 $AUDIO_DIR 后加 --skip-slices 重跑。"
+    die "仓库教材包或运行音频未通过严格校验，且有道密钥仍是占位符。"
   fi
 
   # gen_slices.py 需要 requests；用临时 venv 装，避免污染系统 Python
@@ -124,7 +134,8 @@ else
     "$GEN_VENV/bin/python" "$REPO_ROOT/shared/gen_slices.py"
 
   NOW="$(find "$AUDIO_DIR" -name '*.mp3' 2>/dev/null | wc -l | tr -d ' ')"
-  [[ "$NOW" -gt 100 ]] || die "切片生成后仍只有 $NOW 个，请检查上方错误（411 为限流，调大 TTS_INTERVAL 重跑）"
+  python3 "$AUDIO_TOOL" inventory --audio-dir "$AUDIO_DIR" >/dev/null \
+    || die "生成后音频仍未通过 869 个词条 + 25 个系统提示音的严格校验"
   ok "切片共 $NOW 个"
 fi
 
@@ -134,7 +145,8 @@ python3 "$REPO_ROOT/tools/stage.py" v3
 [[ -f "$V3_DIR/public/index.html" ]] || die "stage 失败：缺少 v3/public/index.html"
 PUB_SLICES="$(find "$V3_DIR/public/audio" -name '*.mp3' 2>/dev/null | wc -l | tr -d ' ')"
 ok "index.html + $PUB_SLICES 个音频已就位"
-[[ "$PUB_SLICES" -gt 100 ]] || warn "音频数偏少，上线后可能无声音"
+python3 "$AUDIO_TOOL" inventory --audio-dir "$V3_DIR/public/audio" >/dev/null \
+  || die "v3/public 音频未通过严格校验"
 
 # ── D1 数据库 ────────────────────────────────────────────────────────────
 step "D1 数据库"
