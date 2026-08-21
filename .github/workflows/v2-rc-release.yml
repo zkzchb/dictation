@@ -1,0 +1,123 @@
+name: Publish V2 RC offline bundle
+
+on:
+  push:
+    branches: [agent/reproducible-v2-bootstrap]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: contains(github.event.head_commit.message, '[release v2.0.0-rc.1]')
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: v2.0.0-rc.1
+      PACKAGE_NAME: dictation-v2.0.0-rc.1-offline.tar.gz
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install validation tools
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Verify frozen runtime and content
+        run: |
+          set -euo pipefail
+          python shared/tools/verify_wheelhouse.py v2/wheelhouse
+          python -m pip install --no-index --find-links v2/wheelhouse -r v2/requirements.txt
+          python -m pip check
+          python -m compileall -q v2 shared tests
+          python -m unittest discover -s tests -p 'test_*.py' -v
+          python tests/check_inline_js.py
+          python shared/tools/audio_bundle.py inventory --audio-dir chinese/3a/tts
+          bash -n deploy/*.sh
+
+      - name: Build deterministic offline bundle
+        run: |
+          set -euo pipefail
+          release_dir="$RUNNER_TEMP/release"
+          stage_name="dictation-$RELEASE_VERSION"
+          stage_dir="$RUNNER_TEMP/$stage_name"
+          mkdir -p "$release_dir" "$stage_dir"
+          git archive HEAD | tar -x -C "$stage_dir"
+          {
+            printf 'release=%s\n' "$RELEASE_VERSION"
+            printf 'release_commit=%s\n' "$GITHUB_SHA"
+            printf 'validated_application_commit=%s\n' 'c5d70bac057c2b3c301e84dcb0358dcda21de0be'
+            printf 'built_at=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } > "$stage_dir/RELEASE-METADATA"
+          source_date_epoch="$(git show -s --format=%ct HEAD)"
+          tar --sort=name --mtime="@$source_date_epoch" \
+            --owner=0 --group=0 --numeric-owner \
+            -cf - -C "$RUNNER_TEMP" "$stage_name" \
+            | gzip -n > "$release_dir/$PACKAGE_NAME"
+          install -m 755 deploy/install-v2-bce-offline.sh \
+            "$release_dir/install-dictation-v2-bce-offline.sh"
+          (
+            cd "$release_dir"
+            sha256sum "$PACKAGE_NAME" install-dictation-v2-bce-offline.sh > SHA256SUMS
+          )
+
+      - name: Verify release assets
+        run: |
+          set -euo pipefail
+          release_dir="$RUNNER_TEMP/release"
+          verify_dir="$RUNNER_TEMP/release-check"
+          (
+            cd "$release_dir"
+            sha256sum -c SHA256SUMS
+          )
+          mkdir -p "$verify_dir"
+          tar -xzf "$release_dir/$PACKAGE_NAME" -C "$verify_dir"
+          test -f "$verify_dir/dictation-$RELEASE_VERSION/RELEASE-METADATA"
+          grep -Fxq "release=$RELEASE_VERSION" \
+            "$verify_dir/dictation-$RELEASE_VERSION/RELEASE-METADATA"
+          bash -n "$release_dir/install-dictation-v2-bce-offline.sh"
+
+      - name: Write release notes
+        run: |
+          notes="$RUNNER_TEMP/release-notes.md"
+          {
+            printf '# Dictation V2.0.0 RC1 — BCE 离线部署验证版\n\n'
+            printf '这是 Dictation 仓库的第一个 GitHub Release，也是合并 PR #29 前的 VPS 验收候选版。\n\n'
+            printf '## 发行内容\n\n'
+            printf -- '- 完整 V2 源码、43 门课程、814 个知识点。\n'
+            printf -- '- 869 个词条音频和 25 个系统提示音。\n'
+            printf -- '- Python 3.12 x86_64/ARM64 离线 wheelhouse 及 SHA-256 清单。\n'
+            printf -- '- BCE 本地包安装器；部署时不连接 GitHub 或 PyPI。\n'
+            printf -- '- 固定入口：`http://106.12.77.224`、`https://dictation.net.cn`、`https://v2.fanqiemiao.com`。\n'
+            printf -- '- BCE 录音工作台关闭；真人录音继续在现有 V2 完成后同步。\n\n'
+            printf '## 使用\n\n'
+            printf '将三个附件上传到 BCE 的 `/root`：\n\n'
+            printf -- '- `%s`\n' "$PACKAGE_NAME"
+            printf -- '- `install-dictation-v2-bce-offline.sh`\n'
+            printf -- '- `SHA256SUMS`\n\n'
+            printf '然后运行：\n\n```bash\n'
+            printf 'chmod +x /root/install-dictation-v2-bce-offline.sh\n'
+            printf '/root/install-dictation-v2-bce-offline.sh\n'
+            printf '```\n\n'
+            printf '安装器要求 Ubuntu 24.04，并交互设置访问用户名与正好 6 位的临时密码。Python 依赖完全离线；Ubuntu 系统包仍通过 APT 安装。\n\n'
+            printf '> 注意：IP 入口是 HTTP，Basic Auth 口令不会被 TLS 加密，只适合备案期间临时验证。\n'
+          } > "$notes"
+
+      - name: Create prerelease and upload assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          release_dir="$RUNNER_TEMP/release"
+          notes="$RUNNER_TEMP/release-notes.md"
+          gh release create "$RELEASE_VERSION" \
+            --target "$GITHUB_SHA" \
+            --title "Dictation V2.0.0 RC1 — BCE offline bundle" \
+            --notes-file "$notes" \
+            --prerelease \
+            "$release_dir/$PACKAGE_NAME" \
+            "$release_dir/install-dictation-v2-bce-offline.sh" \
+            "$release_dir/SHA256SUMS"
