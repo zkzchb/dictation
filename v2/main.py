@@ -978,13 +978,21 @@ async def studio_save_sys(payload: dict):
 
 @app.get("/api/health")
 def health():
-    """供 systemd/Docker 健康检查；同时验证数据库可读。"""
+    """供 systemd/Docker 健康检查；同时验证静态题库可读。"""
     conn = get_db()
     try:
-        conn.execute("SELECT 1").fetchone()
+        lessons = conn.execute("SELECT COUNT(*) FROM lessons").fetchone()[0]
+        knowledge_points = conn.execute(
+            "SELECT COUNT(*) FROM knowledge_points"
+        ).fetchone()[0]
     finally:
         conn.close()
-    return {"status": "ok", "version": "v2", "timezone": APP_TIMEZONE}
+    return {
+        "status": "ok",
+        "version": "v2",
+        "timezone": APP_TIMEZONE,
+        "database": {"lessons": lessons, "knowledge_points": knowledge_points},
+    }
 
 
 # ================= 📁 静态文件 =================

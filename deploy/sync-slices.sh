@@ -53,6 +53,8 @@ done
   bash deploy/sync-slices.sh root@你的VPS_IP --pull    # 从 VPS 拉回"
 
 LOCAL_AUDIO="$REPO_ROOT/shared/web/audio"
+AUDIO_TOOL="$REPO_ROOT/shared/tools/audio_bundle.py"
+CONTENT_ROOT="$REPO_ROOT/chinese/3a"
 
 command -v rsync >/dev/null 2>&1 || die "缺少 rsync：sudo apt install -y rsync"
 
@@ -68,12 +70,11 @@ else
   请先执行：bash deploy/local-install.sh"
 
   COUNT="$(find "$LOCAL_AUDIO" -name '*.mp3' 2>/dev/null | wc -l | tr -d ' ')"
-  [[ "$COUNT" -gt 0 ]] || die "本地切片数为 0，请先执行：bash deploy/local-install.sh"
-  if [[ "$COUNT" -lt 500 ]]; then
-    warn "只有 $COUNT 个切片，可能未生成完整（正常约 500+）"
-  else
-    ok "本地切片 $COUNT 个"
-  fi
+  [[ -f "$AUDIO_TOOL" ]] || die "缺少严格音频校验工具: $AUDIO_TOOL"
+  DICTATION_CONTENT_ROOT="$CONTENT_ROOT" \
+    python3 "$AUDIO_TOOL" inventory --audio-dir "$LOCAL_AUDIO" >/dev/null \
+    || die "本地音频未通过完整性校验（应为 869 个词条 + 25 个系统提示音）"
+  ok "本地音频基线完整（$COUNT 个 MP3）"
   SIZE="$(du -sh "$LOCAL_AUDIO" 2>/dev/null | awk '{print $1}')"
   ok "总大小 $SIZE"
 
@@ -104,6 +105,9 @@ REMOTE_AUDIO="$REMOTE_ROOT/shared/web/audio"
 
 if [[ "$PULL" == "yes" ]]; then
   # ── VPS → 本地 ──────────────────────────────────────────────────────────
+  ssh "$TARGET" \
+    "DICTATION_CONTENT_ROOT='$REMOTE_ROOT/chinese/3a' python3 '$REMOTE_ROOT/shared/tools/audio_bundle.py' inventory --audio-dir '$REMOTE_AUDIO' >/dev/null" \
+    || die "远端音频未通过严格清单校验，拒绝拉回"
   REMOTE_COUNT="$(ssh "$TARGET" "find '$REMOTE_AUDIO' -name '*.mp3' 2>/dev/null | wc -l" | tr -d ' ')"
   [[ "$REMOTE_COUNT" -gt 0 ]] || die "远端切片数为 0，没有可拉回的内容"
   ok "远端切片 $REMOTE_COUNT 个"
@@ -133,11 +137,12 @@ if [[ "$PULL" == "yes" ]]; then
 
   NEW_COUNT="$(find "$LOCAL_AUDIO" -name '*.mp3' 2>/dev/null | wc -l | tr -d ' ')"
   step "校验"
-  if [[ "$NEW_COUNT" == "$REMOTE_COUNT" ]]; then
-    ok "本地 $NEW_COUNT 个，与远端一致"
-  else
-    warn "本地 $NEW_COUNT 个，远端 $REMOTE_COUNT 个 —— 可重跑补齐"
-  fi
+  DICTATION_CONTENT_ROOT="$CONTENT_ROOT" \
+    python3 "$AUDIO_TOOL" inventory --audio-dir "$LOCAL_AUDIO" >/dev/null \
+    || die "拉回后的本地音频未通过严格清单校验"
+  [[ "$NEW_COUNT" == "$REMOTE_COUNT" ]] \
+    || die "本地 $NEW_COUNT 个，远端 $REMOTE_COUNT 个，数量不一致"
+  ok "本地 $NEW_COUNT 个，与远端严格清单一致"
 
   # 本地若装了常驻服务，重启让新切片生效（浏览器可能还需强刷）
   if systemctl list-unit-files 2>/dev/null | grep -q '^dictation-local-v2.service'; then
@@ -203,11 +208,12 @@ ok "远端收尾完成"
 
 step "校验远端切片"
 REMOTE_COUNT="$(ssh "$TARGET" "find '$REMOTE_AUDIO' -name '*.mp3' 2>/dev/null | wc -l" | tr -d ' ')"
-if [[ "$REMOTE_COUNT" == "$COUNT" ]]; then
-  ok "远端 $REMOTE_COUNT 个，与本地一致"
-else
-  warn "远端 $REMOTE_COUNT 个，本地 $COUNT 个 —— 数量不一致，可重跑本脚本补齐"
-fi
+ssh "$TARGET" \
+  "DICTATION_CONTENT_ROOT='$REMOTE_ROOT/chinese/3a' python3 '$REMOTE_ROOT/shared/tools/audio_bundle.py' inventory --audio-dir '$REMOTE_AUDIO' >/dev/null" \
+  || die "远端音频未通过严格清单校验"
+[[ "$REMOTE_COUNT" == "$COUNT" ]] \
+  || die "远端 $REMOTE_COUNT 个，本地 $COUNT 个，数量不一致"
+ok "远端 $REMOTE_COUNT 个，与本地严格清单一致"
 
 echo
 echo "${C_HEAD}============================================================${C_OFF}"

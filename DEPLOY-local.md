@@ -1,19 +1,21 @@
 # 本地部署指南（Ubuntu 笔记本）
 
-三阶段部署的**第一阶段**。本地做两件事：生成音频切片（V2/V3 都要用，且不入 Git），以及在本机试跑确认功能正常。
+本地脚本从仓库教材包安装标准音频、初始化数据库，并可试跑 V1/V2。完整的
+`chinese/3a` 基线已进入 Git；普通使用不再需要先调用 TTS。
 
 ```
 ① 本地 Ubuntu  ← 本文档
-   生成切片 + 试跑
+   安装教材基线 + 试跑
         │
-        ├──② VPS 部署（V1/V2）→ 同步切片过去
+        ├──② VPS 部署（V1/V2）→ 服务器直接使用同一教材包
         │     见 DEPLOY-vps.md
         │
         └──③ Cloudflare 部署（V3）→ 直接复用本地切片
               见 DEPLOY-cloudflare.md
 ```
 
-为什么切片要在本地生成：约 500 个 MP3 共几 MB，不适合入 Git（`.gitignore` 已排除）；生成一次即可，VPS 和 Cloudflare 都复用同一批文件。
+当前 894 个短 MP3 约 12 MB，直接随 `chinese/3a` 版本化；`shared/web/audio`
+只是可写运行副本，可由真人录音覆盖。
 
 ---
 
@@ -22,7 +24,7 @@
 | 步骤 | 做什么 |
 |---|---|
 | 1 | 拉取代码 |
-| 2 | 填写 `deploy/local.env` 密钥 |
+| 2 | 复制 `deploy/local.env`；仅 V1/维护 TTS 时填写密钥 |
 | 3 | 跑 `deploy/local-install.sh` |
 | 4 | 本机试跑验收 |
 
@@ -31,7 +33,7 @@
 ## 0. 前置条件
 
 - Ubuntu（20.04 及以上都可以）
-- 有道智云 APP_KEY / APP_SECRET（[控制台](https://ai.youdao.com/)）
+- 仅运行 V1 或重新生成 TTS 时需要有道智云 APP_KEY / APP_SECRET
 - 磁盘约 100 MB 空闲（切片 + venv）
 
 系统包不用手动装 —— 脚本检测到缺 `python3-venv`、`ffmpeg`、`sqlite3`、`rsync` 会用 sudo 自动安装。
@@ -47,14 +49,14 @@ cd dictation
 
 ---
 
-## 2. 填写密钥
+## 2. 填写配置
 
 ```bash
 cp deploy/local.env.example deploy/local.env
 nano deploy/local.env
 ```
 
-**必填**：
+标准 V2 没有必填的有道配置；以下两项只在运行 V1 或维护 TTS 时填写：
 
 | 变量 | 说明 |
 |---|---|
@@ -65,7 +67,7 @@ nano deploy/local.env
 
 | 变量 | 默认 | 说明 |
 |---|---|---|
-| `SETUP_V1` / `SETUP_V2` | `yes` | 是否装该版本的本地运行环境 |
+| `SETUP_V1` / `SETUP_V2` | `no` / `yes` | 是否装该版本的本地运行环境 |
 | `TTS_INTERVAL` | `1.0` | 生成间隔（秒）。报 411 限流时调大到 `2.0` |
 | `YOUDAO_VOICE` | `youxiaoxun` | 音色。**改了要删 `shared/web/audio/` 重新生成全部切片** |
 | `WARM_V1_CACHE` | `yes` | 是否预热 V1 缓存（复用切片，零 API 调用） |
@@ -86,15 +88,15 @@ bash deploy/local-install.sh
 
 脚本按顺序完成：
 
-1. 校验配置（占位符未替换会直接报错并指出哪一项）
+1. 校验配置（只有启用 V1 或需要重新生成 TTS 时才要求真实密钥）
 2. 检查并安装系统包（`python3-venv` / `ffmpeg` / `sqlite3` / `rsync`）
 3. 为 V1、V2 建 venv 装依赖
 4. 初始化本地数据库（**已存在则保留数据**，只补 `poly_ids` 列）
-5. **生成音频切片**到 `shared/web/audio/`（增量，中断可重跑）
+5. 从 `chinese/3a/tts` 安装并严格校验音频；维护模式可增量生成
 6. 预热 V1 缓存（从切片复制，几乎不消耗有道额度）
 7. 生成 `.local-run.env` 供试跑用
 
-首次运行切片生成约需数分钟（500+ 个文件，默认 1 秒一个）。
+标准基线无需联网生成；完整清单为 869 个词条和 25 个系统提示音。
 
 ### 常用参数
 
@@ -113,7 +115,7 @@ bash deploy/local-install.sh --uninstall-service  # 移除服务（保留数据�
   本地部署完成
 ============================================================
 
-  音频切片   892 个  →  shared/web/audio/
+  音频切片   894 个  →  shared/web/audio/
   V1 环境    v1/venv  +  v1/dictation.db
   V2 环境    v2/venv  +  v2/dictation.db
 ```
@@ -166,8 +168,9 @@ curl -sI http://localhost:8889/audio/sys/intro.mp3 | head -3
 ### 检查切片完整性
 
 ```bash
-find shared/web/audio -name '*.mp3' | wc -l      # 正常 500+
-ls shared/web/audio/sys/                          # 应有 intro/outro/poly_intro/g1..g20
+python3 shared/tools/audio_bundle.py inventory --audio-dir shared/web/audio
+# complete 应为 true；words=869，system=25
+ls shared/web/audio/sys/                          # 含 intro/outro/poly_* 与 g1..g20
 du -sh shared/web/audio                          # 通常几 MB
 ```
 

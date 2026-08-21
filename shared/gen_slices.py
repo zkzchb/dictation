@@ -23,10 +23,14 @@ import json, os, hashlib, time, uuid
 # 的环境里也能跑（只做统计，不联网）。
 
 HERE      = os.path.dirname(os.path.abspath(__file__))
-AUDIO_DIR = os.path.join(HERE, "web", "audio")
+ROOT      = os.path.abspath(os.path.join(HERE, ".."))
+CONTENT_ROOT = os.getenv("DICTATION_CONTENT_ROOT", os.path.join(ROOT, "chinese", "3a"))
+AUDIO_DIR = os.getenv("DICTATION_AUDIO_DIR", os.path.join(HERE, "web", "audio"))
 SYS_DIR   = os.path.join(AUDIO_DIR, "sys")
 WORD_DIR  = os.path.join(AUDIO_DIR, "w")
-KP_FILES  = [os.path.join(HERE, "data", "kp_grade3.json")]
+CONTENT_KP = os.path.join(CONTENT_ROOT, "knowledge_points.json")
+LEGACY_KP  = os.path.join(HERE, "data", "kp_grade3.json")
+KP_FILES   = [CONTENT_KP if os.path.exists(CONTENT_KP) else LEGACY_KP]
 
 APP_KEY    = os.getenv("YOUDAO_APP_KEY",    "REPLACE_WITH_YOUDAO_APP_KEY")
 APP_SECRET = os.getenv("YOUDAO_APP_SECRET", "REPLACE_WITH_YOUDAO_APP_SECRET")

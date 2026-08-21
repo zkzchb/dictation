@@ -1,165 +1,85 @@
 # 听写小助手
 
-> 小学语文听写练习应用（现词库支持人教版三年级上学期）。支持生字词听写、间隔复习与打卡记录。
+小学语文听写练习应用，当前词库为人教版三年级上学期。支持每日听写、单元复习、
+间隔重复、打卡记录、批量录音、集中质检和批量重录。
 
----
+## V2.0.0 冻结版
 
-## 功能概览
+V2 已冻结为稳定功能基线：43 门课程、814 个知识点、869 个词条音频和 25 个系统
+提示音。冻结后只接受数据安全、严重兼容性和安全漏洞修复。
 
-- **每日听写** — 当课新字词优先，错题本自动补足，每次最多 30 词
-- **单元复习** — 按单元聚合，错词优先，用于单元测前冲刺
-- **间隔重复引擎** — 答对连续 3 次晋级"已掌握"，答错次日必听，复习间隔按 2ⁿ 天指数后延（上限 30 天）
-- **田字格实时高亮** — 播放时当前词的拼音与汉字同步显示
-- **35 天打卡日历** — 以颜色区分优秀 / 良好 / 需加强
-- **题库** — `42 门可选课程 + 1 个冷启动池，814 条知识点（生字 250 / 词语 418 / 易错字 108 / 多音字 38）`
+| 分支 | 用途 | Python 依赖 |
+|---|---|---|
+| `main` | 唯一功能主线、标准联网部署 | 按固定版本从 PyPI/配置的镜像安装 |
+| `main-offline` | `main` 的机械离线发行分支 | 仓库 wheelhouse，安装时不访问 PyPI |
 
----
+教材 JSON 和标准音频是产品内容，两个分支都包含。wheelhouse 只存在于
+`main-offline`；成品压缩包只发布到 GitHub Release。
 
-## 三个版本
+## 快速部署 V2
+
+### 标准联网版
+
+```bash
+apt update && apt install -y git
+git clone --branch main https://github.com/zkzchb/dictation.git /opt/dictation
+cd /opt/dictation
+bash deploy/install-v2-online.sh
+```
+
+详细说明：[V2 标准联网部署](docs/V2-DEPLOY-ONLINE.md)。
+
+### 离线版
+
+在可以访问 GitHub 的电脑下载离线 Release 附件，通过 Xftp/SCP 上传到服务器，或
+检出 `main-offline`。然后按照该分支中的 `docs/V2-DEPLOY-OFFLINE.md` 操作。
+
+两种入口都会在运行开始时询问公网 IP、主域名、备用域名、是否立即启用 HTTPS、
+访问账号、密码和录音工作台设置。仓库不保存任何个人域名、IP 或口令。
+
+备案期间可只填写公网 IP并暂不启用 HTTPS；备案完成后重新运行同一入口即可加入
+域名并让 Caddy 自动申请证书。
+
+## 三个运行版本
 
 | | V1 | V2 | V3 |
 |---|---|---|---|
-| **域名** | v1.* | v2.* | v3.* |
-| **部署目标** | Ubuntu VPS | Ubuntu VPS | Cloudflare Workers |
-| **音频方案** | 运行时调用有道 TTS，ffmpeg 拼接 | 预录切片，浏览器播放列表 | 预录切片，静态资源 CDN |
-| **数据库** | SQLite | SQLite | Cloudflare D1 |
-| **需要 ffmpeg** | ✅ | 播放不需要；录音台需要 | ❌ |
-| **服务器** | uvicorn + Caddy | uvicorn + Caddy | 无（全边缘） |
-
-V1 是最初的完整版本（适合对 TTS 效果有要求时），V2/V3 使用预先录好的切片（启动更快，无等待），三版 API 合约完全一致，可随时切换。
-
----
+| 部署目标 | Ubuntu VPS | Ubuntu VPS | Cloudflare Workers |
+| 音频方案 | 运行时调用有道 TTS | 预录切片 | 预录切片/CDN |
+| 数据库 | SQLite | SQLite | Cloudflare D1 |
+| 状态 | 保留 | 冻结主线 | 实验/边缘版本 |
 
 ## 项目结构
 
-```
-dictation-app/
-├── shared/
-│   ├── data/          词库 JSON（唯一副本）
-│   ├── web/           前端母本 index.html + audio/ 切片
-│   ├── gen_slices.py  预录切片生成脚本（调用有道 TTS）
-│   └── tools/
-│       └── export_d1.py  D1 种子 SQL 生成脚本
-├── tools/
-│   └── stage.py       把 shared/web/ 铺装到 v2/v3
-├── v1/                V1 代码（FastAPI + ffmpeg TTS）
-├── v2/                V2 代码（FastAPI + 预录切片）
-└── v3/                V3 代码（Python Workers + D1）
+```text
+dictation/
+├── chinese/3a/       教材 JSON、Studio 清单和纯净标准 TTS
+├── shared/           公共前端、建库、音频与迁移工具
+├── deploy/           本地、VPS、Cloudflare 和同步脚本
+├── docs/             冻结、安装、升级与回滚文档
+├── v1/               运行时 TTS 版本
+├── v2/               冻结的 FastAPI/SQLite 版本
+└── v3/               Cloudflare Workers 版本
 ```
 
-删掉任意两个版本目录，剩下的版本不受影响；`shared/` 永远不删。
-
----
-
-## 快速开始
-
-### 前置条件
-
-- Python ≥ 3.10
-- 有道智云账号（APP_KEY / APP_SECRET）→ [控制台](https://ai.youdao.com/)
-- V3 额外需要：Node.js ≥ 18，[uv](https://docs.astral.sh/uv/)，Cloudflare 账号
-
-### 本地部署 / 生成音频切片（V2 / V3 必须）
+## V2 验收
 
 ```bash
-cp deploy/local.env.example deploy/local.env
-nano deploy/local.env          # 填有道密钥
-bash deploy/local-install.sh
+systemctl status dictation-v2 --no-pager
+curl -fsS http://127.0.0.1:8889/api/health
+python3 shared/tools/audio_bundle.py inventory --audio-dir shared/web/audio
 ```
 
-约 500+ 个文件，首次约需数分钟，后续增量更新不重复消耗额度。
-切片是 V2/V3 的共同前置，生成一次即可分发到 VPS 与 Cloudflare。
+## 进一步文档
 
-详见 [DEPLOY-local.md](DEPLOY-local.md)。
-
-### 部署 V1 / V2（Ubuntu VPS + Caddy）
-
-服务器上拉取代码后填密钥、跑一键脚本：
-
-```bash
-git clone https://github.com/zkzchb/dictation.git /opt/dictation
-cd /opt/dictation
-cp deploy/vps.env.example deploy/vps.env
-nano deploy/vps.env          # 填有道密钥、域名、访问口令
-sudo bash deploy/vps-install.sh
-```
-
-详见 [DEPLOY-vps.md](DEPLOY-vps.md)。
-
-### 部署 V3（Cloudflare Workers）
-
-本地执行，无需服务器：
-
-```bash
-cp deploy/cloudflare.env.example deploy/cloudflare.env
-nano deploy/cloudflare.env   # 填有道密钥
-bash deploy/cloudflare-deploy.sh
-```
-
-详见 [DEPLOY-cloudflare.md](DEPLOY-cloudflare.md)。
-
----
-
-## 环境变量
-
-复制 `.env.example` 为 `.env` 并填写：
-
-| 变量 | 用途 | 版本 |
-|---|---|---|
-| `YOUDAO_APP_KEY` | 有道 TTS App Key | V1 运行时 / 切片生成 |
-| `YOUDAO_APP_SECRET` | 有道 TTS App Secret | 同上 |
-| `YOUDAO_VOICE` | TTS 音色（默认 `youxiaoxun`） | V1 |
-| `YOUDAO_SPEED` | 语速（默认 `0.6`） | V1 |
-| `AUDIO_OUTPUT_DIR` | 成品音频目录 | V1 |
-| `AUDIO_CACHE_DIR` | TTS 分词缓存目录 | V1 |
-| `DICTATION_DB` | 数据库路径（默认脚本同目录） | V1 / V2 |
-| `APP_TIMEZONE` | V2 打卡与录音台账业务时区（默认 `Asia/Shanghai`） | V2 |
-
----
-
-## API 接口
-
-| 方法 | 路径 | 说明 |
-|---|---|---|
-| `GET` | `/api/lessons` | 课程目录 |
-| `GET` | `/api/generate_daily/{lesson_seq}?mode=daily\|unit` | 生成词表 |
-| `POST` | `/api/submit_dictation` | 提交批改，服务端算分并更新记忆库 |
-| `GET` | `/api/dictation_history?start_date=&end_date=` | 打卡日历数据 |
-| `GET` | `/api/health`（仅 V2） | 服务与数据库健康检查 |
-| `POST` | `/api/generate_audio`（仅 V1）| 合成听写音频，返回 URL + 时间轴 |
-
----
-
-## 开发本地运行
-
-```bash
-cd v1   # 或 v2
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-python ../shared/init_db.py --db dictation.db   # 首次初始化数据库
-uvicorn main:app --reload --port 8888
-```
-
-访问 `http://localhost:8888`（需同时用 Caddy 或直接打开 `v1/dictation_www/index.html`）。
-
----
-
-## 技术栈
-
-**后端** FastAPI · Pydantic · SQLite / Cloudflare D1 · uvicorn  
-
-**前端** Alpine.js · Tailwind CSS · FontAwesome  
-
-**TTS** 有道智云 `youxiaoxun`（0.6× 语速）  
-
-**服务** Caddy（自动 HTTPS）· Cloudflare Workers（V3） 
-
-**算法** 自研间隔重复（基于 Leitner Box 变体）
-
----
+- [V2 冻结说明](docs/V2-FREEZE.md)
+- [V2 可复现安装规范](docs/V2-REPRODUCIBLE-INSTALL.md)
+- [V2 升级与回滚](docs/V2-UPGRADE-AND-ROLLBACK.md)
+- [本地部署](DEPLOY-local.md)
+- [Cloudflare 部署](DEPLOY-cloudflare.md)
 
 ## 许可
 
-GNU AGPL v3.0 — 允许商业使用；通过网络向用户提供修改版程序时，需要按许可证要求向这些用户提供对应源码。闭源发行或不同授权方式需要版权所有者另行许可。
+GNU AGPL v3.0。允许商业使用；通过网络向用户提供修改版程序时，需要按许可证要求
+向这些用户提供对应源码。闭源发行或不同授权方式需要版权所有者另行许可。
 
-V2 冻结、部署验收和回滚步骤见 [V2-FREEZE.md](docs/V2-FREEZE.md)。

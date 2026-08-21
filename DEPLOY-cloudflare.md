@@ -20,10 +20,11 @@
 |---|---|
 | 1 | 装工具链（Node.js、uv、wrangler 登录） |
 | 2 | 拉取代码 |
-| 3 | 填写 `deploy/cloudflare.env` 密钥 |
+| 3 | 填写 `deploy/cloudflare.env` 配置 |
 | 4 | 跑 `deploy/cloudflare-deploy.sh` |
 
-脚本自动完成：生成切片 → 铺装静态资源 → 建 D1 → 写回 `database_id` → 导种子 SQL → 应用迁移 → 部署 → 验收。
+脚本自动完成：安装并校验教材音频 → 铺装静态资源 → 建 D1 → 写回
+`database_id` → 导种子 SQL → 应用迁移 → 部署 → 验收。
 
 ---
 
@@ -31,7 +32,7 @@
 
 - Cloudflare 账号（免费版即可）
 - Node.js ≥ 18
-- 有道智云 APP_KEY / APP_SECRET（[控制台](https://ai.youdao.com/)）—— 仅用于本地生成音频切片
+- 仅重新生成 TTS 时需要有道智云 APP_KEY / APP_SECRET（[控制台](https://ai.youdao.com/)）
 - 若要用自定义域名（如 `v3.dictation.de5.net`）：该域名的 DNS 须已由 Cloudflare 托管（橙云开启）
 
 ---
@@ -97,7 +98,7 @@ cd dictation
 
 ---
 
-## 3. 填写密钥
+## 3. 填写配置
 
 ```bash
 cp deploy/cloudflare.env.example deploy/cloudflare.env
@@ -108,7 +109,7 @@ nano deploy/cloudflare.env
 
 | 变量 | 说明 |
 |---|---|
-| `YOUDAO_APP_KEY` / `YOUDAO_APP_SECRET` | 生成音频切片用。若切片已生成过，可保留占位符并加 `--skip-slices` |
+| `YOUDAO_APP_KEY` / `YOUDAO_APP_SECRET` | 仅重新生成 TTS 时使用；标准 `chinese/3a` 可保留占位符 |
 | `D1_DATABASE_ID` | **保留占位符即可** —— 脚本会自动建库并把真实 ID 写回 `v3/wrangler.jsonc` |
 
 **可选项**：
@@ -137,7 +138,7 @@ bash deploy/cloudflare-deploy.sh
 脚本按顺序执行：
 
 1. 校验配置、Node/uv/Python 版本、Cloudflare 登录状态
-2. **生成音频切片**（首次约数分钟；已有 500+ 个则自动跳过）
+2. 从仓库教材包安装并严格校验 894 个音频；维护模式才调用 TTS
 3. `tools/stage.py v3` 铺装 `v3/public/`
 4. 创建 D1 数据库，把 `database_id` 写回 `v3/wrangler.jsonc`
 5. `shared/tools/export_d1.py` 生成 `migrations/0002_seed.sql`
@@ -158,11 +159,11 @@ bash deploy/cloudflare-deploy.sh --dev           # 不上线，改为启动本�
 ==> 读取配置
   [OK] D1 数据库名: dictation-v3
 ==> 音频切片
-  [OK] 切片共 892 个
+  [OK] 音频严格清单通过（894 个 MP3）
 ==> D1 数据库
   [OK] database_id: xxxxxxxx-xxxx-...
 ==> 应用数据库迁移（远端）
-  课程 43 门，知识点 815 条
+  课程 43 门，知识点 814 条
 ==> 部署到 Cloudflare
   [OK] 部署成功：https://dictation-v3.xxx.workers.dev
 ```
@@ -314,7 +315,8 @@ cd v3 && npx wrangler d1 migrations apply dictation-v3 --remote
 
 ```bash
 python tools/stage.py v3
-find v3/public/audio -name '*.mp3' | wc -l    # 应为数百
+python3 shared/tools/audio_bundle.py inventory --audio-dir v3/public/audio
+# complete 应为 true；words=869，system=25
 bash deploy/cloudflare-deploy.sh --skip-slices
 ```
 
