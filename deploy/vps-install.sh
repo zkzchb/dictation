@@ -164,11 +164,12 @@ if [[ "$REPO_ROOT" != "$APP_ROOT" ]]; then
 fi
 ok "部署根目录: $APP_ROOT"
 
-for f in chinese/3a/dataset.json chinese/3a/lessons.json chinese/3a/knowledge_points.json \
-         chinese/3a/studio_manifest.json chinese/3a/tts.sha256 \
-         shared/init_db.py shared/tools/audio_bundle.py; do
-  [[ -f "$APP_ROOT/$f" ]] || die "缺少关键文件: $f（代码不完整？）"
-done
+[[ -f "$APP_ROOT/shared/init_db.py" \
+   && -f "$APP_ROOT/shared/content_pack.py" \
+   && -f "$APP_ROOT/shared/tools/audio_bundle.py" ]] \
+  || die "缺少内容包、建库或音频校验脚本"
+python3 "$APP_ROOT/shared/content_pack.py" "$CONTENT_ROOT" >/dev/null \
+  || die "内容包未通过结构与哈希校验: $CONTENT_ROOT"
 if [[ "$DEPLOY_V2" == "yes" && "$V2_DEPENDENCY_SOURCE" == "offline" ]]; then
   [[ -f "$APP_ROOT/shared/tools/verify_wheelhouse.py" ]] \
     || die "离线分支缺少 shared/tools/verify_wheelhouse.py"
@@ -326,7 +327,7 @@ if [[ "$DEPLOY_V2" == "yes" ]]; then
 
   python3 "$AUDIO_TOOL" inventory --audio-dir "$AUDIO_DIR" \
     || die "V2 标准音频校验失败"
-  ok "标准 TTS 基线完整（869 个词条 + 25 个系统提示音）"
+  ok "标准 TTS 基线通过内容包严格校验"
 
   # 真人录音包是可选覆盖层；只包含录音台账明确登记的文件，不导入学习历史、
   # Check 结果或待重录词表。同一资源包重复运行不会重置已经产生的新质检进度。
@@ -367,6 +368,7 @@ TTS_MAX_RETRY=$TTS_MAX_RETRY
 DICTATION_DB=$APP_ROOT/v1/dictation.db
 AUDIO_OUTPUT_DIR=$APP_ROOT/v1/audio
 AUDIO_CACHE_DIR=$APP_ROOT/v1/tts_cache
+DICTATION_CONTENT_ROOT=$CONTENT_ROOT
 EOF
   chmod 600 /etc/dictation/v1.env
   chown root:root /etc/dictation/v1.env
@@ -381,6 +383,7 @@ WEB_ROOT=$APP_ROOT/shared/web
 STUDIO_AUDIO_DIR=$APP_ROOT/shared/web/audio/w
 STUDIO_ENABLED=$STUDIO_ENABLED
 APP_TIMEZONE=$APP_TIMEZONE
+DICTATION_CONTENT_ROOT=$CONTENT_ROOT
 EOF
   chmod 600 /etc/dictation/v2.env
   chown root:root /etc/dictation/v2.env
