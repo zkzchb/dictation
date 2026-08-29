@@ -79,6 +79,8 @@ Thumbs.db
 docs/*
 !docs/V2-FREEZE.md
 !docs/V2-REPRODUCIBLE-INSTALL.md
+!docs/V2.1-OSS-ROADMAP.md
+!docs/V2.1-OSS-AUDIT.md
 
 # 一次性/过期工具（本地保留，不入库）
 tools/add_lesson_cols.py
