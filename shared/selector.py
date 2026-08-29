@@ -12,15 +12,22 @@ conn 为 sqlite3 连接，需设 row_factory = sqlite3.Row。
 import json
 import random
 
+try:
+    from .content_pack import load_content_pack
+except ImportError:  # v1/v2 add shared/ to sys.path before importing selector
+    from content_pack import load_content_pack
+
 CAT_CHAR = "生字"
 CAT_WORD = "词语"
 CAT_TYPO = "易错字"
 CAT_POLY = "多音字"
 
-TARGET_DAILY = 30      # 生字听写词数
-TARGET_REVIEW = 50     # 单元复习词数
-POLY_PER_LESSON = 2    # 每次附带的多音字个数
-COLD_START_LESSON = 3000
+_CONTENT_PACK = load_content_pack()
+TARGET_DAILY = _CONTENT_PACK.runtime.daily_target
+TARGET_REVIEW = _CONTENT_PACK.runtime.review_target
+POLY_PER_LESSON = _CONTENT_PACK.runtime.polyphonic_per_lesson
+COLD_START_LESSON = _CONTENT_PACK.runtime.cold_start_lesson
+REVIEW_LESSONS = _CONTENT_PACK.runtime.review_lessons
 TYPO_MIN_SPACING = 3   # 易混字对之间至少间隔几个词
 
 
@@ -29,8 +36,8 @@ TYPO_MIN_SPACING = 3   # 易混字对之间至少间隔几个词
 # ────────────────────────────────────────────────────────────────────────
 
 def is_review_lesson(lesson_seq):
-    """lid 末位为 0 即单元复习课（3000 冷启动除外）。"""
-    return lesson_seq % 10 == 0 and lesson_seq != COLD_START_LESSON
+    """Return whether the active content pack marks this as a review lesson."""
+    return lesson_seq in REVIEW_LESSONS
 
 
 def lesson_reading(opts, kp_id=None):
@@ -40,7 +47,7 @@ def lesson_reading(opts, kp_id=None):
     课文里用的是哪一个。取第一项。
 
     这不是猜测：老师逐条对着课本核过全部 38 条，正式课的多音字(kp_id 777–802)
-    本课读音全部是第一个候选，上学期的多音字复习(lesson_seq 3000)同样取第一项。
+    本课读音全部是第一个候选，当前内容包的冷启动复习池同样取第一项。
     所以 POLY_READING_OVERRIDE 留空即正确，无需逐条标注。
 
     保留 override 是为了以后：新课的多音字若出现本课读音不在第一项的情况，
@@ -61,13 +68,20 @@ def lesson_reading(opts, kp_id=None):
 POLY_READING_OVERRIDE = {}
 
 
+def regular_lesson_rows(conn):
+    """Return regular lessons with their explicit unit IDs."""
+    rows = conn.execute(
+        "SELECT lesson_seq, unit_id FROM lessons ORDER BY lesson_seq"
+    ).fetchall()
+    return [
+        r for r in rows
+        if r["lesson_seq"] != COLD_START_LESSON and not is_review_lesson(r["lesson_seq"])
+    ]
+
+
 def regular_lessons(conn):
     """全部正式课 lid 升序（排除复习课与冷启动）。"""
-    rows = conn.execute(
-        "SELECT lesson_seq FROM lessons WHERE lesson_seq > ? ORDER BY lesson_seq",
-        (COLD_START_LESSON,)
-    ).fetchall()
-    return [r["lesson_seq"] for r in rows if not is_review_lesson(r["lesson_seq"])]
+    return [row["lesson_seq"] for row in regular_lesson_rows(conn)]
 
 
 def _kps_of(conn, lesson_seqs, categories):
@@ -316,7 +330,8 @@ def _polyphonic_section(conn, lesson_seq, user_id=1, count=POLY_PER_LESSON):
     order   = regular_lessons(conn)
     prior   = [l for l in order if l < lesson_seq]
     prior.reverse()
-    prior.append(COLD_START_LESSON)
+    if COLD_START_LESSON is not None:
+        prior.append(COLD_START_LESSON)
     for lid in prior:
         for r in _kps_of(conn, [lid], [CAT_POLY]):
             if r["id"] not in have:
@@ -410,10 +425,10 @@ def _fill_daily(conn, picker, lesson_seq, user_id):
     if not picker.full() and len(sessions) > 1:
         picker.extend(_wrong_kps_in_sessions(conn, sessions[1:4]), "wrong_recent")
 
-    # 冷启动：开学第一课，用 lesson3000 的易混字补
+    # 冷启动：首门正式课可用内容包声明的冷启动池补足
     order = regular_lessons(conn)
     prior = [l for l in order if l < lesson_seq]
-    if not picker.full() and not prior:
+    if not picker.full() and not prior and COLD_START_LESSON is not None:
         picker.extend(_kps_of(conn, [COLD_START_LESSON], [CAT_TYPO, CAT_WORD]), "filler")
 
     # 梯队5/6：前 1–3 课的生字表，然后词语表
@@ -431,15 +446,20 @@ def _fill_daily(conn, picker, lesson_seq, user_id):
             picker.extend(_kps_of(conn, [lid], [CAT_CHAR, CAT_WORD, CAT_TYPO]), "review")
 
     # 兜底：仍不足则用冷启动库
-    if not picker.full():
+    if not picker.full() and COLD_START_LESSON is not None:
         picker.extend(_kps_of(conn, [COLD_START_LESSON], [CAT_TYPO, CAT_WORD]), "review")
 
 
 def _fill_review(conn, picker, lesson_seq, user_id):
     """单元复习 3 级梯队。"""
-    unit_prefix = lesson_seq // 10           # 3110 -> 311
-    order = regular_lessons(conn)
-    kids = [l for l in order if l // 10 == unit_prefix]
+    unit = conn.execute(
+        "SELECT unit_id FROM lessons WHERE lesson_seq = ?", (lesson_seq,)
+    ).fetchone()
+    if unit is None:
+        return
+    unit_id = unit["unit_id"]
+    lesson_rows = regular_lesson_rows(conn)
+    kids = [row["lesson_seq"] for row in lesson_rows if row["unit_id"] == unit_id]
 
     # 梯队1：本单元错词（全部）
     # 前端标红：本单元真实错词，复习课的重点
@@ -460,7 +480,9 @@ def _fill_review(conn, picker, lesson_seq, user_id):
 
     # 兜底：本单元之前的课
     if not picker.full():
-        earlier = [l for l in order if l // 10 < unit_prefix][::-1]
+        earlier = [
+            row["lesson_seq"] for row in lesson_rows if row["unit_id"] < unit_id
+        ][::-1]
         for lid in earlier:
             if picker.full():
                 break

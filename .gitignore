@@ -81,6 +81,7 @@ docs/*
 !docs/V2-REPRODUCIBLE-INSTALL.md
 !docs/V2.1-OSS-ROADMAP.md
 !docs/V2.1-OSS-AUDIT.md
+!docs/CONTENT-PACK-SPEC.md
 
 # 一次性/过期工具（本地保留，不入库）
 tools/add_lesson_cols.py
@@ -103,6 +104,7 @@ v1/dictation_www/play.html
 
 # export_d1.py 生成物（部署前重新生成）
 v3/migrations/0002_seed.sql
+v3/.content-runtime.sql
 
 # 本地部署脚本（不入库）
 deploy-local.sh

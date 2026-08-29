@@ -36,6 +36,7 @@ DATA_FILES = (
 
 sys.path.insert(0, str(SHARED_DIR))
 from gen_slices import MAX_GROUPS, SYS_PHRASES, collect_targets  # noqa: E402
+from content_pack import ContentPackError, load_content_pack  # noqa: E402
 
 
 SCHEMA_VERSION = 1
@@ -453,14 +454,17 @@ def build_dataset_manifest(content_root: Path) -> None:
         if isinstance(item, dict):
             category = str(item.get("category", ""))
             categories[category] = categories.get(category, 0) + 1
+    existing = load_object(content_root / "dataset.json", missing_ok=False)
+    required_identity = ("id", "display_name", "language", "subject")
+    if any(not isinstance(existing.get(key), str) or not existing[key].strip()
+           for key in required_identity):
+        raise BundleError("dataset.json 缺少内容包身份字段")
     metadata = {
         "schema_version": 1,
-        "id": "chinese-3a",
-        "display_name": "人教版小学语文三年级上册",
-        "language": "zh-CN",
-        "subject": "chinese",
-        "grade": 3,
-        "semester": "first",
+        "id": existing["id"],
+        "display_name": existing["display_name"],
+        "language": existing["language"],
+        "subject": existing["subject"],
         "paths": {
             "lessons": "lessons.json",
             "knowledge_points": "knowledge_points.json",
@@ -476,12 +480,7 @@ def build_dataset_manifest(content_root: Path) -> None:
             "tts_system": len(expected_system_files()),
             "categories": dict(sorted(categories.items())),
         },
-        "tts": {
-            "provider": "youdao",
-            "voice": "youxiaoxun",
-            "speed": 0.6,
-            "format": "mp3",
-        },
+        "tts": existing.get("tts", {}),
         "sha256": {
             "lessons": sha256_file(lessons_path),
             "knowledge_points": sha256_file(kp_path),
@@ -490,6 +489,9 @@ def build_dataset_manifest(content_root: Path) -> None:
             "dataset": dataset_sha256(),
         },
     }
+    for key in ("grade", "semester", "runtime", "license", "source"):
+        if key in existing:
+            metadata[key] = existing[key]
     atomic_write_json(content_root / "dataset.json", metadata)
     print(
         f"[OK] 教材清单: {content_root / 'dataset.json'} "
@@ -502,30 +504,12 @@ def verify_dataset_manifest(content_root: Path) -> None:
         raise BundleError(
             f"当前进程绑定教材目录 {CONTENT_ROOT}；如需其他目录请设置 DICTATION_CONTENT_ROOT"
         )
-    metadata = load_object(content_root / "dataset.json", missing_ok=False)
-    if (
-        metadata.get("schema_version") != 1
-        or metadata.get("id") != "chinese-3a"
-        or metadata.get("language") != "zh-CN"
-        or metadata.get("subject") != "chinese"
-        or metadata.get("grade") != 3
-        or metadata.get("semester") != "first"
-    ):
-        raise BundleError("dataset.json 格式或教材 ID 错误")
-
-    lessons_path = content_root / "lessons.json"
-    kp_path = content_root / "knowledge_points.json"
-    studio_path = content_root / "studio_manifest.json"
-    checksum_path = content_root / "tts.sha256"
-    actual_hashes = {
-        "lessons": sha256_file(lessons_path),
-        "knowledge_points": sha256_file(kp_path),
-        "studio_manifest": sha256_file(studio_path),
-        "tts_checksums": sha256_file(checksum_path),
-        "dataset": dataset_sha256(),
-    }
-    if metadata.get("sha256") != actual_hashes:
-        raise BundleError("dataset.json 中的教材 SHA-256 与文件不一致")
+    try:
+        pack = load_content_pack(content_root)
+    except ContentPackError as exc:
+        raise BundleError(str(exc)) from exc
+    metadata = pack.metadata
+    checksum_path = pack.paths["tts_checksums"]
 
     expected_paths = {
         f"tts/{name.removeprefix('audio/')}" for name in expected_baseline_files()
@@ -554,44 +538,16 @@ def verify_dataset_manifest(content_root: Path) -> None:
         if sha256_file(path) != checksum:
             raise BundleError(f"TTS 校验失败: {relative}")
 
-    lessons = json.loads(lessons_path.read_text(encoding="utf-8"))
-    knowledge_points = json.loads(kp_path.read_text(encoding="utf-8"))
-    studio = json.loads(studio_path.read_text(encoding="utf-8"))
-    if not all(isinstance(value, list) for value in (lessons, knowledge_points, studio)):
-        raise BundleError("教材 JSON 顶层必须都是数组")
-    categories: dict[str, int] = {}
-    for item in knowledge_points:
-        if not isinstance(item, dict):
-            raise BundleError("knowledge_points.json 的项目必须是对象")
-        category = str(item.get("category", ""))
-        categories[category] = categories.get(category, 0) + 1
-
     counts = metadata.get("counts", {})
-    expected_counts = {
-        "lessons": 43,
-        "knowledge_points": 814,
-        "studio_words": 869,
-        "tts_words": 869,
-        "tts_system": 25,
-        "categories": {"多音字": 38, "易错字": 108, "生字": 250, "词语": 418},
-    }
-    actual_counts = {
-        "lessons": len(lessons),
-        "knowledge_points": len(knowledge_points),
-        "studio_words": len(studio),
+    audio_counts = {
         "tts_words": len(expected_word_files()),
         "tts_system": len(expected_system_files()),
-        "categories": dict(sorted(categories.items())),
     }
-    if (
-        not isinstance(counts, dict)
-        or counts != expected_counts
-        or actual_counts != expected_counts
-    ):
-        raise BundleError("dataset.json 的冻结数量不正确")
+    if any(counts.get(key) != value for key, value in audio_counts.items()):
+        raise BundleError("dataset.json 的音频数量不正确")
     print(
         f"[OK] 教材包完整: {metadata.get('display_name')} "
-        f"({len(listed)} 音频, dataset={actual_hashes['dataset'][:12]})"
+        f"({len(listed)} 音频, dataset={pack.dataset_sha256[:12]})"
     )
 
 

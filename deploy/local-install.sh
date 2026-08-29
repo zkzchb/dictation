@@ -92,6 +92,7 @@ set -a; . "$ENV_FILE"; set +a
 : "${BIND_HOST:=127.0.0.1}"
 : "${STUDIO_ENABLED:=1}"
 : "${WARM_V1_CACHE:=yes}"
+: "${CONTENT_ROOT:=chinese/3a}"
 
 SETUP_V1="$(echo "$SETUP_V1" | tr '[:upper:]' '[:lower:]')"
 SETUP_V2="$(echo "$SETUP_V2" | tr '[:upper:]' '[:lower:]')"
@@ -104,7 +105,7 @@ is_placeholder() {
 
 # 切片生成需要真实密钥；已有足够切片时可以不填
 AUDIO_DIR="$REPO_ROOT/shared/web/audio"
-CONTENT_ROOT="$REPO_ROOT/chinese/3a"
+[[ "$CONTENT_ROOT" == /* ]] || CONTENT_ROOT="$REPO_ROOT/$CONTENT_ROOT"
 CONTENT_AUDIO_DIR="$CONTENT_ROOT/tts"
 AUDIO_TOOL="$REPO_ROOT/shared/tools/audio_bundle.py"
 export DICTATION_CONTENT_ROOT="$CONTENT_ROOT"
@@ -145,13 +146,12 @@ fi
 ok "Python $(python3 -V 2>&1 | awk '{print $2}')"
 command -v ffmpeg >/dev/null 2>&1 && ok "ffmpeg $(ffmpeg -version 2>/dev/null | head -1 | awk '{print $3}')"
 
-# 题库文件
-for f in chinese/3a/dataset.json chinese/3a/lessons.json chinese/3a/knowledge_points.json \
-         chinese/3a/studio_manifest.json chinese/3a/tts.sha256 \
-         shared/init_db.py shared/tools/audio_bundle.py; do
-  [[ -f "$REPO_ROOT/$f" ]] || die "缺少关键文件: $f（代码不完整？）"
-done
-ok "题库与建库脚本就位"
+# 内容包是唯一数据入口；具体 JSON 路径由 dataset.json 声明。
+[[ -f "$REPO_ROOT/shared/init_db.py" && -f "$AUDIO_TOOL" ]] \
+  || die "缺少建库或音频校验脚本"
+python3 "$REPO_ROOT/shared/content_pack.py" "$CONTENT_ROOT" >/dev/null \
+  || die "内容包未通过结构与哈希校验: $CONTENT_ROOT"
+ok "内容包与建库脚本就位"
 
 # 正式教材包随仓库分发。运行目录为空或不完整时只补缺失文件；-n 保证本地真人
 # 录音不会被标准 TTS 覆盖。依赖和关键文件就位后再调用严格校验工具。
@@ -160,7 +160,7 @@ if ! python3 "$AUDIO_TOOL" inventory --audio-dir "$AUDIO_DIR" >/dev/null 2>&1; t
     mkdir -p "$AUDIO_DIR"
     cp -an "$CONTENT_AUDIO_DIR/." "$AUDIO_DIR/"
     EXISTING="$(find "$AUDIO_DIR" -name '*.mp3' 2>/dev/null | wc -l | tr -d ' ')"
-    ok "已从 chinese/3a 教材包补齐标准音频"
+    ok "已从内容包补齐标准音频"
   fi
 fi
 
@@ -170,7 +170,7 @@ if ! python3 "$AUDIO_TOOL" inventory --audio-dir "$AUDIO_DIR" >/dev/null 2>&1; t
       || die "V2 音频未通过完整性校验，不能用 --skip-slices 跳过"
   elif is_placeholder "${YOUDAO_APP_KEY-}" || is_placeholder "${YOUDAO_APP_SECRET-}"; then
     die "仓库音频不完整（当前只有 $EXISTING 个），且有道密钥仍是占位符。
-  请先确认 chinese/3a 教材包完整；维护者也可填写密钥后重新生成。"
+  请先确认内容包完整；维护者也可填写密钥后重新生成。"
   else
     ok "仓库音频不完整，将使用已配置的有道密钥补齐"
   fi
@@ -293,6 +293,7 @@ export YOUDAO_VOICE='$YOUDAO_VOICE'
 export YOUDAO_SPEED='$YOUDAO_SPEED'
 export AUDIO_CACHE_DIR='$V1_CACHE_DIR'
 export AUDIO_OUTPUT_DIR='$REPO_ROOT/v1/audio'
+export DICTATION_CONTENT_ROOT='$CONTENT_ROOT'
 EOF
 chmod 600 "$REPO_ROOT/.local-run.env"
 ok ".local-run.env（含密钥，权限 600）"
@@ -359,6 +360,7 @@ YOUDAO_SPEED=$YOUDAO_SPEED
 AUDIO_CACHE_DIR=$V1_CACHE_DIR
 AUDIO_OUTPUT_DIR=$REPO_ROOT/v1/audio
 STUDIO_ENABLED=$STUDIO_ENABLED
+DICTATION_CONTENT_ROOT=$CONTENT_ROOT
 EOF
   chmod 600 "$ENV_SVC"
   ok ".local-svc.env（systemd 格式，权限 600）"

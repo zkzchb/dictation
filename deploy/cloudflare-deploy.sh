@@ -47,6 +47,7 @@ step "读取配置"
 set -a; . "$ENV_FILE"; set +a
 
 : "${D1_DATABASE_NAME:=dictation-v3}"
+: "${CONTENT_ROOT:=chinese/3a}"
 : "${YOUDAO_VOICE:=youxiaoxun}"
 : "${YOUDAO_SPEED:=0.6}"
 : "${TTS_INTERVAL:=1.0}"
@@ -94,7 +95,8 @@ fi
 # ── 生成音频切片 ─────────────────────────────────────────────────────────
 step "音频切片"
 AUDIO_DIR="$REPO_ROOT/shared/web/audio"
-CONTENT_ROOT="$REPO_ROOT/chinese/3a"
+[[ "$CONTENT_ROOT" == /* ]] || CONTENT_ROOT="$REPO_ROOT/$CONTENT_ROOT"
+[[ -f "$CONTENT_ROOT/dataset.json" ]] || die "内容包缺少 dataset.json: $CONTENT_ROOT"
 CONTENT_AUDIO_DIR="$CONTENT_ROOT/tts"
 AUDIO_TOOL="$REPO_ROOT/shared/tools/audio_bundle.py"
 export DICTATION_CONTENT_ROOT="$CONTENT_ROOT"
@@ -105,7 +107,7 @@ if ! python3 "$AUDIO_TOOL" inventory --audio-dir "$AUDIO_DIR" >/dev/null 2>&1 \
   mkdir -p "$AUDIO_DIR"
   cp -an "$CONTENT_AUDIO_DIR/." "$AUDIO_DIR/"
   EXISTING="$(find "$AUDIO_DIR" -name '*.mp3' 2>/dev/null | wc -l | tr -d ' ')"
-  ok "已从 chinese/3a 教材包补齐标准音频"
+  ok "已从内容包补齐标准音频"
 fi
 
 if python3 "$AUDIO_TOOL" inventory --audio-dir "$AUDIO_DIR" >/dev/null 2>&1; then
@@ -135,7 +137,7 @@ else
 
   NOW="$(find "$AUDIO_DIR" -name '*.mp3' 2>/dev/null | wc -l | tr -d ' ')"
   python3 "$AUDIO_TOOL" inventory --audio-dir "$AUDIO_DIR" >/dev/null \
-    || die "生成后音频仍未通过 869 个词条 + 25 个系统提示音的严格校验"
+    || die "生成后音频仍未通过内容包严格校验"
   ok "切片共 $NOW 个"
 fi
 
@@ -207,9 +209,11 @@ fi
 
 # ── 生成种子 SQL ─────────────────────────────────────────────────────────
 step "生成 D1 种子 SQL"
-python3 "$REPO_ROOT/shared/tools/export_d1.py"
+python3 "$REPO_ROOT/shared/tools/export_d1.py" --content-root "$CONTENT_ROOT"
 SEED="$V3_DIR/migrations/0002_seed.sql"
+RUNTIME_SQL="$V3_DIR/.content-runtime.sql"
 [[ -f "$SEED" ]] || die "种子 SQL 未生成：$SEED"
+[[ -f "$RUNTIME_SQL" ]] || die "运行时 SQL 未生成：$RUNTIME_SQL"
 ok "$(basename "$SEED") ($(wc -l < "$SEED" | tr -d ' ') 行)"
 
 # ── 应用迁移 ─────────────────────────────────────────────────────────────
@@ -219,6 +223,13 @@ if npx --yes wrangler d1 migrations apply "$D1_DATABASE_NAME" --remote 2>&1 | ta
   ok "迁移已应用"
 else
   warn "迁移命令返回非零。若提示 'No migrations to apply' 属正常"
+fi
+
+if npx --yes wrangler d1 execute "$D1_DATABASE_NAME" --remote \
+  --file "$RUNTIME_SQL" 2>&1 | tail -20; then
+  ok "内容包运行时配置已刷新"
+else
+  die "无法写入内容包运行时配置"
 fi
 
 # 验证行数

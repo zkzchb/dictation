@@ -23,7 +23,6 @@ import selector  # noqa: E402
 BASE_DIR         = os.path.dirname(os.path.abspath(__file__))
 DB_PATH          = os.getenv("DICTATION_DB", os.path.join(BASE_DIR, "dictation.db"))
 USER_ID          = 1
-DAILY_TARGET     = 30
 EXCLUDE_CATEGORY = "易混淆字"
 APP_TIMEZONE      = os.getenv("APP_TIMEZONE", "Asia/Shanghai")
 
@@ -99,7 +98,7 @@ def _lesson_row(r):
     """把 lessons 行转成前端直接可用的结构（与 V1/V3 保持一致）。
 
     补两个字段，避免前端自己拼字符串、也避免它暴露内部编号：
-      is_review  lesson_seq 末位为 0 即单元复习课，前端据此把两个下拉菜单分开
+      is_review  由内容包声明是否为复习课，前端据此把两个下拉菜单分开
       label      给人看的名字，三种情形：
                    复习课            第一单元 单元复习
                    title 已含在 name 语文园地一
@@ -110,10 +109,7 @@ def _lesson_row(r):
     title = (d.get("lesson_title") or "").strip()
     name = (d.get("lesson_name") or "").strip()
     unit = (d.get("unit_name") or "").strip()
-    # 与 selector.is_review_lesson() 保持一致：末位 0 是复习课，但 3000
-    # 是冷启动填充池（二年级总复习），选词时按正式课走，不能算复习课。
-    # 不排除的话它会落进「单元复习」下拉，而后端按正式课出题 —— 前后端判定打架。
-    d["is_review"] = seq % 10 == 0 and seq != 3000
+    d["is_review"] = selector.is_review_lesson(seq)
     if d["is_review"]:
         d["label"] = f"{unit} {name}".strip()
     elif title and title not in name:
@@ -130,9 +126,12 @@ def get_lessons():
         rows = conn.execute(
             "SELECT lesson_seq, unit_id AS unit_seq, unit_name, lesson_name, "
             "       COALESCE(lesson_title, '') AS lesson_title "
-            "FROM lessons WHERE lesson_seq >= 3100 ORDER BY lesson_seq"
+            "FROM lessons ORDER BY lesson_seq"
         ).fetchall()
-        return [_lesson_row(r) for r in rows]
+        return [
+            _lesson_row(r) for r in rows
+            if r["lesson_seq"] != selector.COLD_START_LESSON
+        ]
     finally:
         conn.close()
 
@@ -158,8 +157,8 @@ def generate_daily(lesson_seq: int, mode: str = "daily"):
     """生成词表。
 
     梯队算法在 shared/selector.py 中实现（见设计文档 §5）：
-      * 正式课（lid 末位非 0）：30 词，7 级梯队，附 2 个多音字段落
-      * 复习课（lid 末位为 0）：50 词，3 级梯队，无多音字
+      * 正式课：使用内容包的 daily_target，7 级梯队，可附多音字段落
+      * 复习课：使用内容包的 review_target，3 级梯队，无多音字
     模式由 lesson_seq 自动判定；mode 仅用于拒绝前端课程/模式错配。
     """
     if mode not in ("daily", "unit"):
@@ -527,13 +526,10 @@ def studio_words():
 
     排序在纯课序之外做了两处调整，都是为了让老师照课本顺序录：
 
-      1. COLD_START_LESSON(3000，二年级总复习) 只是第一门正式课的填充池，极少
-         真正播到。它的课序最小，若按原序会排在最前，老师一开工录的全是填充词。
-      2. 复习课 lid 末位为 0（3110、3120…），数字上小于本单元正课（3111…），
-         按原序会排在本单元之前。老师手里的课本是先正课后复习。
+      1. 内容包的冷启动池只是首门正式课的填充来源，排到最后，避免优先录制填充词。
+      2. 内容包显式声明的复习课排在同单元正式课之后，符合教材使用顺序。
 
-    两处都用 SQLite 布尔表达式返回 0/1 的特性做排序键：命中的行键为 1，自然沉到
-    同级末尾。整数除法 kp.lesson_seq / 10 取单元号（3110 与 3111 同属 311）。
+    排序在 Python 中使用内容包配置，不再从课程编号的末位推断课程类型。
 
     注意排序同时决定「词归哪一课」——去重只保留首次出现，所以复习课后置会把
     与正课重复的词改判到正课名下（实测 38 个词），词表总数与 hash 集合不变。
@@ -543,16 +539,23 @@ def studio_words():
     try:
         rows = conn.execute(
             "SELECT kp.id, kp.lesson_seq, kp.target, kp.category, kp.options_json, "
+            "       COALESCE(l.unit_id, 0) AS unit_id, "
             "       COALESCE(l.lesson_title,'') AS lesson_title, "
             "       COALESCE(l.lesson_name,'')  AS lesson_name "
             "FROM knowledge_points kp "
             "LEFT JOIN lessons l ON l.lesson_seq = kp.lesson_seq "
-            "ORDER BY (kp.lesson_seq = ?), "        # 冷启动填充课整体沉到末尾
-            "         kp.lesson_seq / 10, "          # 再按单元
-            "         (kp.lesson_seq % 10 = 0), "    # 单元内正课在前、复习课在后
-            "         kp.lesson_seq, kp.id",
-            (selector.COLD_START_LESSON,)
+            "ORDER BY kp.lesson_seq, kp.id"
         ).fetchall()
+        rows = sorted(
+            rows,
+            key=lambda row: (
+                row["lesson_seq"] == selector.COLD_START_LESSON,
+                row["unit_id"],
+                selector.is_review_lesson(row["lesson_seq"]),
+                row["lesson_seq"],
+                row["id"],
+            ),
+        )
     finally:
         conn.close()
 

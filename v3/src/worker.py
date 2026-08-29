@@ -16,7 +16,6 @@ import selector_d1  # 选词引擎(D1异步版)
 from datetime import datetime, timedelta
 
 USER_ID = 1
-DAILY_TARGET = 30
 EXCLUDE_CATEGORY = "易混淆字"
 
 app = FastAPI(title="听写小助手 V3 API")
@@ -78,11 +77,11 @@ def _rows_of(result):
 
 # ── 接口 ─────────────────────────────────────────────────────────────────
 
-def _lesson_row(d):
+def _lesson_row(d, runtime):
     """把 lessons 行转成前端直接可用的结构（与 V1/V2 保持一致）。
 
     补两个字段，避免前端自己拼字符串、也避免它暴露内部编号：
-      is_review  lesson_seq 末位为 0 即单元复习课，前端据此把两个下拉菜单分开
+      is_review  由内容包声明是否为复习课，前端据此把两个下拉菜单分开
       label      给人看的名字，三种情形：
                    复习课            第一单元 单元复习
                    title 已含在 name 语文园地一
@@ -92,10 +91,7 @@ def _lesson_row(d):
     title = (d.get("lesson_title") or "").strip()
     name = (d.get("lesson_name") or "").strip()
     unit = (d.get("unit_name") or "").strip()
-    # 与 selector_d1.is_review_lesson() 保持一致：末位 0 是复习课，但 3000
-    # 是冷启动填充池（二年级总复习），选词时按正式课走，不能算复习课。
-    # 不排除的话它会落进「单元复习」下拉，而后端按正式课出题 —— 前后端判定打架。
-    d["is_review"] = seq % 10 == 0 and seq != 3000
+    d["is_review"] = selector_d1.is_review_lesson(seq, runtime)
     if d["is_review"]:
         d["label"] = f"{unit} {name}".strip()
     elif title and title not in name:
@@ -108,25 +104,40 @@ def _lesson_row(d):
 @app.get("/api/lessons")
 async def get_lessons(req: Request):
     env = req.scope["env"]
+    runtime = await selector_d1.load_runtime(env.DB)
     result = await env.DB.prepare(
         "SELECT lesson_seq, unit_id AS unit_seq, unit_name, lesson_name, "
         "       COALESCE(lesson_title, '') AS lesson_title "
-        # >= 3100 与 V1/V2 一致：排除 3000（冷启动词库，二年级总复习）。
-        # 3000 是给梯队算法兜底用的填充池，不是可选课程 —— 列进下拉菜单
-        # 会让用户选到一门 selector 按「正式课」处理、前端却当「复习课」的课。
-        "FROM lessons WHERE lesson_seq >= 3100 ORDER BY lesson_seq"
+        "FROM lessons ORDER BY lesson_seq"
     ).run()
-    return [_lesson_row(d) for d in _rows_of(result)]
+    return [
+        _lesson_row(row, runtime) for row in _rows_of(result)
+        if row["lesson_seq"] != runtime["cold_start_lesson"]
+    ]
 
 
 @app.get("/api/generate_daily/{lesson_seq}")
 async def generate_daily(lesson_seq: int, req: Request, mode: str = "daily"):
     """生成词表。梯队算法见 selector_d1.py 与设计文档 §5。
 
-    正式课 30 词 + 2 多音字；复习课（lid 末位 0）50 词、无多音字。
+    目标词数、复习课和多音字数量全部来自部署的内容包。
     """
     env = req.scope["env"]
-    words, poly = await selector_d1.build_word_list(env.DB, lesson_seq, user_id=USER_ID)
+    runtime = await selector_d1.load_runtime(env.DB)
+    if mode not in ("daily", "unit"):
+        raise HTTPException(status_code=400, detail="mode 必须是 daily 或 unit")
+    if (mode == "unit") != selector_d1.is_review_lesson(lesson_seq, runtime):
+        raise HTTPException(status_code=400, detail="mode 与课程类型不匹配")
+    exists = _rows_of(
+        await env.DB.prepare(
+            "SELECT 1 AS found FROM lessons WHERE lesson_seq = ?"
+        ).bind(lesson_seq).run()
+    )
+    if not exists:
+        raise HTTPException(status_code=404, detail="课程不存在")
+    words, poly = await selector_d1.build_word_list(
+        env.DB, lesson_seq, user_id=USER_ID, runtime=runtime
+    )
 
     data = [{
         "id": w["id"], "target": w["target"], "pinyin": w["pinyin"],
@@ -212,4 +223,3 @@ async def get_dictation_history(start_date: str, end_date: str, req: Request):
         "GROUP BY date(created_at)"
     ).bind(USER_ID, start_date, end_date).run())
     return {r["d"]: r["s"] for r in rows}
-

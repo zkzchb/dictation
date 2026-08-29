@@ -23,6 +23,14 @@
     "tts": "tts",
     "tts_checksums": "tts.sha256"
   },
+  "runtime": {
+    "cold_start_lesson": 3000,
+    "daily_target": 30,
+    "initial_lesson": 3111,
+    "polyphonic_per_lesson": 2,
+    "review_lessons": [3110, 3120, 3130, 3140, 3150, 3160, 3170, 3180],
+    "review_target": 50
+  },
   "schema_version": 1,
   "semester": "first",
   "sha256": {

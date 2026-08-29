@@ -73,7 +73,6 @@ YOUDAO_VOICE = os.getenv("YOUDAO_VOICE", "youxiaoxun")
 YOUDAO_SPEED = os.getenv("YOUDAO_SPEED", "0.6")
 
 USER_ID = 1              # 单用户 MVP，固定用户
-DAILY_TARGET = 30        # 每日词表目标数量
 EXCLUDE_CATEGORY = "易混淆字"  # 该类只有选字题、无拼音可听写，一律排除
 
 os.makedirs(CACHE_DIR, exist_ok=True)
@@ -143,7 +142,7 @@ def _lesson_row(r):
     """把 lessons 行转成前端直接可用的结构。
 
     补两个字段，避免前端自己拼字符串、也避免它暴露内部编号：
-      is_review  lesson_seq 末位为 0 即单元复习课，前端据此把两个下拉菜单分开
+      is_review  由内容包声明是否为复习课，前端据此把两个下拉菜单分开
       label      给人看的名字，三种情形：
                    复习课            第一单元 单元复习
                    title 已含在 name 语文园地一
@@ -154,10 +153,7 @@ def _lesson_row(r):
     title = (d.get("lesson_title") or "").strip()
     name = (d.get("lesson_name") or "").strip()
     unit = (d.get("unit_name") or "").strip()
-    # 与 selector.is_review_lesson() 保持一致：末位 0 是复习课，但 3000
-    # 是冷启动填充池（二年级总复习），选词时按正式课走，不能算复习课。
-    # 不排除的话它会落进「单元复习」下拉，而后端按正式课出题 —— 前后端判定打架。
-    d["is_review"] = seq % 10 == 0 and seq != 3000
+    d["is_review"] = selector.is_review_lesson(seq)
     if d["is_review"]:
         d["label"] = f"{unit} {name}".strip()
     elif title and title not in name:
@@ -169,15 +165,18 @@ def _lesson_row(r):
 
 @app.get("/api/lessons")
 def get_lessons():
-    """课程目录（供前端下拉菜单）。lesson_seq >= 3100 为正式课。"""
+    """课程目录（供前端下拉菜单），不暴露内容包的冷启动池。"""
     conn = get_db()
     try:
         rows = conn.execute("""
             SELECT lesson_seq, unit_id AS unit_seq, unit_name, lesson_name,
                    COALESCE(lesson_title, '') AS lesson_title
-            FROM lessons WHERE lesson_seq >= 3100 ORDER BY lesson_seq ASC
+            FROM lessons ORDER BY lesson_seq ASC
         """).fetchall()
-        return [_lesson_row(r) for r in rows]
+        return [
+            _lesson_row(r) for r in rows
+            if r["lesson_seq"] != selector.COLD_START_LESSON
+        ]
     finally:
         conn.close()
 
@@ -470,4 +469,3 @@ if os.path.isdir(_WWW_DIR):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8888)
-

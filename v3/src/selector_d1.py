@@ -14,15 +14,32 @@ CAT_WORD = "词语"
 CAT_TYPO = "易错字"
 CAT_POLY = "多音字"
 
-TARGET_DAILY = 30
-TARGET_REVIEW = 50
-POLY_PER_LESSON = 2
-COLD_START_LESSON = 3000
 TYPO_MIN_SPACING = 3
 
 
-def is_review_lesson(lesson_seq):
-    return lesson_seq % 10 == 0 and lesson_seq != COLD_START_LESSON
+def runtime_from_row(row):
+    """Normalize the singleton content_runtime row written during deploy."""
+    try:
+        reviews = json.loads(row["review_lessons_json"])
+        if not isinstance(reviews, list) or any(
+            isinstance(seq, bool) or not isinstance(seq, int) for seq in reviews
+        ):
+            raise ValueError
+        return {
+            "pack_id": str(row["pack_id"]),
+            "cold_start_lesson": row.get("cold_start_lesson"),
+            "initial_lesson": int(row["initial_lesson"]),
+            "review_lessons": frozenset(reviews),
+            "daily_target": int(row["daily_target"]),
+            "review_target": int(row["review_target"]),
+            "polyphonic_per_lesson": int(row["polyphonic_per_lesson"]),
+        }
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise RuntimeError("D1 content_runtime 配置无效，请重新执行部署") from exc
+
+
+def is_review_lesson(lesson_seq, runtime):
+    return lesson_seq in runtime["review_lessons"]
 
 
 # 本课读音例外表：{kp_id: 候选序号(从 1 开始)}。
@@ -55,11 +72,31 @@ async def _rows(db, sql, params=()):
     return rows.to_py() if hasattr(rows, "to_py") else list(rows)
 
 
-async def regular_lessons(db):
+async def load_runtime(db):
     rows = await _rows(
-        db, "SELECT lesson_seq FROM lessons WHERE lesson_seq > ? ORDER BY lesson_seq",
-        (COLD_START_LESSON,))
-    return [r["lesson_seq"] for r in rows if not is_review_lesson(r["lesson_seq"])]
+        db,
+        "SELECT pack_id, cold_start_lesson, initial_lesson, review_lessons_json, "
+        "daily_target, review_target, polyphonic_per_lesson "
+        "FROM content_runtime WHERE singleton = 1",
+    )
+    if len(rows) != 1:
+        raise RuntimeError("D1 缺少 content_runtime，请重新执行部署")
+    return runtime_from_row(rows[0])
+
+
+async def regular_lesson_rows(db, runtime=None):
+    runtime = runtime or await load_runtime(db)
+    rows = await _rows(db, "SELECT lesson_seq, unit_id FROM lessons ORDER BY lesson_seq")
+    cold = runtime["cold_start_lesson"]
+    return [
+        row for row in rows
+        if row["lesson_seq"] != cold and not is_review_lesson(row["lesson_seq"], runtime)
+    ]
+
+
+async def regular_lessons(db, runtime=None):
+    rows = await regular_lesson_rows(db, runtime)
+    return [row["lesson_seq"] for row in rows]
 
 
 async def _kps_of(db, lesson_seqs, categories):
@@ -236,16 +273,21 @@ async def _recent_poly_ids(db, user_id, limit=8):
     return out
 
 
-async def _polyphonic_section(db, lesson_seq, user_id=1, count=POLY_PER_LESSON):
+async def _polyphonic_section(db, lesson_seq, user_id=1, count=None, runtime=None):
+    runtime = runtime or await load_runtime(db)
+    if count is None:
+        count = runtime["polyphonic_per_lesson"]
     # 先把候选池收全 —— 原实现凑够 count 就停止回溯，池子永远只有 2 个，
     # 没有任何轮换空间，这是每次固定同两个多音字的直接原因。
     rows    = list(await _kps_of(db, [lesson_seq], [CAT_POLY]))
     own_ids = {r["id"] for r in rows}
     have    = set(own_ids)
-    order   = await regular_lessons(db)
+    order   = await regular_lessons(db, runtime)
     prior   = [l for l in order if l < lesson_seq]
     prior.reverse()
-    prior.append(COLD_START_LESSON)
+    cold = runtime["cold_start_lesson"]
+    if cold is not None:
+        prior.append(cold)
     for lid in prior:
         for r in await _kps_of(db, [lid], [CAT_POLY]):
             if r["id"] not in have:
@@ -292,22 +334,27 @@ async def _polyphonic_section(db, lesson_seq, user_id=1, count=POLY_PER_LESSON):
     return out
 
 
-async def build_word_list(db, lesson_seq, user_id=1, rng=None):
+async def build_word_list(db, lesson_seq, user_id=1, rng=None, runtime=None):
+    runtime = runtime or await load_runtime(db)
     rng = rng or random
-    review = is_review_lesson(lesson_seq)
-    picker = Picker(TARGET_REVIEW if review else TARGET_DAILY, rng)
+    review = is_review_lesson(lesson_seq, runtime)
+    picker = Picker(
+        runtime["review_target"] if review else runtime["daily_target"], rng
+    )
 
     if review:
-        await _fill_review(db, picker, lesson_seq, user_id)
+        await _fill_review(db, picker, lesson_seq, user_id, runtime)
         poly = []
     else:
-        await _fill_daily(db, picker, lesson_seq, user_id)
-        poly = await _polyphonic_section(db, lesson_seq, user_id)
+        await _fill_daily(db, picker, lesson_seq, user_id, runtime)
+        poly = await _polyphonic_section(
+            db, lesson_seq, user_id, runtime=runtime
+        )
 
     return _space_typo_pairs(picker.items), poly
 
 
-async def _fill_daily(db, picker, lesson_seq, user_id):
+async def _fill_daily(db, picker, lesson_seq, user_id, runtime):
     sessions = await _session_ids(db, user_id, limit=8)
 
     if sessions:
@@ -318,10 +365,11 @@ async def _fill_daily(db, picker, lesson_seq, user_id):
     if not picker.full() and len(sessions) > 1:
         picker.extend(await _wrong_kps_in_sessions(db, sessions[1:4]), "wrong_recent")
 
-    order = await regular_lessons(db)
+    order = await regular_lessons(db, runtime)
     prior = [l for l in order if l < lesson_seq]
-    if not picker.full() and not prior:
-        picker.extend(await _kps_of(db, [COLD_START_LESSON], [CAT_TYPO, CAT_WORD]), "filler")
+    cold = runtime["cold_start_lesson"]
+    if not picker.full() and not prior and cold is not None:
+        picker.extend(await _kps_of(db, [cold], [CAT_TYPO, CAT_WORD]), "filler")
 
     recent3 = prior[-3:][::-1]
     if not picker.full() and recent3:
@@ -335,14 +383,19 @@ async def _fill_daily(db, picker, lesson_seq, user_id):
                 break
             picker.extend(await _kps_of(db, [lid], [CAT_CHAR, CAT_WORD, CAT_TYPO]), "review")
 
-    if not picker.full():
-        picker.extend(await _kps_of(db, [COLD_START_LESSON], [CAT_TYPO, CAT_WORD]), "review")
+    if not picker.full() and cold is not None:
+        picker.extend(await _kps_of(db, [cold], [CAT_TYPO, CAT_WORD]), "review")
 
 
-async def _fill_review(db, picker, lesson_seq, user_id):
-    unit_prefix = lesson_seq // 10
-    order = await regular_lessons(db)
-    kids = [l for l in order if l // 10 == unit_prefix]
+async def _fill_review(db, picker, lesson_seq, user_id, runtime):
+    unit_rows = await _rows(
+        db, "SELECT unit_id FROM lessons WHERE lesson_seq = ?", (lesson_seq,)
+    )
+    if not unit_rows:
+        return
+    unit_id = unit_rows[0]["unit_id"]
+    lesson_rows = await regular_lesson_rows(db, runtime)
+    kids = [row["lesson_seq"] for row in lesson_rows if row["unit_id"] == unit_id]
 
     picker.extend(await _unit_wrong_kps(db, user_id, kids), "wrong_last")
     if not picker.full() and kids:
@@ -355,7 +408,9 @@ async def _fill_review(db, picker, lesson_seq, user_id):
     if not picker.full():
         picker.extend(await _kps_of(db, [lesson_seq], [CAT_WORD]), "review")
     if not picker.full():
-        earlier = [l for l in order if l // 10 < unit_prefix][::-1]
+        earlier = [
+            row["lesson_seq"] for row in lesson_rows if row["unit_id"] < unit_id
+        ][::-1]
         for lid in earlier:
             if picker.full():
                 break
