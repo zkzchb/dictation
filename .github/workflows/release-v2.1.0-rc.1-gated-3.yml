@@ -1,0 +1,141 @@
+name: Gated publish v2.1.0-rc.1 verified
+
+on:
+  push:
+    branches: [codex/v2.1-oss]
+    paths:
+      - ".github/workflows/release-v2.1.0-rc.1-gated-3.yml"
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: gated-v2.1.0-rc.1-verified
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      PROGRAM_COMMIT: 85e84c339faf92b9b4d10b2097cfca0e275828e2
+      PROGRAM_TREE: f6a89a949b33c5bb5d025bec1df48a95eec827a5
+      CONTENT_COMMIT: 1e79970a34216edde9e31d2156ccd6bc000f8573
+      CONTENT_TREE: 9ba9cc6ae1beb40792c46e4e0d279082e9127243
+      RELEASE_TAG: v2.1.0-rc.1
+      CONTENT_TAG: content-v1.0.0
+      WORKFLOW_PATH: .github/workflows/release-v2.1.0-rc.1-gated-3.yml
+    steps:
+      - name: Check out immutable program candidate
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.PROGRAM_COMMIT }}
+          path: dictation
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out immutable content release
+        uses: actions/checkout@v7
+        with:
+          repository: zkzchb/dictation-content
+          ref: ${{ env.CONTENT_TAG }}
+          path: dictation-content
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: dictation/v2/requirements.txt
+
+      - name: Install validation dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install -r dictation/v2/requirements.txt
+          python -m pip install pip-audit==2.10.1
+
+      - name: Verify immutable program and content
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C dictation rev-parse HEAD)" = "$PROGRAM_COMMIT"
+          test "$(git -C dictation rev-parse 'HEAD^{tree}')" = "$PROGRAM_TREE"
+          test "$(git -C dictation-content rev-parse HEAD)" = "$CONTENT_COMMIT"
+          test "$(git -C dictation-content rev-parse 'HEAD^{tree}')" = "$CONTENT_TREE"
+          python dictation/shared/content_pack.py dictation-content/packs/zh-cn/primary-3a
+          python dictation/shared/tools/audio_bundle.py verify-dataset --content-root dictation-content/packs/zh-cn/primary-3a
+          test "$(find dictation-content/packs/zh-cn/primary-3a/tts -type f -name '*.mp3' | wc -l)" -eq 894
+          python -m pip check
+          (
+            cd dictation
+            python -m compileall -q v2 v3 shared tools tests
+            DICTATION_CONTENT_ROOT=tests/fixtures/demo-content-pack python -m unittest discover -s tests -p 'test_*.py' -v
+            python tests/check_inline_js.py
+            for script in deploy/*.sh; do bash -n "$script"; done
+          )
+          python -m pip_audit -r dictation/v2/requirements.txt
+          test ! -d dictation/chinese
+          test ! -d dictation/v1
+
+      - name: Build and verify release artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          git -C dictation archive --format=tar.gz --prefix="dictation-$RELEASE_TAG/" --output="$GITHUB_WORKSPACE/dist/dictation-$RELEASE_TAG.tar.gz" "$PROGRAM_COMMIT"
+          python -m pip_audit -r dictation/v2/requirements.txt --format cyclonedx-json --output "dist/dictation-$RELEASE_TAG.cdx.json"
+          (
+            cd dist
+            sha256sum "dictation-$RELEASE_TAG.tar.gz" "dictation-$RELEASE_TAG.cdx.json" > SHA256SUMS
+            test "$(grep -c '/' SHA256SUMS)" -eq 0
+            sha256sum --check SHA256SUMS
+          )
+
+      - name: Await connector cleanup
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            if ! gh api "repos/$GITHUB_REPOSITORY/contents/$WORKFLOW_PATH?ref=$GITHUB_REF_NAME" >/dev/null 2>&1; then
+              echo "One-time workflow removed; release gate open."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Workflow still exists; refusing to publish." >&2
+          exit 1
+
+      - name: Attest release artifacts
+        uses: actions/attest@v4
+        with:
+          subject-path: dist/*
+
+      - name: Create immutable prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Refusing to overwrite existing tag $RELEASE_TAG" >&2
+            exit 1
+          fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$RELEASE_TAG" -f sha="$PROGRAM_COMMIT"
+          notes="$RUNNER_TEMP/program-release-notes.md"
+          {
+            printf '# Dictation v2.1.0-rc.1\n\n'
+            printf 'Release candidate for the V2 (FastAPI/SQLite) and V3 (Cloudflare Workers/D1) program.\n\n'
+            printf -- '- Compatible content: [content-v1.0.0](https://github.com/zkzchb/dictation-content/releases/tag/content-v1.0.0)\n'
+            printf -- '- Content pack: `chinese-3a` v1.0.0, 43 lessons, 814 knowledge points, 894 MP3 files\n'
+            printf -- '- Dataset digest: `b8ea48ecfb9302ba4fc05b6dfca32786360db111d76df90a865e937db6cfc43a`\n'
+            printf -- '- Includes source archive, CycloneDX SBOM, SHA-256 checksums and GitHub artifact attestations\n\n'
+            printf 'This is a prerelease for fresh Ubuntu, VPS and Cloudflare acceptance testing.\n'
+          } > "$notes"
+          gh release create "$RELEASE_TAG" dist/* --repo "$GITHUB_REPOSITORY" --verify-tag --prerelease --title "Dictation $RELEASE_TAG" --notes-file "$notes"
