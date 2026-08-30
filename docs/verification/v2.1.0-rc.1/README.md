@@ -6,7 +6,8 @@ platform acceptance.
 - [Development validation](development-validation.md) is written by the core
   maintainer account `@zkzchb` and records program-side checks.
 - Ubuntu local, Ubuntu VPS and Cloudflare Workers + D1 deployment logs are
-  submitted by the independent general user `@GucasWen` as comments on
+  submitted by the account that actually performs each independent run as
+  comments on
   [Draft PR #30](https://github.com/zkzchb/dictation/pull/30).
 - Comments are the source record for the three platform runs. They must include
   sanitized commands, public refs, observable results, failures and deviations.

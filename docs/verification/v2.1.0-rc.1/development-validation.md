@@ -9,12 +9,16 @@ Status: maintainer validation record; platform acceptance is tracked separately 
 
 | Item | Reference |
 |---|---|
-| Program candidate | `v2.1.0-rc.1` / `942e0a60247721e99c95122ec346c9ec9d2d0231` |
-| Content release | `content-v1.0.0` / `6978ef6bd3fc44e0139180676460c84f14c79922` |
+| Program candidate | `v2.1.0-rc.1` / `85e84c339faf92b9b4d10b2097cfca0e275828e2` |
+| Content release | `content-v1.0.0` / `1e79970a34216edde9e31d2156ccd6bc000f8573` |
 | Content pack | `chinese-3a` / `1.0.0` |
 | Dataset digest | `b8ea48ecfb9302ba4fc05b6dfca32786360db111d76df90a865e937db6cfc43a` |
 | Program license | GNU AGPL-3.0 |
 | Content license | CC BY-NC 4.0, declared in the separate content repository |
+
+These are the published tag targets used for candidate deployment. They are now
+frozen: the existing tags must not be moved again. Any further program or content
+change uses a new candidate or content tag.
 
 The candidate uses the external content-pack v1 boundary. The program repository
 contains a synthetic fixture for automated tests; the formal course materials and
@@ -53,9 +57,10 @@ deployment configuration were included in the program tree.
 | Studio access guard | PASS | Disabled studio access returned HTTP 403 |
 | Invalid-pack write protection | PASS | Validation failure left the existing target tree unchanged |
 
-The regression count above is the count for this reviewed development baseline. A
-later maintainer fix may increase the count; the CI result attached to the final
-release takes precedence over this historical record.
+The regression count above is the count for the reviewed release baseline. After
+VPS deployment hardening was added, the Draft PR head ran 50 regression tests on
+Python 3.12 and 3.13. The CI result attached to the final candidate takes
+precedence over this historical count.
 
 ## Design decisions covered by the validation
 

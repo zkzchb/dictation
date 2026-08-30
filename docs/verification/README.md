@@ -1,29 +1,32 @@
-# Deployment verification records
+# Verification records
 
-This directory stores sanitized, reproducible acceptance reports for released
-Dictation program/content combinations. It does not store raw machine logs.
+This directory stores sanitized maintainer-side development validation for each
+Dictation program/content candidate. It does not store raw machine logs or
+independent users' deployment logs.
 
-For `v2.1.0-rc.1`, create one report for each supported target:
+For `v2.1.0-rc.1`, the repository archive is:
 
 ```text
 docs/verification/v2.1.0-rc.1/
-├── ubuntu-local.md
-├── ubuntu-vps-bce.md
-└── cloudflare-workers.md
+├── README.md
+└── development-validation.md
 ```
 
-Copy `TEMPLATE.md` for each target. Record exact program and content refs,
-dataset digest, operating-system/runtime versions, commands, observable results,
-update or rollback outcomes, and unresolved limitations.
+Fresh Ubuntu local, Ubuntu VPS and Cloudflare Workers + D1 deployments are
+recorded as separate comments in the candidate Pull Request by the account that
+actually performed each deployment. Copy `TEMPLATE.md` into a comment and record
+the exact program and content refs, dataset digest, sanitized platform summary,
+observable results, update or rollback outcomes, and unresolved limitations.
 
-Raw logs remain on the target under a timestamped private directory. Before a
-report is committed or linked from a Pull Request, remove:
+Raw logs remain on the machine where the deployment ran. Before copying any
+excerpt into a Pull Request comment, remove:
 
 - credentials, tokens, cookies, authorization headers and environment values;
 - public/private IP addresses, personal domains, usernames and home paths;
 - databases, learning history, recording ledgers and unpublished recordings;
 - provider account IDs, D1 UUIDs, Cloudflare zones and other tenant identifiers.
 
-Use placeholders such as `<redacted-host>` when a command needs context. A PR
-comment should contain only the target, pass/fail conclusion, program/content
-refs, and a link to the committed report.
+Use placeholders such as `<redacted-host>` when a command needs context. A
+comment must use `PASS`, `PARTIAL` or `FAIL`; failed and partial runs remain valid
+evidence and must not be rewritten as successful. The maintainer may summarize
+the comments after review but must not author an independent user's result.

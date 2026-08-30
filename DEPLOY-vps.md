@@ -135,5 +135,5 @@ bash deploy/vps-fresh-redeploy.sh \
 只有确认整台 VPS 专用于 Dictation 时才能显式加入 `--allow-caddy-replace`。
 
 原始日志分别保存在本地私有状态目录和 VPS 的 `/var/backups/dictation/acceptance/`；脚本
-另生成不含主机、域名、账号、路径、学习记录或凭据的 `ubuntu-vps-bce.md`，只有该脱敏
-报告适合提交到 `docs/verification/v2.1.0-rc.1/` 或链接到 Pull Request。
+另生成不含主机、域名、账号、路径、学习记录或凭据的 `ubuntu-vps-bce.md`。该文件只作为
+本地复核和撰写候选 Pull Request 脱敏评论的输入；独立部署日志不提交到程序仓库。

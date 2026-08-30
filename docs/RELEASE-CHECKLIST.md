@@ -22,7 +22,9 @@
 - [ ] fresh Ubuntu local installation succeeds.
 - [ ] fresh Ubuntu VPS installation, authentication, backup and restore succeed.
 - [ ] Cloudflare Worker, D1 migration, static audio and API checks succeed.
-- [ ] sanitized reports are committed under `docs/verification/<release>/`; raw logs remain private.
+- [ ] maintainer development validation is committed under `docs/verification/<release>/`.
+- [ ] the actual executors submit sanitized local, VPS and Workers results as
+      separate release-PR comments; raw logs remain private.
 
 ## Artifacts
 
