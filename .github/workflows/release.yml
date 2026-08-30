@@ -50,10 +50,14 @@ jobs:
           python -m pip_audit -r v2/requirements.txt \
             --format cyclonedx-json \
             --output "dist/dictation-${GITHUB_REF_NAME}.cdx.json"
-          sha256sum \
-            "dist/dictation-${GITHUB_REF_NAME}.tar.gz" \
-            "dist/dictation-${GITHUB_REF_NAME}.cdx.json" \
-            > "dist/SHA256SUMS"
+          (
+            cd dist
+            sha256sum \
+              "dictation-${GITHUB_REF_NAME}.tar.gz" \
+              "dictation-${GITHUB_REF_NAME}.cdx.json" \
+              > "SHA256SUMS"
+            sha256sum --check "SHA256SUMS"
+          )
       - name: Attest release artifacts
         uses: actions/attest@v4
         with:
