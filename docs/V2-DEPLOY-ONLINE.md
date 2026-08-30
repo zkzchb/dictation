@@ -4,8 +4,8 @@
 
 ```bash
 apt update && apt install -y git
-git clone https://github.com/zkzchb/dictation.git /opt/dictation
-git clone https://github.com/zkzchb/dictation-content.git /opt/dictation-content
+git clone --branch v2.1.0-rc.1 https://github.com/zkzchb/dictation.git /opt/dictation
+git clone --branch content-v1.0.0 https://github.com/zkzchb/dictation-content.git /opt/dictation-content
 cd /opt/dictation
 bash deploy/install-v2-online.sh
 ```

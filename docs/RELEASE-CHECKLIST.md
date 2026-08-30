@@ -6,6 +6,7 @@
 - [ ] program fixture is synthetic and its license remains present.
 - [ ] no credentials, personal infrastructure, databases, ledgers or generated audio are tracked.
 - [ ] program and content licenses/notices are internally consistent.
+- [ ] the compatible content tag exists and its pack validates against the reviewed program commit.
 
 ## Compatibility
 
@@ -21,6 +22,7 @@
 - [ ] fresh Ubuntu local installation succeeds.
 - [ ] fresh Ubuntu VPS installation, authentication, backup and restore succeed.
 - [ ] Cloudflare Worker, D1 migration, static audio and API checks succeed.
+- [ ] sanitized reports are committed under `docs/verification/<release>/`; raw logs remain private.
 
 ## Artifacts
 

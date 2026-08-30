@@ -24,7 +24,9 @@ The root AGPL-3.0 license covers the application and its source code. It does
 not relicense textbooks, question banks, TTS output, or recordings. Public
 release artifacts include only the synthetic test fixture under
 `tests/fixtures/demo-content-pack`. Production content and recordings are
-versioned in the separate `dictation-content` repository.
+versioned in the separate `dictation-content` repository. Its current
+`primary-3a` release declares structured content, recordings, and content tools
+under CC BY-NC 4.0; that license is not inherited by the application.
 
 ## Audio layers
 

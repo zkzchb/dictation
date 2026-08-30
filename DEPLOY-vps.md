@@ -13,8 +13,8 @@ VPS 使用 Caddy 提供 HTTPS 和 Basic Auth，FastAPI 只监听回环地址。�
 
 ```bash
 apt update && apt install -y git
-git clone https://github.com/zkzchb/dictation.git /opt/dictation
-git clone https://github.com/zkzchb/dictation-content.git /opt/dictation-content
+git clone --branch v2.1.0-rc.1 https://github.com/zkzchb/dictation.git /opt/dictation
+git clone --branch content-v1.0.0 https://github.com/zkzchb/dictation-content.git /opt/dictation-content
 cd /opt/dictation
 ```
 
@@ -76,8 +76,10 @@ pack id 与 dataset SHA-256。
 ## 6. 更新
 
 ```bash
-git -C /opt/dictation pull --ff-only
-git -C /opt/dictation-content pull --ff-only
+git -C /opt/dictation fetch --tags
+git -C /opt/dictation switch --detach v2.1.0-rc.1
+git -C /opt/dictation-content fetch --tags
+git -C /opt/dictation-content switch --detach content-v1.0.0
 cd /opt/dictation
 bash deploy/install-v2-online.sh
 ```

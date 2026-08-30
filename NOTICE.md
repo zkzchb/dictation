@@ -17,7 +17,9 @@ The repository separates software from learning content:
 
 A content pack is a separate work and must state its own origin, author, license,
 and audio rights. The software license does not grant rights to a separately
-installed content pack.
+installed content pack. The current `primary-3a` pack is published separately
+by `zkzchb/dictation-content` under CC BY-NC 4.0; its noncommercial restriction
+does not apply to the AGPL-3.0 application code.
 
 The synthetic test pack was written specifically for Dictation v2.1 and does
 not copy lesson text, vocabulary lists, ordering, or exercises from a published

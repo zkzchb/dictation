@@ -26,12 +26,13 @@ V2 和 V3 使用同一套 content-pack v1 契约与选词规则。V2 的 SQLite 
 
 ## 五分钟本地启动
 
-把两个仓库检出为相邻目录：
+候选版部署固定使用程序与内容标签，避免两个 `main` 在安装期间发生漂移。把两个仓库检出为
+相邻目录：
 
 ```bash
 mkdir dictation-workspace && cd dictation-workspace
-git clone https://github.com/zkzchb/dictation-content.git
-git clone https://github.com/zkzchb/dictation.git
+git clone --branch content-v1.0.0 https://github.com/zkzchb/dictation-content.git
+git clone --branch v2.1.0-rc.1 https://github.com/zkzchb/dictation.git
 cd dictation
 cp deploy/local.env.example deploy/local.env
 bash deploy/local-install.sh --serve
@@ -109,6 +110,9 @@ dictation/
 ```
 
 历史冻结版仍可通过 `v2.0.0` 标签和 `v2.0-stable` 分支检出；当前产品线只维护 V2/V3。
+
+候选版验收记录保存在 [docs/verification](docs/verification/)；原始机器日志留在对应部署环境，
+公开仓库只保存去除账号、地址、凭据和用户数据后的结论。
 
 ## 许可
 

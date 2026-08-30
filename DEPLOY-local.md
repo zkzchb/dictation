@@ -7,8 +7,8 @@
 
 ```bash
 mkdir dictation-workspace && cd dictation-workspace
-git clone https://github.com/zkzchb/dictation-content.git
-git clone https://github.com/zkzchb/dictation.git
+git clone --branch content-v1.0.0 https://github.com/zkzchb/dictation-content.git
+git clone --branch v2.1.0-rc.1 https://github.com/zkzchb/dictation.git
 cd dictation
 ```
 
@@ -89,11 +89,13 @@ bash deploy/local-install.sh --uninstall-service
 
 ## 5. 更新
 
-程序和内容分别更新，然后重跑安装器：
+程序和内容分别检出已审核的新标签，然后重跑安装器：
 
 ```bash
-git pull --ff-only
-git -C ../dictation-content pull --ff-only
+git fetch --tags
+git switch --detach v2.1.0-rc.1
+git -C ../dictation-content fetch --tags
+git -C ../dictation-content switch --detach content-v1.0.0
 bash deploy/local-install.sh --install-service
 ```
 

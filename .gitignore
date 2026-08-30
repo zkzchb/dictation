@@ -81,6 +81,8 @@ docs/*
 !docs/CONTENT-LICENSING.md
 !docs/REPOSITORY-ARCHITECTURE.md
 !docs/RELEASE-CHECKLIST.md
+!docs/verification/
+!docs/verification/**
 
 # 一次性/过期工具（本地保留，不入库）
 tools/add_lesson_cols.py

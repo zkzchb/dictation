@@ -12,8 +12,8 @@ V3 在 Cloudflare Python Workers 上运行 API，在 D1 保存学习记录，并
 
 ```bash
 mkdir dictation-workspace && cd dictation-workspace
-git clone https://github.com/zkzchb/dictation-content.git
-git clone https://github.com/zkzchb/dictation.git
+git clone --branch content-v1.0.0 https://github.com/zkzchb/dictation-content.git
+git clone --branch v2.1.0-rc.1 https://github.com/zkzchb/dictation.git
 cd dictation
 npx wrangler login
 ```
@@ -83,8 +83,10 @@ V3 程序本身没有登录鉴权。公开部署需要访问控制时，可在 C
 ## 6. 更新与回滚
 
 ```bash
-git pull --ff-only
-git -C ../dictation-content pull --ff-only
+git fetch --tags
+git switch --detach v2.1.0-rc.1
+git -C ../dictation-content fetch --tags
+git -C ../dictation-content switch --detach content-v1.0.0
 bash deploy/cloudflare-deploy.sh
 ```
 
