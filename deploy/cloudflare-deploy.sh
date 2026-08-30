@@ -4,15 +4,14 @@
 #
 # 用法：
 #   cp deploy/cloudflare.env.example deploy/cloudflare.env
-#   nano deploy/cloudflare.env        # 填 Cloudflare 配置；维护 TTS 时才需有道密钥
+#   nano deploy/cloudflare.env        # 填 Cloudflare 配置与外部内容包路径
 #   chmod 600 deploy/cloudflare.env
 #   bash deploy/cloudflare-deploy.sh
 #
 # 全程在本地执行，不需要服务器。幂等：可重复运行。
 #
 # 可选参数：
-#   --skip-slices   跳过音频切片生成（已生成过时用）
-#   --dev           部署完不上线，改为启动本地预览（pywrangler dev）
+#   --dev           不上线，改为启动本地预览（pywrangler dev）
 # ============================================================================
 set -euo pipefail
 
@@ -28,11 +27,9 @@ ok()   { echo "${C_OK}  [OK]${C_OFF} $*"; }
 warn() { echo "${C_WARN}  [!] ${C_OFF} $*"; }
 die()  { echo "${C_ERR}  [X] $*${C_OFF}" >&2; exit 1; }
 
-SKIP_SLICES=no
 DEV_MODE=no
 for arg in "$@"; do
   case "$arg" in
-    --skip-slices) SKIP_SLICES=yes ;;
     --dev)         DEV_MODE=yes ;;
     -h|--help)     sed -n '2,20p' "$0"; exit 0 ;;
     *)             die "未知参数: $arg" ;;
@@ -47,10 +44,7 @@ step "读取配置"
 set -a; . "$ENV_FILE"; set +a
 
 : "${D1_DATABASE_NAME:=dictation-v3}"
-: "${CONTENT_ROOT:=chinese/3a}"
-: "${YOUDAO_VOICE:=youxiaoxun}"
-: "${YOUDAO_SPEED:=0.6}"
-: "${TTS_INTERVAL:=1.0}"
+: "${CONTENT_ROOT:=../dictation-content/packs/zh-cn/primary-3a}"
 : "${V3_DOMAIN:=}"
 : "${V3_ZONE:=}"
 
@@ -92,61 +86,20 @@ else
   ok "登录成功"
 fi
 
-# ── 生成音频切片 ─────────────────────────────────────────────────────────
-step "音频切片"
-AUDIO_DIR="$REPO_ROOT/shared/web/audio"
+# ── 校验并铺装外部内容包 ─────────────────────────────────────────────────
+step "校验并铺装外部内容包"
 [[ "$CONTENT_ROOT" == /* ]] || CONTENT_ROOT="$REPO_ROOT/$CONTENT_ROOT"
 [[ -f "$CONTENT_ROOT/dataset.json" ]] || die "内容包缺少 dataset.json: $CONTENT_ROOT"
-CONTENT_AUDIO_DIR="$CONTENT_ROOT/tts"
 AUDIO_TOOL="$REPO_ROOT/shared/tools/audio_bundle.py"
 export DICTATION_CONTENT_ROOT="$CONTENT_ROOT"
-EXISTING="$(find "$AUDIO_DIR" -name '*.mp3' 2>/dev/null | wc -l | tr -d ' ')"
-
-if ! python3 "$AUDIO_TOOL" inventory --audio-dir "$AUDIO_DIR" >/dev/null 2>&1 \
-   && python3 "$AUDIO_TOOL" verify-dataset --content-root "$CONTENT_ROOT" >/dev/null 2>&1; then
-  mkdir -p "$AUDIO_DIR"
-  cp -an "$CONTENT_AUDIO_DIR/." "$AUDIO_DIR/"
-  EXISTING="$(find "$AUDIO_DIR" -name '*.mp3' 2>/dev/null | wc -l | tr -d ' ')"
-  ok "已从内容包补齐标准音频"
-fi
-
-if python3 "$AUDIO_TOOL" inventory --audio-dir "$AUDIO_DIR" >/dev/null 2>&1; then
-  ok "音频严格清单通过（$EXISTING 个 MP3）"
-elif [[ "$SKIP_SLICES" == "yes" ]]; then
-  die "--skip-slices 不能跳过失败的音频完整性校验"
-else
-  if is_placeholder "${YOUDAO_APP_KEY-}" || is_placeholder "${YOUDAO_APP_SECRET-}"; then
-    die "仓库教材包或运行音频未通过严格校验，且有道密钥仍是占位符。"
-  fi
-
-  # gen_slices.py 需要 requests；用临时 venv 装，避免污染系统 Python
-  GEN_VENV="$REPO_ROOT/.venv-gen"
-  if [[ ! -x "$GEN_VENV/bin/python" ]]; then
-    python3 -m venv "$GEN_VENV"
-    "$GEN_VENV/bin/pip" install --quiet --upgrade pip
-    "$GEN_VENV/bin/pip" install --quiet requests
-  fi
-  ok "生成环境就绪，开始合成（约需数分钟，可中断后重跑）"
-
-  YOUDAO_APP_KEY="$YOUDAO_APP_KEY" \
-  YOUDAO_APP_SECRET="$YOUDAO_APP_SECRET" \
-  YOUDAO_VOICE="$YOUDAO_VOICE" \
-  YOUDAO_SPEED="$YOUDAO_SPEED" \
-  TTS_INTERVAL="$TTS_INTERVAL" \
-    "$GEN_VENV/bin/python" "$REPO_ROOT/shared/gen_slices.py"
-
-  NOW="$(find "$AUDIO_DIR" -name '*.mp3' 2>/dev/null | wc -l | tr -d ' ')"
-  python3 "$AUDIO_TOOL" inventory --audio-dir "$AUDIO_DIR" >/dev/null \
-    || die "生成后音频仍未通过内容包严格校验"
-  ok "切片共 $NOW 个"
-fi
-
-# ── 铺装静态资源 ─────────────────────────────────────────────────────────
-step "铺装静态资源到 v3/public/"
-python3 "$REPO_ROOT/tools/stage.py" v3
+python3 "$REPO_ROOT/shared/content_pack.py" "$CONTENT_ROOT" \
+  || die "内容包未通过结构和哈希校验"
+python3 "$AUDIO_TOOL" verify-dataset --content-root "$CONTENT_ROOT" \
+  || die "内容包音频未通过校验"
+python3 "$REPO_ROOT/tools/stage.py" v3 --content-root "$CONTENT_ROOT"
 [[ -f "$V3_DIR/public/index.html" ]] || die "stage 失败：缺少 v3/public/index.html"
 PUB_SLICES="$(find "$V3_DIR/public/audio" -name '*.mp3' 2>/dev/null | wc -l | tr -d ' ')"
-ok "index.html + $PUB_SLICES 个音频已就位"
+ok "V3 静态资源与 $PUB_SLICES 个音频已就位"
 python3 "$AUDIO_TOOL" inventory --audio-dir "$V3_DIR/public/audio" >/dev/null \
   || die "v3/public 音频未通过严格校验"
 
@@ -154,6 +107,15 @@ python3 "$AUDIO_TOOL" inventory --audio-dir "$V3_DIR/public/audio" >/dev/null \
 step "D1 数据库"
 WRANGLER_CFG="$V3_DIR/wrangler.jsonc"
 [[ -f "$WRANGLER_CFG" ]] || die "缺少 $WRANGLER_CFG"
+WRANGLER_BACKUP="$(mktemp)"
+cp "$WRANGLER_CFG" "$WRANGLER_BACKUP"
+restore_wrangler_config() {
+  if [[ -f "$WRANGLER_BACKUP" ]]; then
+    cp "$WRANGLER_BACKUP" "$WRANGLER_CFG"
+    rm -f "$WRANGLER_BACKUP"
+  fi
+}
+trap restore_wrangler_config EXIT
 
 cd "$V3_DIR"
 
@@ -226,6 +188,13 @@ else
 fi
 
 if npx --yes wrangler d1 execute "$D1_DATABASE_NAME" --remote \
+  --file "$SEED" 2>&1 | tail -20; then
+  ok "内容包课程与知识点已同步"
+else
+  die "无法同步内容包课程与知识点"
+fi
+
+if npx --yes wrangler d1 execute "$D1_DATABASE_NAME" --remote \
   --file "$RUNTIME_SQL" 2>&1 | tail -20; then
   ok "内容包运行时配置已刷新"
 else
@@ -270,7 +239,8 @@ if [[ "$DEV_MODE" == "yes" ]]; then
   echo "    npx wrangler d1 migrations apply $D1_DATABASE_NAME --local"
   echo
   cd "$V3_DIR"
-  exec $(pywrangler_cmd) dev
+  $(pywrangler_cmd) dev
+  exit $?
 fi
 
 # ── 部署 ─────────────────────────────────────────────────────────────────
@@ -336,7 +306,7 @@ echo "  如需保护，在 Cloudflare Dashboard 启用 Zero Trust Access"
 echo "  （Zero Trust → Access → Applications → Add self-hosted app）"
 echo
 echo "  更新内容后重新部署："
-echo "    bash deploy/cloudflare-deploy.sh --skip-slices"
+echo "    bash deploy/cloudflare-deploy.sh"
 echo
 echo "  查看实时日志："
 echo "    cd v3 && npx wrangler tail"

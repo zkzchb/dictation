@@ -467,7 +467,7 @@ function studio() {
     },
 
     // 进度只认台账，不看文件是否存在 —— TTS 占位与真人录音同名同路径，
-    // 用 /api/studio/check 判断会把 869 个占位全算成「已录」。
+    // 用 /api/studio/check 判断会把内容包中的全部基线音频都算成「已录」。
     get totalRecorded() {
       let n = 0;
       for (const w of this.words) if (this.recorded[w.hash]) n++;

@@ -9,7 +9,7 @@ from shared.content_pack import load_content_pack
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PACK = ROOT / "content" / "demo-zh-cn"
+PACK = ROOT / "tests" / "fixtures" / "demo-content-pack"
 
 
 class DemoContentPackTests(unittest.TestCase):

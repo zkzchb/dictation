@@ -1,11 +1,7 @@
-"""听写小助手 V2 API —— 预录音切片版，Ubuntu 部署。
+"""听写小助手 V2 API —— FastAPI、SQLite 与预录音频版本。
 
-与 V1 的核心区别：
-  * 运行时不再调用 TTS，也不再使用 ffmpeg 拼接音频；
-  * 音频切片由 shared/gen_slices.py 预生成，以静态文件形式服务；
-  * /api/generate_daily 直接在每个词上附带切片 URL；
-  * /api/generate_audio 接口已移除；
-  * 前端用播放列表驱动 <audio>，选好词表即可直接播放。
+运行时不调用外部 TTS。课程由外部 content pack 提供，词条和系统提示音以
+静态文件服务；前端通过播放列表直接播放每个词的 ``audio_url``。
 """
 import os, re, sys, json, hashlib, sqlite3, random, shutil, tempfile, threading
 from datetime import datetime, timedelta
@@ -95,7 +91,7 @@ def _ensure_v2_schema(conn) -> None:
 # ── 接口 ─────────────────────────────────────────────────────────────────
 
 def _lesson_row(r):
-    """把 lessons 行转成前端直接可用的结构（与 V1/V3 保持一致）。
+    """把 lessons 行转成前端直接可用的结构（与 V3 保持一致）。
 
     补两个字段，避免前端自己拼字符串、也避免它暴露内部编号：
       is_review  由内容包声明是否为复习课，前端据此把两个下拉菜单分开
@@ -338,7 +334,7 @@ def get_dictation_history(start_date: str, end_date: str):
 
 
 # ================= 🎬 录音工作台 =================
-# 切片保存到 shared/web/audio/w/，与 gen_slices.py 输出一致，可互换
+# 录音保存到所选运行数据目录的 audio/w/。
 STUDIO_AUDIO_DIR = os.getenv(
     "STUDIO_AUDIO_DIR",
     os.path.join(BASE_DIR, "..", "shared", "web", "audio", "w"),
@@ -368,7 +364,7 @@ def _require_studio():
 
 # 真人录音台账。
 # 为什么需要它：切片文件名是 md5(词面)[:12]，真人录音和 TTS 占位「同名同路径」，
-# 磁盘上无从区分。只看文件存在与否的话，gen_slices.py 生成完 869 个占位后
+# 磁盘上无从区分。只看文件存在与否的话，装入完整基线后
 # 「哪些还没录」永远是空集，工作台会直接显示「全部录制完成」。
 # 放在 audio/ 下是有意的：rsync 同步切片时它会一起走，本地与 VPS 对录音进度
 # 的认知保持一致。
@@ -517,7 +513,7 @@ async def studio_page():
 def studio_words():
     """录音台词表 —— 直接从题库生成，不需要手动上传 JSON。
 
-    取词规则与 shared/gen_slices.py 的 collect_targets 保持一致，这样算出的
+    取词规则与内容包录音清单保持一致，这样算出的
     hash 才能和已有切片文件名对上：
       * 多音字取「单字」本身（前端播的就是单字，组词只是给家长看的参考）
       * 其余类别取 options_json 里所有候选组词
@@ -905,7 +901,7 @@ SYS_LEDGER    = os.path.join(STUDIO_AUDIO_DIR, "..", ".recorded_sys.json")
 
 def _sys_keys():
     """要录的系统音清单。poly_intro 已弃用（新前端不播），不列入。"""
-    from gen_slices import MAX_GROUPS
+    from audio_catalog import MAX_GROUPS
     return (["intro", "poly_prefix", "poly_suffix", "outro"]
             + [f"g{n}" for n in range(1, MAX_GROUPS + 1)])
 
@@ -920,7 +916,7 @@ def _load_sys_ledger() -> dict:
 @app.get("/api/studio/syswords")
 def studio_syswords():
     """系统提示音清单 + 每条是否已有真人录音。"""
-    from gen_slices import SYS_PHRASES
+    from audio_catalog import SYS_PHRASES
     _require_studio()
     led = _load_sys_ledger()
     words = [{
@@ -938,7 +934,7 @@ async def studio_save_sys(payload: dict):
     import base64 as b64
     import io
     from pydub import AudioSegment
-    from gen_slices import SYS_PHRASES
+    from audio_catalog import SYS_PHRASES
     _require_studio()
     key = (payload.get("key") or "").strip()
     if key not in _sys_keys():                      # 白名单，防路径穿越
@@ -1000,9 +996,8 @@ def health():
 
 # ================= 📁 静态文件 =================
 # 必须放在所有 API 路由（含 /studio）之后 —— 根路径挂载是 catch-all。
-# 直接挂 shared/web/ 而非 stage 后的副本，好处是 /studio 录进
-# shared/web/audio/w/ 的切片立刻可播，无需重新 stage。
-# VPS 部署时这部分由 Caddy 负责；本地直连时由 uvicorn 自己发。
+# 直接挂运行时 WEB_ROOT，/studio 保存的新录音可立即播放。
+# VPS 部署时静态文件由 Caddy 服务；本地直连时由 uvicorn 服务。
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 
 _WEB_DIR = os.getenv("WEB_ROOT", os.path.join(BASE_DIR, "..", "shared", "web"))

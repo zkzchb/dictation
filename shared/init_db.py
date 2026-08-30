@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""shared/init_db.py —— 从教材包建库（V1/V2 共用）
+"""shared/init_db.py —— 从内容包建立 V2 SQLite 数据库
 
 用法:
     python shared/init_db.py --db v2/dictation.db            # 建新库
@@ -90,6 +90,15 @@ CREATE TABLE IF NOT EXISTS submission_receipts (
     created_at    TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS content_runtime (
+    singleton       INTEGER PRIMARY KEY CHECK (singleton = 1),
+    pack_id         TEXT    NOT NULL,
+    display_name    TEXT    NOT NULL,
+    content_version TEXT,
+    dataset_sha256  TEXT    NOT NULL,
+    synced_at       TEXT    NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_kp_lesson ON knowledge_points(lesson_seq, category);
 CREATE INDEX IF NOT EXISTS idx_items_history ON dictation_items(history_id);
 CREATE INDEX IF NOT EXISTS idx_items_kp ON dictation_items(kp_id, is_correct);
@@ -102,7 +111,7 @@ def main():
     ap.add_argument("--db", required=True, help="目标数据库路径")
     ap.add_argument(
         "--content-root", default=str(DEFAULT_CONTENT_ROOT),
-        help="教材包目录（默认 chinese/3a）",
+        help="内容包目录（默认相邻 dictation-content 仓库中的 primary-3a）",
     )
     ap.add_argument("--force", action="store_true", help="已存在则备份后重建")
     args = ap.parse_args()
@@ -147,13 +156,25 @@ def main():
               l.get("lesson_title", ""), l["lesson_name"]) for l in lessons]
         )
         conn.executemany(
-            "INSERT INTO knowledge_points (lesson_seq, target, category, options_json) VALUES (?,?,?,?)",
-            [(k["lesson_seq"], k["target"], k["category"],
+            "INSERT INTO knowledge_points (id, lesson_seq, target, category, options_json) "
+            "VALUES (?,?,?,?,?)",
+            [(k["id"], k["lesson_seq"], k["target"], k["category"],
               json.dumps(k["options_json"], ensure_ascii=False)) for k in kps]
         )
         conn.execute(
             "INSERT INTO user_progress (user_id, current_lesson_seq) VALUES (1, ?)",
             (pack.runtime.initial_lesson,),
+        )
+        conn.execute(
+            "INSERT INTO content_runtime "
+            "(singleton, pack_id, display_name, content_version, dataset_sha256, synced_at) "
+            "VALUES (1, ?, ?, ?, ?, datetime('now'))",
+            (
+                pack.id,
+                pack.display_name,
+                pack.metadata.get("version"),
+                pack.dataset_sha256,
+            ),
         )
         conn.commit()
 

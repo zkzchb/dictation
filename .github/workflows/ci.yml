@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main, codex/v2.1-oss]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    env:
+      DICTATION_CONTENT_ROOT: tests/fixtures/demo-content-pack
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: v2/requirements.txt
+      - name: Install system and Python dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install -r v2/requirements.txt
+      - name: Check dependency consistency
+        run: python -m pip check
+      - name: Validate synthetic content pack
+        run: python shared/content_pack.py tests/fixtures/demo-content-pack
+      - name: Compile Python
+        run: python -m compileall -q v2 v3 shared tools tests
+      - name: Run regression tests
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Parse browser scripts
+        run: python tests/check_inline_js.py
+      - name: Parse deployment scripts
+        run: |
+          for script in deploy/*.sh; do
+            bash -n "$script"
+          done
+
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: v2/requirements.txt
+      - name: Audit pinned dependencies
+        run: |
+          python -m pip install pip-audit==2.10.1
+          python -m pip_audit -r v2/requirements.txt

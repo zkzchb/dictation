@@ -92,6 +92,16 @@ class ContentPackTests(unittest.TestCase):
             self.assertEqual(pack.runtime.review_target, 20)
             self.assertEqual(pack.runtime.polyphonic_per_lesson, 0)
 
+    def test_rejects_boolean_initial_lesson(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "pack"
+            self.make_pack(root, runtime={
+                "initial_lesson": True,
+                "review_lessons": [100],
+            })
+            with self.assertRaisesRegex(ContentPackError, "initial_lesson"):
+                load_content_pack(root)
+
     def test_rejects_path_traversal(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp) / "pack"
@@ -122,15 +132,12 @@ class ContentPackTests(unittest.TestCase):
             with self.assertRaisesRegex(ContentPackError, "counts.lessons 不一致"):
                 load_content_pack(root, verify_hashes=False)
 
-    def test_existing_v2_pack_is_backward_compatible(self):
-        root = Path(__file__).resolve().parents[1] / "chinese" / "3a"
-        pack = load_content_pack(root)
-        self.assertEqual(pack.runtime.cold_start_lesson, 3000)
-        self.assertEqual(pack.runtime.initial_lesson, 3111)
-        self.assertEqual(pack.runtime.daily_target, 30)
-        self.assertEqual(pack.runtime.review_target, 50)
-        self.assertEqual(len(pack.lessons), 43)
-        self.assertEqual(len(pack.knowledge_points), 814)
+    def test_legacy_pack_without_ids_gets_stable_positional_ids(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "pack"
+            self.make_pack(root)
+            pack = load_content_pack(root)
+            self.assertEqual([item["id"] for item in pack.knowledge_points], [1])
 
     def test_database_uses_pack_initial_lesson(self):
         with tempfile.TemporaryDirectory() as temp:

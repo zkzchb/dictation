@@ -12,8 +12,8 @@
 
 用法
 ----
-  v1/venv/bin/python shared/tools/migrate_poly_ids.py
-  v1/venv/bin/python shared/tools/migrate_poly_ids.py v1/dictation.db v2/dictation.db
+  v2/venv/bin/python shared/tools/migrate_poly_ids.py
+  v2/venv/bin/python shared/tools/migrate_poly_ids.py /var/lib/dictation/v2/dictation.db
 
 安全性：只做 ALTER TABLE ADD COLUMN，已有行的该列为空串。
 空串不影响休息规则 —— 规则只看最近两轮，历史空值等同于「没播报过」。
@@ -24,7 +24,6 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DEFAULT_DBS = [
-    os.path.join(ROOT, "v1", "dictation.db"),
     os.path.join(ROOT, "v2", "dictation.db"),
 ]
 
@@ -72,7 +71,7 @@ def main():
             all_ok = False
     if all_ok:
         print("\n全部完成。重启服务后休息规则生效：")
-        print("  sudo systemctl restart dictation-v1 dictation-v2")
+        print("  sudo systemctl restart dictation-v2")
     else:
         print("\n有失败项，请勿重启，先排查。")
         sys.exit(1)

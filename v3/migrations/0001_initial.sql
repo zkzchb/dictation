@@ -1,5 +1,4 @@
 -- V2/V3 共用 schema（V3 用 wrangler d1 migrations apply 执行，V2 用 init_db.py）
--- 相对 V1 的改动：score 列改为 REAL（修正 V1 中 INTEGER 类型偏差）
 
 CREATE TABLE IF NOT EXISTS lessons (
     lesson_seq INTEGER PRIMARY KEY,

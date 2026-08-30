@@ -1,4 +1,4 @@
-"""shared/selector.py —— 听写选词引擎（V1/V2 共用）
+"""shared/selector.py —— V2 SQLite 听写选词引擎
 
 实现设计文档 §5 的梯队算法。核心差异（见 §6）：
 复习由「会话序 + 课程序」驱动，错词取自 dictation_history + dictation_items，
@@ -14,7 +14,7 @@ import random
 
 try:
     from .content_pack import load_content_pack
-except ImportError:  # v1/v2 add shared/ to sys.path before importing selector
+except ImportError:  # v2/main.py adds shared/ to sys.path before importing selector
     from content_pack import load_content_pack
 
 CAT_CHAR = "生字"
@@ -43,15 +43,8 @@ def is_review_lesson(lesson_seq):
 def lesson_reading(opts, kp_id=None):
     """取多音字在本课该读的那个音，返回 options_json 里的一项（dict）或 None。
 
-    题库没有「本课读音」这个字段 —— 每条多音字都把全部读音平列出来，看不出
-    课文里用的是哪一个。取第一项。
-
-    这不是猜测：老师逐条对着课本核过全部 38 条，正式课的多音字(kp_id 777–802)
-    本课读音全部是第一个候选，当前内容包的冷启动复习池同样取第一项。
-    所以 POLY_READING_OVERRIDE 留空即正确，无需逐条标注。
-
-    保留 override 是为了以后：新课的多音字若出现本课读音不在第一项的情况，
-    往 POLY_READING_OVERRIDE 填 {kp_id: 从 1 开始的候选序号} 即可，不必改逻辑。
+    content-pack v1 约定第一项是本课使用的读音。保留 override 是为了兼容旧包：
+    若某条记录尚未按该约定排序，可填 {kp_id: 从 1 开始的候选序号}。
     """
     opts = [o for o in (opts or []) if isinstance(o, dict)]
     if not opts:
@@ -62,9 +55,8 @@ def lesson_reading(opts, kp_id=None):
     return opts[0]
 
 
-# 本课读音例外表：{kp_id: 候选序号(从 1 开始)}。
-# 现有 38 条已由老师对着课本核实全部取第一项，故留空。仅当以后新增的多音字
-# 本课读音不在第一项时才需要往这里填。改动时 v3/src/selector_d1.py 要同步。
+# 旧内容包读音例外表：{kp_id: 候选序号(从 1 开始)}。
+# 新包应直接把本课读音放在第一项。改动时 v3/src/selector_d1.py 要同步。
 POLY_READING_OVERRIDE = {}
 
 

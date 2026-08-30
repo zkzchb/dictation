@@ -30,22 +30,18 @@ deploy/local.env
 # 本地试跑用的环境变量（含密钥，由 local-install.sh 生成）
 .local-run.env
 .local-svc.env
-
-# gen_slices.py 的临时依赖环境（cloudflare-deploy.sh 自动创建）
-.venv-gen/
+.runtime/
 
 # ── 数据库（含用户学习数据，不应进版本库）────────────────────────────
 *.db
 *.db.backup
 
 # ── 音频文件 ───────────────────────────────────────────────────────
-# chinese/<教材>/tts 是只读发行基线，可以提交；shared/web/audio、
-# v2/audio、v3/public/audio 是可写/生成的运行副本，绝不能提交真人录音台账。
+# 正式音频位于外部内容仓库；程序仓库中的运行副本和构建产物不提交。
 shared/web/audio/
 v2/audio/
 v3/public/audio/
 *.mp3
-!chinese/**/*.mp3
 
 # ── V3 stage 产物（由 tools/stage.py 生成，不提交）─────────────────
 # v3/public/index.html 来自 shared/web/，wrangler 部署前需先运行 stage
@@ -83,25 +79,20 @@ docs/*
 !docs/V2.1-OSS-AUDIT.md
 !docs/CONTENT-PACK-SPEC.md
 !docs/CONTENT-LICENSING.md
+!docs/REPOSITORY-ARCHITECTURE.md
+!docs/RELEASE-CHECKLIST.md
 
 # 一次性/过期工具（本地保留，不入库）
 tools/add_lesson_cols.py
 shared/tools/fill_word2write.py
-shared/tools/import_wordlist.py
 shared/tools/wordlist_template.csv
 
-# 二年级遗留数据（已换全新三年级库，不迁移历史）
-shared/data/kp_part*.json
-shared/data/lessons_2b.json
-
 # 过期的分版本建库脚本（已由 shared/init_db.py 统一取代）
-v1/init_db.py
 v2/init_db.py
 
 # stage.py 生成物（母本在 shared/web/，部署前运行 stage 重新生成）
 v2/dictation_www/
 v2/audio/
-v1/dictation_www/play.html
 
 # export_d1.py 生成物（部署前重新生成）
 v3/migrations/0002_seed.sql

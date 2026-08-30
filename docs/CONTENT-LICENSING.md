@@ -22,22 +22,25 @@ container image, demo site, or CDN.
 
 The root AGPL-3.0 license covers the application and its source code. It does
 not relicense textbooks, question banks, TTS output, or recordings. Public
-release artifacts include only the original content/demo-zh-cn pack. Private
-compatibility packs for existing v2.0 deployments stay outside the public
-history and release assets.
+release artifacts include only the synthetic test fixture under
+`tests/fixtures/demo-content-pack`. Production content and recordings are
+versioned in the separate `dictation-content` repository.
 
 ## Audio layers
 
-Dictation supports three audio layers:
+Dictation supports four audio arrangements:
 
 1. no bundled audio, with browser or deployment-time generation;
 2. a content-pack audio baseline whose provider terms permit redistribution;
-3. local teacher or family recordings that override the baseline.
+3. recordings made and licensed by the content-pack author;
+4. unpublished runtime recordings that override the installed baseline.
 
 Generated audio is publishable only when the maintainer has verified the
 provider's current redistribution terms and recorded that basis in the pack.
-User recordings and recording ledgers are always excluded from source and
-release artifacts.
+Author-owned recordings may be published when the pack states their author and
+license. Runtime recording ledgers, drafts, review state, and recordings made
+by other users remain private unless those contributors explicitly authorize a
+separate content release.
 
 ## Release review
 

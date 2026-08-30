@@ -10,6 +10,12 @@ import unittest
 
 from fastapi import HTTPException
 
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.environ.setdefault(
+    "DICTATION_CONTENT_ROOT",
+    os.path.join(ROOT, "tests", "fixtures", "demo-content-pack"),
+)
+
 import v2.main as main
 
 

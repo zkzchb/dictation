@@ -21,9 +21,16 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CONTENT_ROOT = Path(
-    os.getenv("DICTATION_CONTENT_ROOT", ROOT / "chinese" / "3a")
+    os.getenv(
+        "DICTATION_CONTENT_ROOT",
+        ROOT.parent / "dictation-content" / "packs" / "zh-cn" / "primary-3a",
+    )
 )
 PACK_ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{1,63}$")
+VERSION_RE = re.compile(
+    r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
+    r"(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$"
+)
 HASH_RE = re.compile(r"^[0-9a-f]{64}$")
 STUDIO_HASH_RE = re.compile(r"^[0-9a-f]{12}$")
 SUPPORTED_CATEGORIES = frozenset({"生字", "词语", "易错字", "多音字"})
@@ -150,9 +157,24 @@ def _validate_knowledge_points(
     items: list[Any], lesson_ids: set[int]
 ) -> tuple[dict[str, Any], ...]:
     result: list[dict[str, Any]] = []
+    seen_ids: set[int] = set()
     for index, item in enumerate(items):
         if not isinstance(item, dict):
             raise ContentPackError(f"knowledge_points.json[{index}] 必须是对象")
+        # v2.0 files had no explicit IDs, so their stable legacy identity is the
+        # one-based array position. New packs should write this value explicitly
+        # before they start publishing independent content updates.
+        point_id = item.get("id", index + 1)
+        if (
+            isinstance(point_id, bool)
+            or not isinstance(point_id, int)
+            or point_id <= 0
+            or point_id > 2_147_483_647
+        ):
+            raise ContentPackError(f"knowledge_points.json[{index}].id 必须是正整数")
+        if point_id in seen_ids:
+            raise ContentPackError(f"knowledge_points.json id 重复: {point_id}")
+        seen_ids.add(point_id)
         seq = item.get("lesson_seq")
         if seq not in lesson_ids:
             raise ContentPackError(
@@ -168,7 +190,9 @@ def _validate_knowledge_points(
             )
         if not isinstance(item.get("options_json"), list):
             raise ContentPackError(f"knowledge_points.json[{index}].options_json 必须是数组")
-        result.append(item)
+        normalized = dict(item)
+        normalized["id"] = point_id
+        result.append(normalized)
     if not result:
         raise ContentPackError("knowledge_points.json 不能为空")
     return tuple(result)
@@ -225,7 +249,7 @@ def _runtime_config(metadata: dict[str, Any], lesson_ids: set[int]) -> RuntimeCo
     if not regular:
         raise ContentPackError("内容包至少需要一门正式课")
     initial = raw.get("initial_lesson", regular[0])
-    if initial not in regular:
+    if isinstance(initial, bool) or not isinstance(initial, int) or initial not in regular:
         raise ContentPackError("dataset.json runtime.initial_lesson 必须是一门正式课")
 
     return RuntimeConfig(
@@ -293,10 +317,12 @@ def _validate_hashes(metadata: dict[str, Any], paths: dict[str, Path], digest: s
 
 
 def load_content_pack(
-    root: str | os.PathLike[str] | Path = DEFAULT_CONTENT_ROOT,
+    root: str | os.PathLike[str] | Path | None = None,
     *,
     verify_hashes: bool = True,
 ) -> ContentPack:
+    if root is None:
+        root = os.getenv("DICTATION_CONTENT_ROOT", str(DEFAULT_CONTENT_ROOT))
     root_path = Path(root).resolve()
     metadata = _read_json(root_path / "dataset.json", dict)
     if metadata.get("schema_version") != 1:
@@ -308,6 +334,11 @@ def load_content_pack(
         value = metadata.get(field)
         if not isinstance(value, str) or not value.strip():
             raise ContentPackError(f"dataset.json {field} 必须是非空字符串")
+    version = metadata.get("version")
+    if version is not None and (
+        not isinstance(version, str) or not VERSION_RE.fullmatch(version)
+    ):
+        raise ContentPackError("dataset.json version 必须是语义化版本")
 
     raw_paths = metadata.get("paths")
     if not isinstance(raw_paths, dict):

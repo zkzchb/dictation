@@ -1,7 +1,14 @@
+import os
+from pathlib import Path
 import random
 import sqlite3
 import unittest
 from unittest import mock
+
+ROOT = Path(__file__).resolve().parents[1]
+os.environ.setdefault(
+    "DICTATION_CONTENT_ROOT", str(ROOT / "tests" / "fixtures" / "demo-content-pack")
+)
 
 from shared import init_db, selector
 

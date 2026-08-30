@@ -5,7 +5,7 @@
 #   sudo bash deploy/vps-uninstall.sh
 #
 # 移除：systemd 服务、Caddy 站点配置、密钥文件、备份 cron、系统用户
-# 保留：$APP_ROOT 代码与数据库、/var/backups/dictation 备份
+# 保留：程序、外部内容包、$STATE_ROOT 运行数据和备份
 # ============================================================================
 set -euo pipefail
 
@@ -20,19 +20,22 @@ warn() { echo "${C_WARN}  [!] ${C_OFF} $*"; }
 [[ $EUID -eq 0 ]] || { echo "请用 root 运行：sudo bash deploy/vps-uninstall.sh" >&2; exit 1; }
 
 APP_ROOT=/opt/dictation
+STATE_ROOT=/var/lib/dictation
 APP_USER=dictation
 if [[ -f "$ENV_FILE" ]]; then
   set -a; . "$ENV_FILE"; set +a
-  : "${APP_ROOT:=/opt/dictation}"; : "${APP_USER:=dictation}"
+  : "${APP_ROOT:=/opt/dictation}"
+  : "${STATE_ROOT:=/var/lib/dictation}"
+  : "${APP_USER:=dictation}"
 fi
 
 echo
-echo "将移除服务与配置，保留代码和数据库（$APP_ROOT）。"
+echo "将移除服务与系统配置，保留程序、内容、运行数据和备份。"
 read -r -p "确认继续？输入 yes: " CONFIRM
 [[ "$CONFIRM" == "yes" ]] || { echo "已取消"; exit 0; }
 
 step "停止并移除 systemd 服务"
-for s in dictation-v1 dictation-v2; do
+for s in dictation-v2; do
   if systemctl list-unit-files | grep -q "^$s.service"; then
     systemctl disable --now "$s" >/dev/null 2>&1 || true
     rm -f "/etc/systemd/system/$s.service"
@@ -50,7 +53,7 @@ if [[ -f /etc/caddy/Caddyfile ]]; then
 fi
 
 step "移除密钥文件"
-rm -f /etc/dictation/v1.env /etc/dictation/v2.env
+rm -f /etc/dictation/v2.env
 rmdir /etc/dictation 2>/dev/null || true
 ok "/etc/dictation 已清理"
 
@@ -71,9 +74,7 @@ echo "${C_OK}  卸载完成${C_OFF}"
 echo "${C_HEAD}============================================================${C_OFF}"
 echo
 echo "  仍保留（如需彻底清除请手动删除）："
-echo "    代码与数据库  $APP_ROOT"
-echo "    数据库备份    /var/backups/dictation"
-echo
-echo "  彻底删除："
-echo "    rm -rf $APP_ROOT /var/backups/dictation"
+echo "    程序          $APP_ROOT"
+echo "    运行数据      $STATE_ROOT"
+echo "    历史备份      /var/backups/dictation"
 echo

@@ -1,5 +1,6 @@
 import asyncio
 import importlib.util
+import os
 from pathlib import Path
 import random
 import sqlite3
@@ -9,10 +10,13 @@ import tempfile
 from types import SimpleNamespace
 import unittest
 
+ROOT = Path(__file__).resolve().parents[1]
+PACK = ROOT / "tests" / "fixtures" / "demo-content-pack"
+os.environ.setdefault("DICTATION_CONTENT_ROOT", str(PACK))
+
 from shared import selector
 
 
-ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location(
     "selector_d1_parity", ROOT / "v3" / "src" / "selector_d1.py"
 )
@@ -56,7 +60,7 @@ class SelectorParityTests(unittest.TestCase):
                     "--db",
                     str(db_path),
                     "--content-root",
-                    str(ROOT / "chinese" / "3a"),
+                    str(PACK),
                 ],
                 check=True,
                 capture_output=True,
@@ -74,7 +78,7 @@ class SelectorParityTests(unittest.TestCase):
                     "review_target": selector.TARGET_REVIEW,
                     "polyphonic_per_lesson": selector.POLY_PER_LESSON,
                 }
-                for lesson_seq in (3111, 3110):
+                for lesson_seq in (9101, 9100):
                     local = selector.build_word_list(
                         conn, lesson_seq, rng=random.Random(20260829)
                     )

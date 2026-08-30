@@ -23,6 +23,7 @@ content-pack/
 {
   "schema_version": 1,
   "id": "demo-zh-cn",
+  "version": "1.0.0",
   "display_name": "中文听写演示包",
   "language": "zh-CN",
   "subject": "chinese",
@@ -46,8 +47,9 @@ content-pack/
 }
 ```
 
-`id` 使用 2–64 位小写字母、数字、点、短横线或下划线。`runtime` 的课程号必须出现在
-`lessons.json`；`initial_lesson` 必须是正式课，不能同时属于冷启动池或复习课。
+`id` 使用 2–64 位小写字母、数字、点、短横线或下划线，并在同一套教材的兼容更新中
+保持不变。`version` 使用内容仓库自己的语义化版本；它不跟随程序版本。`runtime` 的课程号
+必须出现在 `lessons.json`；`initial_lesson` 必须是正式课，不能同时属于冷启动池或复习课。
 
 为兼容 v2.0，缺少 `runtime` 时按以下规则推断：若存在课程 `3000`，将其视为冷启动池；
 除冷启动池外，末位为 `0` 的课程视为复习课；最小的正式课作为首课；目标词数使用
@@ -62,9 +64,15 @@ content-pack/
 
 ## knowledge_points.json
 
-顶层为数组。每项包含 `lesson_seq`、非空 `target`、`category` 和 `options_json`。
+顶层为数组。每项包含稳定正整数 `id`、`lesson_seq`、非空 `target`、`category` 和
+`options_json`。
 `lesson_seq` 必须引用已有课程；v1 支持 `生字`、`词语`、`易错字`、`多音字` 四类。
 `options_json` 是数组，选项可包含 `text`、`pinyin`、`pron`、`pair_id` 等字段。
+
+`id` 一旦发布就不能分配给另一个知识点。内容更新可以追加新 ID，也可以在保留语义身份的
+前提下修订原 ID；删除或重新编号属于不兼容更新，应建立新的 pack id 和独立学习数据库。
+加载器仍能读取缺少 `id` 的 v2.0 旧包，并按数组位置补出 1-based ID；新内容仓库不得依赖
+这一兼容行为。
 
 ## studio_manifest.json
 
@@ -80,9 +88,10 @@ content-pack/
 `tts.sha256` 自身的 SHA-256，并逐文件校验 MP3。
 
 运行 `python shared/content_pack.py <内容包目录>` 可独立校验一个内容包；运行
-`python -m unittest tests/test_content_pack.py -v` 可验证规范实现和 v2.0 兼容性。
+`python shared/sync_content.py --db <数据库> --content-root <内容包>` 可把兼容的追加更新
+同步到现有 V2 数据库并保留学习历史。
 
 Cloudflare/D1 部署使用同一个入口。`shared/tools/export_d1.py` 从通过校验的内容包生成
-静态种子迁移和单例 `content_runtime` 配置；Worker 每次请求从 D1 读取配置，不在源码中
-写死首课、复习课或目标词数。切换到不同内容包时应使用新的 D1 数据库，避免把两个包的
-静态知识点混入同一学习记录。
+静态种子和单例 `content_runtime` 配置；Worker 每次请求从 D1 读取配置，不在源码中
+写死首课、复习课或目标词数。同一 pack id 的追加更新按稳定 ID upsert；切换到不同 pack
+id 时应使用新的 D1 数据库，避免把两套内容的学习记录混在一起。

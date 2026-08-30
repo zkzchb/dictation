@@ -44,11 +44,13 @@ def seed_sql(pack) -> str:
     ]
     for lesson in pack.lessons:
         lines.append(
-            "INSERT OR IGNORE INTO lessons "
+            "INSERT INTO lessons "
             "(lesson_seq, unit_id, unit_name, lesson_title, lesson_name) VALUES "
             f"({lesson['lesson_seq']}, {lesson['unit_id']}, "
             f"{q(lesson['unit_name'])}, {q(lesson.get('lesson_title', ''))}, "
-            f"{q(lesson['lesson_name'])});"
+            f"{q(lesson['lesson_name'])}) ON CONFLICT(lesson_seq) DO UPDATE SET "
+            "unit_id=excluded.unit_id, unit_name=excluded.unit_name, "
+            "lesson_title=excluded.lesson_title, lesson_name=excluded.lesson_name;"
         )
     lines.append(f"-- {len(pack.lessons)} lessons\n")
 
@@ -56,10 +58,12 @@ def seed_sql(pack) -> str:
     for point in pack.knowledge_points:
         options = json.dumps(point["options_json"], ensure_ascii=False)
         lines.append(
-            "INSERT OR IGNORE INTO knowledge_points "
-            "(lesson_seq, target, category, options_json) VALUES "
-            f"({point['lesson_seq']}, {q(point['target'])}, "
-            f"{q(point['category'])}, {q(options)});"
+            "INSERT INTO knowledge_points "
+            "(id, lesson_seq, target, category, options_json) VALUES "
+            f"({point['id']}, {point['lesson_seq']}, {q(point['target'])}, "
+            f"{q(point['category'])}, {q(options)}) ON CONFLICT(id) DO UPDATE SET "
+            "lesson_seq=excluded.lesson_seq, target=excluded.target, "
+            "category=excluded.category, options_json=excluded.options_json;"
         )
     lines.append(f"-- {len(pack.knowledge_points)} knowledge points\n")
     lines.append("-- initial single-user progress")

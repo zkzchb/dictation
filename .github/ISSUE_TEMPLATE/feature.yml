@@ -1,0 +1,32 @@
+name: Feature proposal
+description: Propose a scoped program or content-pack improvement.
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: use_case
+    attributes:
+      label: User need
+      description: Describe the problem without prescribing an implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Affected scope
+      options:
+        - label: V2
+        - label: V3
+        - label: content-pack schema
+        - label: deployment or operations
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and migration
+      description: Explain effects on existing packs, databases, recordings, and deployments.
