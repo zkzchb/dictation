@@ -24,6 +24,11 @@ class DeployContentRootTests(unittest.TestCase):
             script,
         )
 
+    def test_vps_installer_preserves_the_configured_ssh_port(self):
+        script = (ROOT / "deploy" / "vps-install.sh").read_text(encoding="utf-8")
+        self.assertIn('ufw allow "$SSH_PORT/tcp"', script)
+        self.assertIn("rsync cron ca-certificates", script)
+
 
 if __name__ == "__main__":
     unittest.main()

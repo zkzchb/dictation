@@ -105,3 +105,35 @@ sudo bash deploy/vps-uninstall.sh
 
 卸载器移除 systemd、Caddy 配置、运行环境文件、cron 和系统用户；程序、内容仓库、
 `/var/lib/dictation` 与 `/var/backups/dictation` 都保留。
+
+## 9. 从本地工作站执行全新重装与验收
+
+需要删除 VPS 上的旧 Dictation 部署并验证候选版时，在可信的本地 Ubuntu 工作站运行：
+
+```bash
+cp deploy/vps.env.example /path/to/private/bce-vps.env
+chmod 600 /path/to/private/bce-vps.env
+# 编辑私有配置后先执行本地校验和远端只读预检
+bash deploy/vps-fresh-redeploy.sh \
+  --validate-env-only --env-file /path/to/private/bce-vps.env
+bash deploy/vps-fresh-redeploy.sh \
+  --host <BCE_IP_OR_SSH_ALIAS> \
+  --user root \
+  --env-file /path/to/private/bce-vps.env \
+  --preflight-only
+
+# 确认预检结果后执行完整流程；脚本会再次要求输入目标主机确认
+bash deploy/vps-fresh-redeploy.sh \
+  --host <BCE_IP_OR_SSH_ALIAS> \
+  --user root \
+  --env-file /path/to/private/bce-vps.env
+```
+
+脚本固定部署 `v2.1.0-rc.1` 与 `content-v1.0.0`。它只删除文档列出的 Dictation
+路径；删除前会校验 SQLite、空间、Caddy 边界、快照归档和 SHA-256。安装或验收失败时，
+脚本自动恢复删除前快照。若现有 Caddyfile 不能识别为 Dictation 专用配置，流程默认停止；
+只有确认整台 VPS 专用于 Dictation 时才能显式加入 `--allow-caddy-replace`。
+
+原始日志分别保存在本地私有状态目录和 VPS 的 `/var/backups/dictation/acceptance/`；脚本
+另生成不含主机、域名、账号、路径、学习记录或凭据的 `ubuntu-vps-bce.md`，只有该脱敏
+报告适合提交到 `docs/verification/v2.1.0-rc.1/` 或链接到 Pull Request。

@@ -24,6 +24,13 @@ set -a
 set +a
 
 : "${V2_PORT:=8889}"
+DETECTED_SSH_PORT="${SSH_CONNECTION-}"
+if [[ "$DETECTED_SSH_PORT" == *" "* ]]; then
+  DETECTED_SSH_PORT="${DETECTED_SSH_PORT##* }"
+else
+  DETECTED_SSH_PORT=22
+fi
+: "${SSH_PORT:=$DETECTED_SSH_PORT}"
 : "${APP_ROOT:=/opt/dictation}"
 : "${CONTENT_ROOT:=/opt/dictation-content/packs/zh-cn/primary-3a}"
 : "${STATE_ROOT:=/var/lib/dictation}"
@@ -56,6 +63,8 @@ check_value BASIC_AUTH_PASSWORD "${BASIC_AUTH_PASSWORD-}"
   || die "STUDIO_ENABLED 只能是 0 或 1"
 [[ "$V2_PORT" =~ ^[0-9]+$ ]] && (( V2_PORT >= 1 && V2_PORT <= 65535 )) \
   || die "V2_PORT 必须是 1..65535"
+[[ "$SSH_PORT" =~ ^[0-9]+$ ]] && (( SSH_PORT >= 1 && SSH_PORT <= 65535 )) \
+  || die "SSH_PORT 必须是 1..65535"
 [[ "$APP_ROOT" == /* && "$CONTENT_ROOT" == /* && "$STATE_ROOT" == /* ]] \
   || die "APP_ROOT、CONTENT_ROOT 与 STATE_ROOT 必须是绝对路径"
 for path_value in "$APP_ROOT" "$CONTENT_ROOT" "$STATE_ROOT"; do
@@ -74,7 +83,7 @@ step "安装系统依赖"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq \
-  python3 python3-venv python3-pip sqlite3 ffmpeg curl ufw rsync ca-certificates
+  python3 python3-venv python3-pip sqlite3 ffmpeg curl ufw rsync cron ca-certificates
 if ! command -v caddy >/dev/null 2>&1; then
   if ! apt-get install -y -qq caddy; then
     apt-get install -y -qq software-properties-common
@@ -252,7 +261,7 @@ systemctl reload caddy 2>/dev/null || systemctl restart caddy
 ok "Caddy 配置有效"
 
 step "配置防火墙"
-ufw allow OpenSSH >/dev/null 2>&1 || ufw allow 22/tcp >/dev/null 2>&1
+ufw allow "$SSH_PORT/tcp" >/dev/null 2>&1
 ufw allow 80/tcp >/dev/null 2>&1
 ufw allow 443/tcp >/dev/null 2>&1
 ufw allow 443/udp >/dev/null 2>&1
