@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "demo-zh-cn",
+  "display_name": "原创中文听写演示包",
+  "language": "zh-CN",
+  "subject": "chinese",
+  "license": "CC0-1.0",
+  "paths": {
+    "lessons": "lessons.json",
+    "knowledge_points": "knowledge_points.json",
+    "studio_manifest": "studio_manifest.json"
+  },
+  "runtime": {
+    "cold_start_lesson": 9000,
+    "initial_lesson": 9101,
+    "review_lessons": [9100],
+    "daily_target": 8,
+    "review_target": 12,
+    "polyphonic_per_lesson": 1
+  },
+  "counts": {
+    "lessons": 5,
+    "knowledge_points": 17,
+    "studio_words": 18,
+    "tts_words": 18,
+    "tts_system": 0,
+    "categories": {"多音字": 3, "易错字": 1, "生字": 6, "词语": 7}
+  },
+  "sha256": {
+    "lessons": "f95cf1366c066cffb49af8926d9c6cfc129e4e4d1d92df0b505dfb0059de025d",
+    "knowledge_points": "87e86a26c0eba2338fc5fc909eaf0e1a9d334095bc2b69bdb6495d3b6459dd4e",
+    "studio_manifest": "1f6281e407d6b363c71d4b6fcb61d3cef0bee9c01d6c733286b0555d0cf554df",
+    "dataset": "bc518cbfe47f6b98ee95266a765858cf176f911d962c0c0ea52999d5c70bd0dc"
+  }
+}
