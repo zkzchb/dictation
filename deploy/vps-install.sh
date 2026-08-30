@@ -125,6 +125,7 @@ chmod 755 "$STATE_ROOT" "$STATE_ROOT/v2" "$WEB_ROOT" /etc/dictation
 ok "运行用户: $APP_USER；状态目录: $STATE_ROOT"
 
 step "验证程序与外部内容包"
+chmod -R a+rX "$APP_ROOT/v2" "$APP_ROOT/shared"
 python3 "$APP_ROOT/shared/content_pack.py" "$CONTENT_ROOT" \
   || die "内容包无效: $CONTENT_ROOT"
 DICTATION_CONTENT_ROOT="$CONTENT_ROOT" \

@@ -54,6 +54,7 @@ class VpsFreshRedeployTests(unittest.TestCase):
         self.assertIn('dictation_account_home=%s', script)
         self.assertIn('usermod --home "$STATE_ROOT" dictation', script)
         self.assertIn('usermod --home "$original_account_home" dictation', script)
+        self.assertIn('chmod -R a+rX "$APP_ROOT" "$CONTENT_REPO"', script)
         self.assertLess(
             script.index('printf \'dictation_account_home=%s'),
             script.index('phase_destroy()'),

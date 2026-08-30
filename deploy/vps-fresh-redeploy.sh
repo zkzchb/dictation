@@ -624,6 +624,11 @@ phase_install() {
   [[ "$(git -C "$CONTENT_REPO" describe --tags --exact-match)" == "$CONTENT_TAG" ]] \
     || die "内容检出不是不可变内容标签"
 
+  # The helper uses umask 077 for private temporary files. Publicly cloned
+  # application and content trees must still be traversable/readable by the
+  # dedicated service account and by the root-run installer.
+  chmod -R a+rX "$APP_ROOT" "$CONTENT_REPO"
+
   if getent passwd dictation >/dev/null 2>&1; then
     usermod --home "$STATE_ROOT" dictation
     [[ "$(getent passwd dictation | cut -d: -f6)" == "$STATE_ROOT" ]] \

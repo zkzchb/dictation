@@ -35,6 +35,7 @@ class DeployContentRootTests(unittest.TestCase):
         self.assertIn('/usr/sbin/nologin|/sbin/nologin|/bin/false|/usr/bin/false', script)
         self.assertIn('"$APP_ROOT"|"$STATE_ROOT"', script)
         self.assertIn('usermod --home "$STATE_ROOT" "$APP_USER"', script)
+        self.assertIn('chmod -R a+rX "$APP_ROOT/v2" "$APP_ROOT/shared"', script)
 
 
 if __name__ == "__main__":
