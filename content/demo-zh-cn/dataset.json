@@ -27,9 +27,9 @@
     "categories": {"多音字": 3, "易错字": 1, "生字": 6, "词语": 7}
   },
   "sha256": {
-    "lessons": "f95cf1366c066cffb49af8926d9c6cfc129e4e4d1d92df0b505dfb0059de025d",
+    "lessons": "28cfa69baa82a7ccca3680c99b67382e542a8784c47999555684a7f14f58c4b3",
     "knowledge_points": "87e86a26c0eba2338fc5fc909eaf0e1a9d334095bc2b69bdb6495d3b6459dd4e",
     "studio_manifest": "1f6281e407d6b363c71d4b6fcb61d3cef0bee9c01d6c733286b0555d0cf554df",
-    "dataset": "bc518cbfe47f6b98ee95266a765858cf176f911d962c0c0ea52999d5c70bd0dc"
+    "dataset": "2772be221e50e2123a3b0547d76e7d85b20f6ff617ba1ef503cc9fac298fa7a0"
   }
 }
