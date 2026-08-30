@@ -83,7 +83,7 @@ step "安装系统依赖"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq \
-  python3 python3-venv python3-pip sqlite3 ffmpeg curl ufw rsync cron ca-certificates
+  python3 python3-venv python3-pip sqlite3 ffmpeg curl ufw rsync cron ca-certificates passwd
 if ! command -v caddy >/dev/null 2>&1; then
   if ! apt-get install -y -qq caddy; then
     apt-get install -y -qq software-properties-common
@@ -97,6 +97,28 @@ ok "Ubuntu 运行依赖已就绪"
 step "创建运行用户与状态目录"
 if ! id "$APP_USER" >/dev/null 2>&1; then
   adduser --system --group --home "$STATE_ROOT" --shell /usr/sbin/nologin "$APP_USER"
+else
+  account_record="$(getent passwd "$APP_USER")" \
+    || die "无法读取现有运行账户: $APP_USER"
+  IFS=: read -r account_name _ account_uid account_gid _ account_home account_shell \
+    <<< "$account_record"
+  [[ "$account_name" == "$APP_USER" ]] || die "运行账户记录异常: $APP_USER"
+  [[ "$account_uid" =~ ^[0-9]+$ ]] && ((account_uid < 1000)) \
+    || die "拒绝把普通登录账户用作运行账户: $APP_USER"
+  case "$account_shell" in
+    /usr/sbin/nologin|/sbin/nologin|/bin/false|/usr/bin/false) ;;
+    *) die "运行账户必须禁止登录: $APP_USER" ;;
+  esac
+  account_group_gid="$(getent group "$APP_USER" 2>/dev/null | cut -d: -f3 || true)"
+  [[ "$account_group_gid" == "$account_gid" ]] \
+    || die "运行账户必须使用同名主组: $APP_USER"
+  case "$account_home" in
+    "$APP_ROOT"|"$STATE_ROOT") ;;
+    *) die "运行账户 home 不属于程序或状态目录: $APP_USER" ;;
+  esac
+  if [[ "$account_home" != "$STATE_ROOT" ]]; then
+    usermod --home "$STATE_ROOT" "$APP_USER"
+  fi
 fi
 mkdir -p "$STATE_ROOT/v2" "$WEB_ROOT" /etc/dictation
 chmod 755 "$STATE_ROOT" "$STATE_ROOT/v2" "$WEB_ROOT" /etc/dictation

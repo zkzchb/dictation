@@ -46,6 +46,19 @@ class VpsFreshRedeployTests(unittest.TestCase):
         self.assertIn("--preflight-only", result.stdout)
         self.assertIn("--allow-caddy-replace", result.stdout)
 
+    def test_legacy_service_account_home_is_migrated_and_rollback_safe(self):
+        script = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn('((app_uid < 1000))', script)
+        self.assertIn('/usr/sbin/nologin|/sbin/nologin|/bin/false|/usr/bin/false', script)
+        self.assertIn('"$APP_ROOT"|"$STATE_ROOT"', script)
+        self.assertIn('dictation_account_home=%s', script)
+        self.assertIn('usermod --home "$STATE_ROOT" dictation', script)
+        self.assertIn('usermod --home "$original_account_home" dictation', script)
+        self.assertLess(
+            script.index('printf \'dictation_account_home=%s'),
+            script.index('phase_destroy()'),
+        )
+
     def test_validate_env_only_accepts_fixed_safe_layout(self):
         with tempfile.TemporaryDirectory() as temp:
             env_file = self._env_file(Path(temp))

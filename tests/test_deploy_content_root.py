@@ -29,6 +29,13 @@ class DeployContentRootTests(unittest.TestCase):
         self.assertIn('ufw allow "$SSH_PORT/tcp"', script)
         self.assertIn("rsync cron ca-certificates", script)
 
+    def test_vps_installer_migrates_only_a_dedicated_runtime_account(self):
+        script = (ROOT / "deploy" / "vps-install.sh").read_text(encoding="utf-8")
+        self.assertIn('((account_uid < 1000))', script)
+        self.assertIn('/usr/sbin/nologin|/sbin/nologin|/bin/false|/usr/bin/false', script)
+        self.assertIn('"$APP_ROOT"|"$STATE_ROOT"', script)
+        self.assertIn('usermod --home "$STATE_ROOT" "$APP_USER"', script)
+
 
 if __name__ == "__main__":
     unittest.main()

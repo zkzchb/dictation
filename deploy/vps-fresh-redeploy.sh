@@ -305,7 +305,8 @@ if [[ "$PHASE" != "preflight" ]]; then
 fi
 
 assert_safe_layout() {
-  local path
+  local path account_record account_name app_uid app_gid app_home app_shell
+  local app_group_gid service_user service_group
   for path in \
     "$APP_ROOT" \
     "$CONTENT_REPO" \
@@ -324,11 +325,34 @@ assert_safe_layout() {
       fi
     done
   fi
-  if getent passwd dictation >/dev/null 2>&1; then
-    local app_home
-    app_home="$(getent passwd dictation | cut -d: -f6)"
-    [[ "$app_home" == "$STATE_ROOT" ]] \
-      || die "dictation 系统用户的 home 不是预期状态目录，拒绝继续"
+  if account_record="$(getent passwd dictation 2>/dev/null)"; then
+    IFS=: read -r account_name _ app_uid app_gid _ app_home app_shell \
+      <<< "$account_record"
+    [[ "$account_name" == "dictation" ]] \
+      || die "dictation 账户记录异常"
+    [[ "$app_uid" =~ ^[0-9]+$ ]] && ((app_uid < 1000)) \
+      || die "dictation 必须是系统账户，拒绝修改普通登录账户"
+    case "$app_shell" in
+      /usr/sbin/nologin|/sbin/nologin|/bin/false|/usr/bin/false) ;;
+      *) die "dictation 账户允许登录，拒绝继续" ;;
+    esac
+    app_group_gid="$(getent group dictation 2>/dev/null | cut -d: -f3 || true)"
+    [[ "$app_group_gid" == "$app_gid" ]] \
+      || die "dictation 账户未使用同名主组，拒绝继续"
+    case "$app_home" in
+      "$APP_ROOT")
+        printf '[!] 检测到旧版 dictation home：%s；备份后将迁移到 %s\n' \
+          "$APP_ROOT" "$STATE_ROOT"
+        ;;
+      "$STATE_ROOT") ;;
+      *) die "dictation 系统账户的 home 不属于 Dictation 固定路径，拒绝继续" ;;
+    esac
+    if [[ -f /etc/systemd/system/dictation-v2.service ]]; then
+      service_user="$(systemctl show --property User --value dictation-v2.service 2>/dev/null || true)"
+      service_group="$(systemctl show --property Group --value dictation-v2.service 2>/dev/null || true)"
+      [[ "$service_user" == "dictation" && "$service_group" == "dictation" ]] \
+        || die "现有 dictation-v2 服务未使用专用 dictation 账户和主组"
+    fi
   fi
 }
 
@@ -410,9 +434,12 @@ phase_backup() {
   mkdir -p "$BACKUP_ROOT"
   chmod 700 "$BACKUP_ROOT"
 
-  local dictation_active=no caddy_active=no
+  local dictation_active=no caddy_active=no dictation_account_home=
   systemctl is-active --quiet dictation-v2.service 2>/dev/null && dictation_active=yes
   systemctl is-active --quiet caddy.service 2>/dev/null && caddy_active=yes
+  if getent passwd dictation >/dev/null 2>&1; then
+    dictation_account_home="$(getent passwd dictation | cut -d: -f6)"
+  fi
 
   recover_services() {
     if [[ "$dictation_active" == "yes" ]]; then
@@ -471,6 +498,7 @@ PY
     printf 'created_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     printf 'dictation_service_active=%s\n' "$dictation_active"
     printf 'caddy_service_active=%s\n' "$caddy_active"
+    printf 'dictation_account_home=%s\n' "$dictation_account_home"
     if [[ -d "$APP_ROOT/.git" ]]; then
       printf 'program_ref=%s\n' "$(git -C "$APP_ROOT" rev-parse HEAD 2>/dev/null || true)"
     fi
@@ -581,7 +609,7 @@ phase_install() {
 
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq
-  apt-get install -y -qq git ca-certificates file cron ufw
+  apt-get install -y -qq git ca-certificates file cron ufw passwd
   ufw allow "$REMOTE_SSH_PORT/tcp" >/dev/null
   git clone --quiet --depth 1 --branch "$PROGRAM_TAG" --single-branch \
     "$PROGRAM_URL" "$APP_ROOT"
@@ -595,6 +623,12 @@ phase_install() {
     || die "程序检出不是不可变候选标签"
   [[ "$(git -C "$CONTENT_REPO" describe --tags --exact-match)" == "$CONTENT_TAG" ]] \
     || die "内容检出不是不可变内容标签"
+
+  if getent passwd dictation >/dev/null 2>&1; then
+    usermod --home "$STATE_ROOT" dictation
+    [[ "$(getent passwd dictation | cut -d: -f6)" == "$STATE_ROOT" ]] \
+      || die "dictation 系统账户 home 迁移失败"
+  fi
 
   install -m 0600 -o root -g root "$ENV_FILE" "$APP_ROOT/deploy/vps.env"
   bash "$APP_ROOT/deploy/vps-install.sh"
@@ -809,9 +843,27 @@ PY
 
 phase_rollback() {
   step "从删除前快照自动恢复旧部署"
+  local original_account_home
   verify_backup
   remove_runtime
   tar -C / -xzf "$BACKUP_ROOT/filesystem.tar.gz"
+  original_account_home="$(
+    awk -F= '$1 == "dictation_account_home" {
+      print substr($0, index($0, "=") + 1)
+      found = 1
+      exit
+    }
+    END { if (!found) exit 1 }' "$BACKUP_ROOT/inventory.env"
+  )" || die "快照缺少 dictation 账户 home 记录"
+  if [[ -n "$original_account_home" ]]; then
+    case "$original_account_home" in
+      "$APP_ROOT"|"$STATE_ROOT") ;;
+      *) die "快照中的 dictation 账户 home 不安全，拒绝恢复" ;;
+    esac
+    getent passwd dictation >/dev/null 2>&1 \
+      || die "恢复旧部署时找不到 dictation 系统账户"
+    usermod --home "$original_account_home" dictation
+  fi
   if [[ -s "$BACKUP_ROOT/root.crontab" ]]; then
     crontab "$BACKUP_ROOT/root.crontab"
   else
