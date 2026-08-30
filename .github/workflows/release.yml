@@ -50,7 +50,10 @@ jobs:
           python -m pip_audit -r v2/requirements.txt \
             --format cyclonedx-json \
             --output "dist/dictation-${GITHUB_REF_NAME}.cdx.json"
-          sha256sum dist/* > "dist/SHA256SUMS"
+          sha256sum \
+            "dist/dictation-${GITHUB_REF_NAME}.tar.gz" \
+            "dist/dictation-${GITHUB_REF_NAME}.cdx.json" \
+            > "dist/SHA256SUMS"
       - name: Attest release artifacts
         uses: actions/attest@v4
         with:
@@ -59,7 +62,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          release_flags=()
+          if [[ "$GITHUB_REF_NAME" == *-rc.* ]]; then
+            release_flags+=(--prerelease)
+          fi
           gh release create "$GITHUB_REF_NAME" dist/* \
             --verify-tag \
             --title "Dictation $GITHUB_REF_NAME" \
+            --notes "Compatible content: [content-v1.0.0](https://github.com/zkzchb/dictation-content/releases/tag/content-v1.0.0)." \
+            "${release_flags[@]}" \
             --generate-notes
