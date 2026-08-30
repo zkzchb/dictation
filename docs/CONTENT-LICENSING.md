@@ -43,6 +43,6 @@ release artifacts.
 
 Before a public release, a maintainer verifies the exported tree and artifacts
 against this policy, scans for credentials and personal infrastructure, and
-recordss the result in the release checklist. Any uncertainty blocks
+records the result in the release checklist. Any uncertainty blocks
 redistribution of the affected content without blocking publication of the
 software itself.
