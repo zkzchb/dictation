@@ -6,6 +6,12 @@ Dictation is a self-hosted Chinese literacy practice application for families an
 
 The current stable program release is [`v2.1.0`](https://github.com/zkzchb/dictation/releases/tag/v2.1.0). Its compatible public content release is [`content-v1.0.0`](https://github.com/zkzchb/dictation-content/releases/tag/content-v1.0.0).
 
+## Project vision
+
+Dictation is not intended as a centralized SaaS tied to fixed curricula and voices. It is a self-hosted runtime for runnable, versioned learning materials. Its guiding principle is: **stateless runtime, versioned materials, owned records, explainable feedback.**
+
+See [Project vision](docs/PROJECT-VISION.en.md) / [项目愿景](docs/PROJECT-VISION.md).
+
 ## Two repositories
 
 | Repository | Responsibility | Release cadence |
