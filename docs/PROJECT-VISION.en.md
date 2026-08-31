@@ -80,6 +80,6 @@ Learner-facing judgments should prefer deterministic rules and inspectable evide
 - Reference learning pack: [dictation-content content-v1.0.0](https://github.com/zkzchb/dictation-content/releases/tag/content-v1.0.0)
 - Three-target deployment and release acceptance: [PR #30](https://github.com/zkzchb/dictation/pull/30)
 - Repository boundaries: [Repository Architecture](REPOSITORY-ARCHITECTURE.md)
-- Learning-pack contract: [Content Pack Spec v1](CONTENT-PACK-SPEC-v1.md)
+- Learning-pack contract: [Content Pack Spec v1](CONTENT-PACK-SPEC.md)
 
 Chinese dictation is the first fully implemented and verified module. The longer-term problem is to make learning materials not merely readable or downloadable, but reliably runnable, validated, versioned, and portable—while leaving teaching decisions and data ownership with learners, families, and teachers.
