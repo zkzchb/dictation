@@ -5,7 +5,7 @@
 # SHA-256 校验的 wheelhouse。升级必须走完整回归测试，不安装“当时最新版”。
 fastapi==0.141.1
 uvicorn==0.52.3
-pydantic==2.13.4
+pydantic==2.13.5
 pydub==0.25.1
 
 # /api/studio/split 收的是 multipart/form-data（录音 blob）。starlette 解析
