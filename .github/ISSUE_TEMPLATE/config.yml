@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/zkzchb/dictation/security/advisories/new
+    about: Report security issues privately.
+  - name: Content repository
+    url: https://github.com/zkzchb/dictation-content/issues
+    about: Report教材、词表或录音问题到内容仓库。

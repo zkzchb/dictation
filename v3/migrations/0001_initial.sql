@@ -1,5 +1,4 @@
 -- V2/V3 共用 schema（V3 用 wrangler d1 migrations apply 执行，V2 用 init_db.py）
--- 相对 V1 的改动：score 列改为 REAL（修正 V1 中 INTEGER 类型偏差）
 
 CREATE TABLE IF NOT EXISTS lessons (
     lesson_seq INTEGER PRIMARY KEY,
@@ -22,7 +21,7 @@ CREATE TABLE IF NOT EXISTS knowledge_points (
 
 CREATE TABLE IF NOT EXISTS user_progress (
     user_id            INTEGER PRIMARY KEY,
-    current_lesson_seq INTEGER DEFAULT 1,
+    current_lesson_seq INTEGER DEFAULT 0,
     updated_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -58,5 +57,4 @@ CREATE TABLE IF NOT EXISTS dictation_items (
     FOREIGN KEY(history_id) REFERENCES dictation_history(id)
 );
 
--- 种子用户（单用户 MVP）
-INSERT OR IGNORE INTO user_progress (user_id, current_lesson_seq) VALUES (1, 1);
+-- 种子用户由 0002_seed.sql 按内容包的 initial_lesson 创建。

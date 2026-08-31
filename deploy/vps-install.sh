@@ -1,521 +1,247 @@
 #!/usr/bin/env bash
-# ============================================================================
-# 听写小助手 —— Ubuntu VPS 一键部署（V1 / V2）
-#
-# 用法：
-#   cp deploy/vps.env.example deploy/vps.env
-#   nano deploy/vps.env          # 填密钥与域名
-#   chmod 600 deploy/vps.env
-#   sudo bash deploy/vps-install.sh
-#
-# 幂等：可重复运行。已存在的数据库不会被覆盖。
-# ============================================================================
-set -euo pipefail
+# Idempotent Dictation V2 installer for an Ubuntu VPS.
 
-# ── 路径与配置 ───────────────────────────────────────────────────────────
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd -P)"
 ENV_FILE="$SCRIPT_DIR/vps.env"
 
 C_OK=$'\033[32m'; C_WARN=$'\033[33m'; C_ERR=$'\033[31m'
 C_HEAD=$'\033[1;36m'; C_OFF=$'\033[0m'
+step() { printf '\n%s==> %s%s\n' "$C_HEAD" "$*" "$C_OFF"; }
+ok() { printf '%s  [OK]%s %s\n' "$C_OK" "$C_OFF" "$*"; }
+warn() { printf '%s  [!] %s%s\n' "$C_WARN" "$C_OFF" "$*"; }
+die() { printf '%s  [X] %s%s\n' "$C_ERR" "$*" "$C_OFF" >&2; exit 1; }
 
-step() { echo; echo "${C_HEAD}==> $*${C_OFF}"; }
-ok()   { echo "${C_OK}  [OK]${C_OFF} $*"; }
-warn() { echo "${C_WARN}  [!] ${C_OFF} $*"; }
-die()  { echo "${C_ERR}  [X] $*${C_OFF}" >&2; exit 1; }
+[[ $EUID -eq 0 ]] || die "请以 root 身份运行：sudo bash deploy/vps-install.sh"
+[[ -f "$ENV_FILE" ]] || die "缺少 $ENV_FILE；先运行 deploy/install-v2-online.sh 或复制示例"
 
-[[ $EUID -eq 0 ]] || die "请用 root 运行：sudo bash deploy/vps-install.sh"
+set -a
+# shellcheck disable=SC1090
+. "$ENV_FILE"
+set +a
 
-# ── 读取配置 ─────────────────────────────────────────────────────────────
-step "读取配置"
-[[ -f "$ENV_FILE" ]] || die "缺少 $ENV_FILE
-  请先执行：cp deploy/vps.env.example deploy/vps.env 并填写密钥"
-
-set -a; . "$ENV_FILE"; set +a
-
-: "${DEPLOY_V1:=no}"      ; : "${DEPLOY_V2:=no}"
-: "${V1_PORT:=8888}"      ; : "${V2_PORT:=8889}"
-: "${APP_ROOT:=/opt/dictation}" ; : "${APP_USER:=dictation}"
-: "${YOUDAO_VOICE:=youxiaoxun}" ; : "${YOUDAO_SPEED:=0.6}"
-: "${TTS_MIN_INTERVAL:=0.2}"    ; : "${TTS_MAX_RETRY:=3}"
-: "${V2_TTS_INTERVAL:=1.0}"    ; : "${V2_TTS_RETRY:=3}"
+: "${V2_PORT:=8889}"
+DETECTED_SSH_PORT="${SSH_CONNECTION-}"
+if [[ "$DETECTED_SSH_PORT" == *" "* ]]; then
+  DETECTED_SSH_PORT="${DETECTED_SSH_PORT##* }"
+else
+  DETECTED_SSH_PORT=22
+fi
+: "${SSH_PORT:=$DETECTED_SSH_PORT}"
+: "${APP_ROOT:=/opt/dictation}"
+: "${CONTENT_ROOT:=/opt/dictation-content/packs/zh-cn/primary-3a}"
+: "${STATE_ROOT:=/var/lib/dictation}"
+: "${APP_USER:=dictation}"
 : "${BACKUP_KEEP_DAYS:=30}"
 : "${APP_TIMEZONE:=Asia/Shanghai}"
-: "${V2_AUDIO_SOURCE:=auto}"
+: "${STUDIO_ENABLED:=0}"
 : "${V2_DEPENDENCY_SOURCE:=online}"
-: "${V2_SITE_ADDRESSES:=${V2_DOMAIN-}}"
-: "${CONTENT_ROOT:=chinese/3a}"
-: "${V2_AUDIO_BUNDLE_URL:=}"
-: "${V2_AUDIO_BUNDLE_SHA256:=}"
-: "${V2_HUMAN_BUNDLE:=}"
-: "${V2_HUMAN_BUNDLE_SHA256:=}"
-# 录音工作台默认开启：VPS 上有 Caddy 的 HTTPS（浏览器录音的前提）和
-# basic_auth（挡住陌生人），是邀请老师录真人音频最合适的环境。
-: "${STUDIO_ENABLED:=1}"
 
-# 归一化 yes/no
-DEPLOY_V1="$(echo "${DEPLOY_V1}" | tr '[:upper:]' '[:lower:]')"
-DEPLOY_V2="$(echo "${DEPLOY_V2}" | tr '[:upper:]' '[:lower:]')"
-V2_AUDIO_SOURCE="$(echo "${V2_AUDIO_SOURCE}" | tr '[:upper:]' '[:lower:]')"
-V2_DEPENDENCY_SOURCE="$(echo "${V2_DEPENDENCY_SOURCE}" | tr '[:upper:]' '[:lower:]')"
-[[ "$CONTENT_ROOT" == /* ]] || CONTENT_ROOT="$REPO_ROOT/$CONTENT_ROOT"
-
-[[ "$DEPLOY_V1" == "yes" || "$DEPLOY_V2" == "yes" ]] \
-  || die "DEPLOY_V1 与 DEPLOY_V2 至少有一个要设为 yes"
-
-# ── 校验必填项 ───────────────────────────────────────────────────────────
-check_placeholder() {
-  local name="$1" val="${2-}"
-  [[ -n "$val" ]] || die "$name 未填写（见 deploy/vps.env）"
-  case "$val" in
-    REPLACE_WITH*) die "$name 仍是占位符，请填入真实值（见 deploy/vps.env）" ;;
-  esac
+check_value() {
+  local name="$1" value="${2-}"
+  [[ -n "$value" ]] || die "$name 未填写"
+  case "$value" in REPLACE_WITH*) die "$name 仍是占位符" ;; esac
 }
 
-is_placeholder() {
-  case "${1-}" in ""|REPLACE_WITH*) return 0 ;; *) return 1 ;; esac
-}
-
-check_placeholder BASIC_AUTH_USER     "${BASIC_AUTH_USER-}"
-check_placeholder BASIC_AUTH_PASSWORD "${BASIC_AUTH_PASSWORD-}"
-
-if [[ ${#BASIC_AUTH_PASSWORD} -lt 8 ]]; then
-  warn "BASIC_AUTH_PASSWORD 短于 8 位，建议换更强的密码"
-fi
-
-if [[ "$DEPLOY_V1" == "yes" ]]; then
-  check_placeholder V1_DOMAIN "${V1_DOMAIN-}"
-  # V1 运行时要合成音频，密钥必须真实
-  check_placeholder YOUDAO_APP_KEY    "${YOUDAO_APP_KEY-}"
-  check_placeholder YOUDAO_APP_SECRET "${YOUDAO_APP_SECRET-}"
-  ok "V1: $V1_DOMAIN (端口 $V1_PORT)"
-fi
-
-if [[ "$DEPLOY_V2" == "yes" ]]; then
-  check_placeholder V2_SITE_ADDRESSES "${V2_SITE_ADDRESSES-}"
-  case "$V2_AUDIO_SOURCE" in
-    auto|repository|release|generate|existing) ;;
-    *) die "V2_AUDIO_SOURCE 只能是 auto / repository / release / generate / existing" ;;
-  esac
-  case "$V2_DEPENDENCY_SOURCE" in
-    online|offline) ;;
-    *) die "V2_DEPENDENCY_SOURCE 只能是 online 或 offline" ;;
-  esac
-  ok "V2: $V2_SITE_ADDRESSES (端口 $V2_PORT，依赖 $V2_DEPENDENCY_SOURCE)"
-fi
-
-# ── 校验域名解析（只确认记录存在，不探测或比对公网 IP）──────────────────
-step "校验域名解析"
-for pair in "V1:${V1_DOMAIN-}" "V2:${V2_DOMAIN-}"; do
-  ver="${pair%%:*}"; dom="${pair#*:}"
-  [[ "$ver" == "V1" && "$DEPLOY_V1" != "yes" ]] && continue
-  [[ "$ver" == "V2" && "$DEPLOY_V2" != "yes" ]] && continue
-  [[ -n "$dom" ]] || continue
-  resolved="$(getent ahostsv4 "$dom" | awk '{print $1}' | sort -u | paste -sd, - || true)"
-  if [[ -n "$resolved" ]]; then
-    ok "已发现 A 记录：$dom → $resolved"
-  else
-    warn "$dom 暂无 A 记录；代码会继续安装，但 Caddy 暂时无法签发证书"
-  fi
+check_value V2_SITE_ADDRESSES "${V2_SITE_ADDRESSES-}"
+check_value BASIC_AUTH_USER "${BASIC_AUTH_USER-}"
+check_value BASIC_AUTH_PASSWORD "${BASIC_AUTH_PASSWORD-}"
+[[ "$BASIC_AUTH_USER" =~ ^[A-Za-z0-9._-]+$ ]] \
+  || die "BASIC_AUTH_USER 只能包含字母、数字、点、下划线和连字符"
+[[ "$APP_USER" =~ ^[A-Za-z0-9._-]+$ ]] || die "APP_USER 格式不安全"
+[[ "$V2_SITE_ADDRESSES" =~ ^[A-Za-z0-9.:/,_-]+$ ]] \
+  || die "V2_SITE_ADDRESSES 包含不安全字符"
+[[ "$APP_TIMEZONE" =~ ^[A-Za-z0-9._+-]+/[A-Za-z0-9._+-]+$ ]] \
+  || die "APP_TIMEZONE 格式不安全"
+[[ ${#BASIC_AUTH_PASSWORD} -ge 12 ]] || warn "访问密码少于 12 位"
+[[ "$V2_DEPENDENCY_SOURCE" == "online" || "$V2_DEPENDENCY_SOURCE" == "offline" ]] \
+  || die "V2_DEPENDENCY_SOURCE 只能是 online 或 offline"
+[[ "$STUDIO_ENABLED" == "0" || "$STUDIO_ENABLED" == "1" ]] \
+  || die "STUDIO_ENABLED 只能是 0 或 1"
+[[ "$V2_PORT" =~ ^[0-9]+$ ]] && (( V2_PORT >= 1 && V2_PORT <= 65535 )) \
+  || die "V2_PORT 必须是 1..65535"
+[[ "$SSH_PORT" =~ ^[0-9]+$ ]] && (( SSH_PORT >= 1 && SSH_PORT <= 65535 )) \
+  || die "SSH_PORT 必须是 1..65535"
+[[ "$APP_ROOT" == /* && "$CONTENT_ROOT" == /* && "$STATE_ROOT" == /* ]] \
+  || die "APP_ROOT、CONTENT_ROOT 与 STATE_ROOT 必须是绝对路径"
+for path_value in "$APP_ROOT" "$CONTENT_ROOT" "$STATE_ROOT"; do
+  [[ "$path_value" =~ ^/[A-Za-z0-9._/-]+$ ]] \
+    || die "生产路径只能包含字母、数字、点、下划线、连字符和斜杠: $path_value"
 done
-ok "按部署策略，不获取或比对 VPS 公网 IP"
+[[ "$REPO_ROOT" == "$APP_ROOT" ]] \
+  || die "程序检出位于 $REPO_ROOT，但 APP_ROOT 配置为 $APP_ROOT"
 
-# ── 安装系统包 ───────────────────────────────────────────────────────────
-step "安装系统包"
+WEB_ROOT="$STATE_ROOT/web"
+DB_PATH="$STATE_ROOT/v2/dictation.db"
+AUDIO_TOOL="$APP_ROOT/shared/tools/audio_bundle.py"
+VENV="$APP_ROOT/v2/venv"
+
+step "安装系统依赖"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq \
-  python3 python3-venv python3-pip sqlite3 curl ufw rsync dnsutils \
-  ca-certificates
-ok "基础包就绪"
-
-# ffmpeg：V1 拼接音频必需；V2 仅录音工作台切割用到，统一装上省事
-apt-get install -y -qq ffmpeg
-ok "ffmpeg $(ffmpeg -version 2>/dev/null | head -1 | awk '{print $3}')"
-
+  python3 python3-venv python3-pip sqlite3 ffmpeg curl ufw rsync cron ca-certificates passwd
 if ! command -v caddy >/dev/null 2>&1; then
   if ! apt-get install -y -qq caddy; then
-    warn "当前 Ubuntu 软件源未启用 universe，正在启用后重试 Caddy"
     apt-get install -y -qq software-properties-common
     add-apt-repository -y universe
     apt-get update -qq
     apt-get install -y -qq caddy
   fi
 fi
-CADDY_VER="$(caddy version | awk '{print $1}')"
-ok "Caddy $CADDY_VER"
+ok "Ubuntu 运行依赖已就绪"
 
-# ── 系统用户 ─────────────────────────────────────────────────────────────
-step "创建系统用户"
-if id "$APP_USER" >/dev/null 2>&1; then
-  ok "用户 $APP_USER 已存在"
+step "创建运行用户与状态目录"
+if ! id "$APP_USER" >/dev/null 2>&1; then
+  adduser --system --group --home "$STATE_ROOT" --shell /usr/sbin/nologin "$APP_USER"
 else
-  adduser --system --group --home "$APP_ROOT" --shell /usr/sbin/nologin "$APP_USER"
-  ok "已创建 $APP_USER"
+  account_record="$(getent passwd "$APP_USER")" \
+    || die "无法读取现有运行账户: $APP_USER"
+  IFS=: read -r account_name _ account_uid account_gid _ account_home account_shell \
+    <<< "$account_record"
+  [[ "$account_name" == "$APP_USER" ]] || die "运行账户记录异常: $APP_USER"
+  [[ "$account_uid" =~ ^[0-9]+$ ]] && ((account_uid < 1000)) \
+    || die "拒绝把普通登录账户用作运行账户: $APP_USER"
+  case "$account_shell" in
+    /usr/sbin/nologin|/sbin/nologin|/bin/false|/usr/bin/false) ;;
+    *) die "运行账户必须禁止登录: $APP_USER" ;;
+  esac
+  account_group_gid="$(getent group "$APP_USER" 2>/dev/null | cut -d: -f3 || true)"
+  [[ "$account_group_gid" == "$account_gid" ]] \
+    || die "运行账户必须使用同名主组: $APP_USER"
+  case "$account_home" in
+    "$APP_ROOT"|"$STATE_ROOT") ;;
+    *) die "运行账户 home 不属于程序或状态目录: $APP_USER" ;;
+  esac
+  if [[ "$account_home" != "$STATE_ROOT" ]]; then
+    usermod --home "$STATE_ROOT" "$APP_USER"
+  fi
 fi
+mkdir -p "$STATE_ROOT/v2" "$WEB_ROOT" /etc/dictation
+chmod 755 "$STATE_ROOT" "$STATE_ROOT/v2" "$WEB_ROOT" /etc/dictation
+ok "运行用户: $APP_USER；状态目录: $STATE_ROOT"
 
-# ── 代码位置 ─────────────────────────────────────────────────────────────
-step "确认代码位置"
-if [[ "$REPO_ROOT" != "$APP_ROOT" ]]; then
-  warn "代码在 $REPO_ROOT，而非约定的 $APP_ROOT"
-  warn "  将以 $REPO_ROOT 为部署根目录继续"
-  APP_ROOT="$REPO_ROOT"
+step "验证程序与外部内容包"
+chmod -R a+rX "$APP_ROOT/v2" "$APP_ROOT/shared"
+python3 "$APP_ROOT/shared/content_pack.py" "$CONTENT_ROOT" \
+  || die "内容包无效: $CONTENT_ROOT"
+DICTATION_CONTENT_ROOT="$CONTENT_ROOT" \
+  python3 "$AUDIO_TOOL" verify-dataset --content-root "$CONTENT_ROOT" \
+  || die "内容包音频未通过校验"
+python3 -m compileall -q "$APP_ROOT/v2" "$APP_ROOT/shared"
+ok "程序和内容包通过静态检查"
+
+step "安装 V2 Python 依赖"
+if [[ ! -x "$VENV/bin/python" ]]; then
+  python3 -m venv "$VENV"
 fi
-ok "部署根目录: $APP_ROOT"
-
-for f in chinese/3a/dataset.json chinese/3a/lessons.json chinese/3a/knowledge_points.json \
-         chinese/3a/studio_manifest.json chinese/3a/tts.sha256 \
-         shared/init_db.py shared/tools/audio_bundle.py; do
-  [[ -f "$APP_ROOT/$f" ]] || die "缺少关键文件: $f（代码不完整？）"
-done
-if [[ "$DEPLOY_V2" == "yes" && "$V2_DEPENDENCY_SOURCE" == "offline" ]]; then
+if [[ "$V2_DEPENDENCY_SOURCE" == "offline" ]]; then
   [[ -f "$APP_ROOT/shared/tools/verify_wheelhouse.py" ]] \
-    || die "离线分支缺少 shared/tools/verify_wheelhouse.py"
-  [[ -f "$APP_ROOT/v2/wheelhouse/sha256" ]] \
-    || die "离线分支缺少 v2/wheelhouse/sha256"
+    || die "当前分支没有离线 wheelhouse 校验工具"
+  "$VENV/bin/python" "$APP_ROOT/shared/tools/verify_wheelhouse.py" \
+    "$APP_ROOT/v2/wheelhouse"
+  "$VENV/bin/pip" install --quiet --no-index \
+    --find-links "$APP_ROOT/v2/wheelhouse" -r "$APP_ROOT/v2/requirements.txt"
+else
+  "$VENV/bin/pip" install --quiet --upgrade pip
+  "$VENV/bin/pip" install --quiet -r "$APP_ROOT/v2/requirements.txt"
 fi
-ok "题库与建库脚本就位"
+"$VENV/bin/pip" check >/dev/null
+ok "V2 Python 依赖一致"
 
-# ── 建 venv、装依赖、初始化数据库 ────────────────────────────────────────
-setup_version() {
-  local ver="$1"
-  local dir="$APP_ROOT/$ver"
-
-  step "配置 $ver"
-  [[ -d "$dir" ]] || die "找不到目录 $dir"
-
-  if [[ "$ver" == "v2" && "$V2_DEPENDENCY_SOURCE" == "offline" ]]; then
-    python3 "$APP_ROOT/shared/tools/verify_wheelhouse.py" "$dir/wheelhouse" \
-      || die "V2 离线依赖校验失败"
-  fi
-
-  if [[ ! -x "$dir/venv/bin/python" ]]; then
-    python3 -m venv "$dir/venv"
-    ok "已建 venv"
-  else
-    ok "venv 已存在"
-  fi
-
-  if [[ "$ver" == "v2" && "$V2_DEPENDENCY_SOURCE" == "offline" ]]; then
-    "$dir/venv/bin/pip" install --quiet --disable-pip-version-check \
-      --no-index --find-links "$dir/wheelhouse" -r "$dir/requirements.txt"
-    "$dir/venv/bin/pip" check >/dev/null
-    ok "V2 依赖已从 wheelhouse 离线安装（未访问 pip 软件源）"
-  else
-    "$dir/venv/bin/pip" install --quiet --upgrade pip
-    "$dir/venv/bin/pip" install --quiet -r "$dir/requirements.txt"
-    "$dir/venv/bin/pip" check >/dev/null
-    ok "$ver 依赖已从在线软件源安装"
-  fi
-
-  # 数据库：已存在则保留，只补 poly_ids 列
-  if [[ -f "$dir/dictation.db" ]]; then
-    ok "数据库已存在，跳过初始化（数据保留）"
-    "$dir/venv/bin/python" "$APP_ROOT/shared/tools/migrate_poly_ids.py" \
-      "$dir/dictation.db" >/dev/null 2>&1 \
-      && ok "poly_ids 列已就绪" \
-      || warn "poly_ids 迁移未执行，多音字轮换可能失效"
-  else
-    "$dir/venv/bin/python" "$APP_ROOT/shared/init_db.py" \
-      --db "$dir/dictation.db" --content-root "$CONTENT_ROOT"
-    ok "数据库已初始化"
-  fi
-}
-
-[[ "$DEPLOY_V1" == "yes" ]] && setup_version v1
-[[ "$DEPLOY_V2" == "yes" ]] && setup_version v2
-
-# ── V2 标准音频与可选真人录音覆盖层 ─────────────────────────────────────
-if [[ "$DEPLOY_V2" == "yes" ]]; then
-  step "准备 V2 音频"
-  AUDIO_DIR="$APP_ROOT/shared/web/audio"
-  AUDIO_TOOL="$APP_ROOT/shared/tools/audio_bundle.py"
-  CONTENT_AUDIO_DIR="$CONTENT_ROOT/tts"
-  export DICTATION_CONTENT_ROOT="$CONTENT_ROOT"
-
-  audio_complete() {
-    python3 "$AUDIO_TOOL" inventory --audio-dir "$AUDIO_DIR" >/dev/null 2>&1
-  }
-
-  content_audio_complete() {
-    python3 "$AUDIO_TOOL" verify-dataset --content-root "$CONTENT_ROOT" >/dev/null 2>&1
-  }
-
-  fetch_asset() {
-    local source="$1" dest="$2"
-    case "$source" in
-      https://*|http://*) curl -fL --retry 3 --connect-timeout 15 -o "$dest" "$source" ;;
-      file://*) cp "${source#file://}" "$dest" ;;
-      *) cp "$source" "$dest" ;;
-    esac
-  }
-
-  verify_asset_sha() {
-    local file="$1" expected="$2" label="$3" actual
-    actual="$(sha256sum "$file" | awk '{print $1}')"
-    if [[ -n "$expected" && "$actual" != "$expected" ]]; then
-      die "$label SHA-256 不匹配：期望 $expected，实际 $actual"
-    fi
-    if [[ -z "$expected" ]]; then
-      warn "$label 未配置 SHA-256；本次实际值为 $actual"
-    else
-      ok "$label SHA-256 校验通过"
-    fi
-    printf '%s' "$actual"
-  }
-
-  if audio_complete; then
-    ok "标准音频已经完整，保留现有文件"
-  else
-    AUDIO_MODE="$V2_AUDIO_SOURCE"
-    if [[ "$AUDIO_MODE" == "auto" ]]; then
-      if content_audio_complete; then
-        AUDIO_MODE=repository
-      elif [[ -n "$V2_AUDIO_BUNDLE_URL" ]]; then
-        AUDIO_MODE=release
-      elif ! is_placeholder "${YOUDAO_APP_KEY-}" && ! is_placeholder "${YOUDAO_APP_SECRET-}"; then
-        AUDIO_MODE=generate
-      else
-        die "V2 标准音频不完整，且没有可用来源。
-  推荐：确认 chinese/3a/tts 完整；或配置 V2_AUDIO_BUNDLE_URL 与 SHA-256；
-  或设置 V2_AUDIO_SOURCE=generate 并填写有道密钥。"
-      fi
-    fi
-
-    case "$AUDIO_MODE" in
-      repository)
-        content_audio_complete \
-          || die "仓库教材包缺少完整 TTS：$CONTENT_AUDIO_DIR"
-        mkdir -p "$AUDIO_DIR"
-        # 只补不存在的文件，绝不能用 TTS 覆盖已经录制的同名真人音频。
-        cp -an "$CONTENT_AUDIO_DIR/." "$AUDIO_DIR/"
-        ok "已从 chinese/3a 教材包安装标准 TTS"
-        ;;
-      release)
-        [[ -n "$V2_AUDIO_BUNDLE_URL" ]] || die "release 模式缺少 V2_AUDIO_BUNDLE_URL"
-        [[ -n "$V2_AUDIO_BUNDLE_SHA256" ]] \
-          || die "远程 TTS 资源包必须配置 V2_AUDIO_BUNDLE_SHA256"
-        TTS_BUNDLE="$(mktemp /tmp/dictation-v2-tts.XXXXXX)"
-        fetch_asset "$V2_AUDIO_BUNDLE_URL" "$TTS_BUNDLE"
-        verify_asset_sha "$TTS_BUNDLE" "$V2_AUDIO_BUNDLE_SHA256" "TTS 资源包" >/dev/null
-        python3 "$AUDIO_TOOL" install \
-          --bundle "$TTS_BUNDLE" --audio-dir "$AUDIO_DIR" --kind baseline-tts
-        ;;
-      generate)
-        is_placeholder "${YOUDAO_APP_KEY-}" && die "generate 模式缺少 YOUDAO_APP_KEY"
-        is_placeholder "${YOUDAO_APP_SECRET-}" && die "generate 模式缺少 YOUDAO_APP_SECRET"
-        GEN_VENV="$APP_ROOT/.venv-gen"
-        if [[ ! -x "$GEN_VENV/bin/python" ]]; then
-          python3 -m venv "$GEN_VENV"
-          "$GEN_VENV/bin/pip" install --quiet --upgrade pip requests
-        fi
-        YOUDAO_APP_KEY="$YOUDAO_APP_KEY" \
-        YOUDAO_APP_SECRET="$YOUDAO_APP_SECRET" \
-        YOUDAO_VOICE="$YOUDAO_VOICE" \
-        YOUDAO_SPEED="$YOUDAO_SPEED" \
-        TTS_INTERVAL="$V2_TTS_INTERVAL" \
-        TTS_RETRY="$V2_TTS_RETRY" \
-          "$GEN_VENV/bin/python" "$APP_ROOT/shared/gen_slices.py"
-        ;;
-      existing)
-        die "existing 模式要求部署前已经放入一套完整标准音频"
-        ;;
-    esac
-  fi
-
-  python3 "$AUDIO_TOOL" inventory --audio-dir "$AUDIO_DIR" \
-    || die "V2 标准音频校验失败"
-  ok "标准 TTS 基线完整（869 个词条 + 25 个系统提示音）"
-
-  # 真人录音包是可选覆盖层；只包含录音台账明确登记的文件，不导入学习历史、
-  # Check 结果或待重录词表。同一资源包重复运行不会重置已经产生的新质检进度。
-  if [[ -n "$V2_HUMAN_BUNDLE" ]]; then
-    [[ -n "$V2_HUMAN_BUNDLE_SHA256" ]] \
-      || die "导入真人录音包必须配置 V2_HUMAN_BUNDLE_SHA256"
-    HUMAN_BUNDLE="$(mktemp /tmp/dictation-v2-human.XXXXXX)"
-    fetch_asset "$V2_HUMAN_BUNDLE" "$HUMAN_BUNDLE"
-    HUMAN_SHA="$(verify_asset_sha "$HUMAN_BUNDLE" "$V2_HUMAN_BUNDLE_SHA256" "真人录音包" | tail -1)"
-    HUMAN_MARKER="/var/lib/dictation/human-$HUMAN_SHA.installed"
-    if [[ -f "$HUMAN_MARKER" ]]; then
-      ok "该真人录音包已经导入，跳过（保留后来重录的音频和 Check 进度）"
-    else
-      python3 "$AUDIO_TOOL" install \
-        --bundle "$HUMAN_BUNDLE" --audio-dir "$AUDIO_DIR" \
-        --kind human-recordings --reset-review-state
-      mkdir -p /var/lib/dictation
-      touch "$HUMAN_MARKER"
-      ok "真人录音覆盖层已导入；Check 状态从未检查开始"
-    fi
-  fi
+step "迁移旧运行状态（如存在）"
+if [[ ! -f "$DB_PATH" && -f "$APP_ROOT/v2/dictation.db" ]]; then
+  install -m 0640 "$APP_ROOT/v2/dictation.db" "$DB_PATH"
+  ok "已复制旧数据库到独立状态目录"
+fi
+if [[ ! -d "$WEB_ROOT/audio" && -d "$APP_ROOT/shared/web/audio" ]]; then
+  cp -a "$APP_ROOT/shared/web/audio" "$WEB_ROOT/audio"
+  ok "已复制旧音频与录音台账到独立状态目录"
 fi
 
-# ── 写密钥文件 ───────────────────────────────────────────────────────────
-step "写入密钥文件 /etc/dictation/"
-mkdir -p /etc/dictation
-chmod 755 /etc/dictation
-
-if [[ "$DEPLOY_V1" == "yes" ]]; then
-  cat > /etc/dictation/v1.env <<EOF
-# 由 deploy/vps-install.sh 生成，请勿手动编辑（改 deploy/vps.env 后重跑脚本）
-YOUDAO_APP_KEY=$YOUDAO_APP_KEY
-YOUDAO_APP_SECRET=$YOUDAO_APP_SECRET
-YOUDAO_VOICE=$YOUDAO_VOICE
-YOUDAO_SPEED=$YOUDAO_SPEED
-TTS_MIN_INTERVAL=$TTS_MIN_INTERVAL
-TTS_MAX_RETRY=$TTS_MAX_RETRY
-DICTATION_DB=$APP_ROOT/v1/dictation.db
-AUDIO_OUTPUT_DIR=$APP_ROOT/v1/audio
-AUDIO_CACHE_DIR=$APP_ROOT/v1/tts_cache
-EOF
-  chmod 600 /etc/dictation/v1.env
-  chown root:root /etc/dictation/v1.env
-  ok "/etc/dictation/v1.env (600)"
+step "同步数据库与运行时静态资源"
+if [[ -f "$DB_PATH" ]]; then
+  "$VENV/bin/python" "$APP_ROOT/shared/tools/migrate_poly_ids.py" "$DB_PATH" >/dev/null
+  "$VENV/bin/python" "$APP_ROOT/shared/sync_content.py" \
+    --db "$DB_PATH" --content-root "$CONTENT_ROOT"
+else
+  "$VENV/bin/python" "$APP_ROOT/shared/init_db.py" \
+    --db "$DB_PATH" --content-root "$CONTENT_ROOT"
 fi
+DICTATION_CONTENT_ROOT="$CONTENT_ROOT" \
+  "$VENV/bin/python" "$APP_ROOT/tools/stage.py" v2 \
+    --content-root "$CONTENT_ROOT" --web-root "$WEB_ROOT"
+DICTATION_CONTENT_ROOT="$CONTENT_ROOT" \
+  "$VENV/bin/python" "$AUDIO_TOOL" inventory --audio-dir "$WEB_ROOT/audio" >/dev/null
+cp "$WEB_ROOT/deployment.json" "$STATE_ROOT/deployment.json"
+chown -R "$APP_USER:$APP_USER" "$STATE_ROOT"
+find "$WEB_ROOT" -type d -exec chmod 755 {} \;
+ok "数据库、前端和音频已经就位"
 
-if [[ "$DEPLOY_V2" == "yes" ]]; then
-  cat > /etc/dictation/v2.env <<EOF
-# 由 deploy/vps-install.sh 生成，请勿手动编辑（改 deploy/vps.env 后重跑脚本）
-DICTATION_DB=$APP_ROOT/v2/dictation.db
-WEB_ROOT=$APP_ROOT/shared/web
-STUDIO_AUDIO_DIR=$APP_ROOT/shared/web/audio/w
+step "写入 V2 运行环境"
+cat > /etc/dictation/v2.env <<EOF
+DICTATION_CONTENT_ROOT=$CONTENT_ROOT
+DICTATION_DB=$DB_PATH
+WEB_ROOT=$WEB_ROOT
+STUDIO_AUDIO_DIR=$WEB_ROOT/audio/w
 STUDIO_ENABLED=$STUDIO_ENABLED
 APP_TIMEZONE=$APP_TIMEZONE
 EOF
-  chmod 600 /etc/dictation/v2.env
-  chown root:root /etc/dictation/v2.env
-  ok "/etc/dictation/v2.env (600)"
-fi
+chmod 600 /etc/dictation/v2.env
+chown root:root /etc/dictation/v2.env
+ok "/etc/dictation/v2.env"
 
-# ── 目录与权限 ───────────────────────────────────────────────────────────
-step "设置目录权限"
-mkdir -p "$APP_ROOT/shared/web/audio/w" "$APP_ROOT/shared/web/audio/sys"
-[[ "$DEPLOY_V1" == "yes" ]] && mkdir -p "$APP_ROOT/v1/audio" "$APP_ROOT/v1/tts_cache"
-
-chown -R "$APP_USER:$APP_USER" "$APP_ROOT"
-# Caddy 以 caddy 用户读静态文件，需要目录可进入、文件可读
-chmod 755 "$APP_ROOT" "$APP_ROOT/shared" "$APP_ROOT/shared/web"
-find "$APP_ROOT/shared/web" -type d -exec chmod 755 {} \;
-ok "属主 $APP_USER，静态目录 755"
-
-# vps.env 含明文密钥，收紧权限
-chmod 600 "$ENV_FILE" 2>/dev/null || true
-
-# ── systemd 服务 ─────────────────────────────────────────────────────────
-write_service() {
-  local ver="$1" port="$2" desc="$3" writable="$APP_ROOT/$1"
-  if [[ "$ver" == "v2" ]]; then
-    writable="$writable $APP_ROOT/shared/web/audio"
-  fi
-  cat > "/etc/systemd/system/dictation-$ver.service" <<EOF
+step "安装 systemd 服务"
+cat > /etc/systemd/system/dictation-v2.service <<EOF
 [Unit]
-Description=$desc
+Description=Dictation V2 API
 After=network.target
 
 [Service]
 Type=simple
 User=$APP_USER
 Group=$APP_USER
-WorkingDirectory=$APP_ROOT/$ver
-EnvironmentFile=/etc/dictation/$ver.env
-ExecStart=$APP_ROOT/$ver/venv/bin/uvicorn main:app --host 127.0.0.1 --port $port
+WorkingDirectory=$APP_ROOT/v2
+EnvironmentFile=/etc/dictation/v2.env
+ExecStart=$VENV/bin/uvicorn main:app --host 127.0.0.1 --port $V2_PORT
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=$writable
+ReadWritePaths=$STATE_ROOT
 
 [Install]
 WantedBy=multi-user.target
 EOF
-  ok "dictation-$ver.service"
-}
-
-step "安装 systemd 服务"
-SERVICES=()
-if [[ "$DEPLOY_V1" == "yes" ]]; then
-  write_service v1 "$V1_PORT" "Dictation V1 API (runtime TTS)"
-  SERVICES+=("dictation-v1")
-fi
-if [[ "$DEPLOY_V2" == "yes" ]]; then
-  write_service v2 "$V2_PORT" "Dictation V2 API (pre-recorded slices)"
-  SERVICES+=("dictation-v2")
-fi
-
 systemctl daemon-reload
-systemctl enable "${SERVICES[@]}" >/dev/null 2>&1
-systemctl restart "${SERVICES[@]}"
+systemctl enable dictation-v2 >/dev/null
+systemctl restart dictation-v2
 sleep 3
-for s in "${SERVICES[@]}"; do
-  if systemctl is-active --quiet "$s"; then
-    ok "$s 运行中"
-  else
-    die "$s 未启动；请检查：journalctl -u $s -n 30 --no-pager"
-  fi
-done
+systemctl is-active --quiet dictation-v2 \
+  || die "V2 未启动；运行 journalctl -u dictation-v2 -n 50 --no-pager 排查"
+ok "dictation-v2 运行中"
 
-# ── Caddy 配置 ───────────────────────────────────────────────────────────
 step "配置 Caddy"
-
-# basic_auth 指令名随版本变化：2.8+ 用 basic_auth，2.7- 用 basicauth
-CADDY_MAJOR="$(echo "${CADDY_VER#v}" | cut -d. -f1)"
-CADDY_MINOR="$(echo "${CADDY_VER#v}" | cut -d. -f2)"
-if [[ "$CADDY_MAJOR" -gt 2 ]] || { [[ "$CADDY_MAJOR" -eq 2 ]] && [[ "$CADDY_MINOR" -ge 8 ]]; }; then
-  AUTH_DIRECTIVE="basic_auth"
+CADDY_VERSION="$(caddy version | awk '{print $1}')"
+CADDY_MAJOR="$(printf '%s' "${CADDY_VERSION#v}" | cut -d. -f1)"
+CADDY_MINOR="$(printf '%s' "${CADDY_VERSION#v}" | cut -d. -f2)"
+if (( CADDY_MAJOR > 2 || (CADDY_MAJOR == 2 && CADDY_MINOR >= 8) )); then
+  AUTH_DIRECTIVE=basic_auth
 else
-  AUTH_DIRECTIVE="basicauth"
+  AUTH_DIRECTIVE=basicauth
 fi
-
-PW_HASH="$(caddy hash-password --plaintext "$BASIC_AUTH_PASSWORD")"
-ok "口令哈希已生成（$AUTH_DIRECTIVE）"
-
-[[ -f /etc/caddy/Caddyfile ]] && \
-  cp /etc/caddy/Caddyfile "/etc/caddy/Caddyfile.bak_$(date +%F_%H%M%S)"
-
-CADDYFILE=/etc/caddy/Caddyfile
-: > "$CADDYFILE"
-
-if [[ "$DEPLOY_V1" == "yes" ]]; then
-  cat >> "$CADDYFILE" <<EOF
-$V1_DOMAIN {
-    $AUTH_DIRECTIVE {
-        $BASIC_AUTH_USER $PW_HASH
-    }
-    encode zstd gzip
-
-    handle /api/* {
-        reverse_proxy 127.0.0.1:$V1_PORT {
-            transport http {
-                dial_timeout 30s
-                # V1 首次合成 30 词可能耗时 1-2 分钟
-                response_header_timeout 300s
-            }
-        }
-    }
-
-    # V1 实时合成的成品音频
-    handle /audio/* {
-        root * $APP_ROOT/v1
-        header Cache-Control "public, max-age=3600"
-        file_server
-    }
-
-    handle {
-        root * $APP_ROOT/v1/dictation_www
-        file_server
-    }
-}
-
-EOF
-fi
-
-if [[ "$DEPLOY_V2" == "yes" ]]; then
-  cat >> "$CADDYFILE" <<EOF
+PASSWORD_HASH="$(caddy hash-password --plaintext "$BASIC_AUTH_PASSWORD")"
+[[ -f /etc/caddy/Caddyfile ]] \
+  && cp /etc/caddy/Caddyfile "/etc/caddy/Caddyfile.bak_$(date +%F_%H%M%S)"
+cat > /etc/caddy/Caddyfile <<EOF
 $V2_SITE_ADDRESSES {
     $AUTH_DIRECTIVE {
-        $BASIC_AUTH_USER $PW_HASH
+        $BASIC_AUTH_USER $PASSWORD_HASH
     }
     encode zstd gzip
     request_body {
@@ -529,164 +255,70 @@ $V2_SITE_ADDRESSES {
     }
 
     handle /api/* {
-        reverse_proxy 127.0.0.1:$V2_PORT {
-            transport http {
-                dial_timeout 30s
-                response_header_timeout 60s
-            }
-        }
+        reverse_proxy 127.0.0.1:$V2_PORT
     }
-
-    # 录音工作台（上传录音、按静音切割）
     handle /studio* {
         reverse_proxy 127.0.0.1:$V2_PORT {
             transport http {
-                dial_timeout 30s
                 response_header_timeout 300s
             }
         }
     }
 
-    # 录音/质检台账是服务端状态，不作为静态文件公开。
     @audioState path /audio/.recorded.json /audio/.checked.json /audio/.rerecord.json /audio/.recorded_sys.json /audio/*.bak /audio/*.part /audio/w/*.part /audio/sys/*.part
     respond @audioState 404
 
-    # 真人录音会覆盖同名切片；禁止共享/长期缓存，确保重录立即生效。
     handle /audio/* {
-        root * $APP_ROOT/shared/web
+        root * $WEB_ROOT
         header Cache-Control "private, no-store"
         file_server
     }
-
     handle {
-        root * $APP_ROOT/shared/web
+        root * $WEB_ROOT
         file_server
     }
 }
-
 EOF
-fi
-
-caddy validate --config "$CADDYFILE" >/dev/null 2>&1 \
-  || die "Caddyfile 校验失败：caddy validate --config $CADDYFILE"
-ok "Caddyfile 校验通过"
-
+caddy validate --config /etc/caddy/Caddyfile >/dev/null
 systemctl reload caddy 2>/dev/null || systemctl restart caddy
-ok "Caddy 已重载"
+ok "Caddy 配置有效"
 
-# ── 防火墙 ───────────────────────────────────────────────────────────────
 step "配置防火墙"
-ufw allow OpenSSH  >/dev/null 2>&1 || ufw allow 22/tcp >/dev/null 2>&1
-ufw allow 80/tcp   >/dev/null 2>&1
-ufw allow 443/tcp  >/dev/null 2>&1
-ufw allow 443/udp  >/dev/null 2>&1   # HTTP/3
+ufw allow "$SSH_PORT/tcp" >/dev/null 2>&1
+ufw allow 80/tcp >/dev/null 2>&1
+ufw allow 443/tcp >/dev/null 2>&1
+ufw allow 443/udp >/dev/null 2>&1
 ufw --force enable >/dev/null 2>&1
-ok "已放行 22 / 80 / 443（8888、8889 仅回环，不对外）"
+ok "仅开放 SSH、HTTP 与 HTTPS"
 
-# ── 数据库自动备份 ───────────────────────────────────────────────────────
 step "安装每日备份"
-mkdir -p /var/backups/dictation/v1 /var/backups/dictation/v2 /var/backups/dictation/audio
-
+mkdir -p /var/backups/dictation/v2 /var/backups/dictation/audio
 cat > /usr/local/bin/backup-dictation.sh <<EOF
-#!/bin/bash
-# 由 deploy/vps-install.sh 生成
-set -euo pipefail
-for v in v1 v2; do
-    SRC="$APP_ROOT/\$v/dictation.db"
-    DEST="/var/backups/dictation/\$v/dictation_\$(date +%F).db"
-    [ -f "\$SRC" ] || continue
-    sqlite3 "\$SRC" ".backup '\$DEST'"
-    gzip -f "\$DEST"
-done
-# 真人录音和四份 JSON 台账都在 audio/ 下；数据库备份不能替代它。
-AUDIO_SRC="$APP_ROOT/shared/web/audio"
-if [ -d "\$AUDIO_SRC" ]; then
-    tar -C "$APP_ROOT/shared/web" -czf \
-        "/var/backups/dictation/audio/audio_\$(date +%F).tar.gz" audio
-fi
+#!/usr/bin/env bash
+set -Eeuo pipefail
+sqlite3 "$DB_PATH" ".backup '/var/backups/dictation/v2/dictation_\$(date +%F).db'"
+gzip -f "/var/backups/dictation/v2/dictation_\$(date +%F).db"
+tar -C "$WEB_ROOT" -czf "/var/backups/dictation/audio/audio_\$(date +%F).tar.gz" audio deployment.json
 find /var/backups/dictation -name '*.db.gz' -mtime +$BACKUP_KEEP_DAYS -delete
 find /var/backups/dictation/audio -name 'audio_*.tar.gz' -mtime +$BACKUP_KEEP_DAYS -delete
 EOF
-
-chmod +x /usr/local/bin/backup-dictation.sh
-/usr/local/bin/backup-dictation.sh || warn "首次备份未成功（库可能还是空的）"
-
-if ! crontab -l 2>/dev/null | grep -q backup-dictation; then
-  ( crontab -l 2>/dev/null; echo "0 3 * * * /usr/local/bin/backup-dictation.sh" ) | crontab -
+chmod 755 /usr/local/bin/backup-dictation.sh
+/usr/local/bin/backup-dictation.sh
+if ! crontab -l 2>/dev/null | grep -q '/usr/local/bin/backup-dictation.sh'; then
+  (crontab -l 2>/dev/null || true; printf '0 3 * * * /usr/local/bin/backup-dictation.sh\n') | crontab -
 fi
-ok "每日 3:00 备份，保留 $BACKUP_KEEP_DAYS 天"
+ok "数据库与录音每日备份，保留 $BACKUP_KEEP_DAYS 天"
 
-# ── 健康检查 ─────────────────────────────────────────────────────────────
 step "健康检查"
+HEALTH="$(curl -fsS --max-time 15 "http://127.0.0.1:$V2_PORT/api/health")" \
+  || die "V2 健康检查无响应"
+printf '%s' "$HEALTH" | python3 -c \
+  'import json,sys; d=json.load(sys.stdin); assert d.get("status")=="ok"; assert d["database"]["lessons"]>0; assert d["database"]["knowledge_points"]>0' \
+  || die "V2 健康检查内容异常: $HEALTH"
+ok "API、数据库和音频通过验收"
 
-check_api() {
-  local ver="$1" port="$2"
-  local body
-  body="$(curl -fsS --max-time 15 "http://127.0.0.1:$port/api/lessons" 2>/dev/null || echo "")"
-  if [[ -z "$body" ]]; then
-    warn "$ver /api/lessons 无响应 —— journalctl -u dictation-$ver -n 30 --no-pager"
-    return 1
-  fi
-  local n
-  n="$(printf '%s' "$body" | grep -o '"lesson_seq"' | wc -l | tr -d ' ')"
-  if [[ "$n" -gt 0 ]]; then
-    ok "$ver 接口正常，返回 $n 门课程"
-  else
-    warn "$ver 接口有响应但课程数为 0（数据库可能未灌题库）"
-    return 1
-  fi
-}
-
-check_v2_health() {
-  local body
-  body="$(curl -fsS --max-time 15 "http://127.0.0.1:$V2_PORT/api/health" 2>/dev/null || echo "")"
-  if [[ "$body" == *'"status":"ok"'* \
-        && "$body" == *'"lessons":43'* \
-        && "$body" == *'"knowledge_points":814'* ]]; then
-    ok "v2 健康检查正常（43 门课程 / 814 条知识点）"
-  else
-    warn "v2 /api/health 返回异常: ${body:-无响应}"
-    return 1
-  fi
-}
-
-if [[ "$DEPLOY_V1" == "yes" ]]; then
-  check_api v1 "$V1_PORT" || die "V1 接口验收失败"
-fi
-if [[ "$DEPLOY_V2" == "yes" ]]; then
-  check_v2_health || die "V2 健康检查失败；请检查 journalctl -u dictation-v2"
-fi
-
-# V2 音频切片
-if [[ "$DEPLOY_V2" == "yes" ]]; then
-  SLICES="$(find "$APP_ROOT/shared/web/audio" -name '*.mp3' 2>/dev/null | wc -l | tr -d ' ')"
-  if python3 "$APP_ROOT/shared/tools/audio_bundle.py" inventory \
-      --audio-dir "$APP_ROOT/shared/web/audio" >/dev/null 2>&1; then
-    ok "标准音频校验通过，共 $SLICES 个 MP3"
-  else
-    die "标准音频校验失败 —— 拒绝宣布部署完成"
-  fi
-fi
-
-# ── 完成 ─────────────────────────────────────────────────────────────────
-echo
-echo "${C_HEAD}============================================================${C_OFF}"
-echo "${C_OK}  部署完成${C_OFF}"
-echo "${C_HEAD}============================================================${C_OFF}"
-echo
-[[ "$DEPLOY_V1" == "yes" ]] && echo "  V1  https://$V1_DOMAIN"
-[[ "$DEPLOY_V2" == "yes" ]] && echo "  V2  $V2_SITE_ADDRESSES"
-echo "  账号  $BASIC_AUTH_USER / (deploy/vps.env 中设置的密码)"
-echo
-echo "  首次访问时 Caddy 会自动申请证书，观察签发："
-echo "    journalctl -u caddy -f"
-echo
-if [[ "$DEPLOY_V1" == "yes" ]]; then
-  echo "  建议：预热 V1 缓存，避免出题时被有道限流"
-  echo "    cd $APP_ROOT && set -a && . /etc/dictation/v1.env && set +a"
-  echo "    v1/venv/bin/python shared/tools/warm_v1_cache.py"
-  echo "    chown -R $APP_USER:$APP_USER v1/tts_cache"
-  echo
-fi
-echo "  运维：systemctl status ${SERVICES[*]} --no-pager"
-echo
+printf '\n%sDictation V2 VPS 部署完成%s\n' "$C_OK" "$C_OFF"
+printf '  入口: %s\n' "$V2_SITE_ADDRESSES"
+printf '  程序: %s\n' "$APP_ROOT"
+printf '  内容: %s\n' "$CONTENT_ROOT"
+printf '  状态: %s\n' "$STATE_ROOT"

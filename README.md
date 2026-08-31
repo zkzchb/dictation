@@ -1,85 +1,121 @@
-# 听写小助手
+# Dictation
 
-小学语文听写练习应用，当前词库为人教版三年级上学期。支持每日听写、单元复习、
-间隔重复、打卡记录、批量录音、集中质检和批量重录。
+面向中文听写练习的自托管程序。它提供每日听写、单元复习、错词回流、多音字轮换、
+学习记录，以及本地/VPS 录音工作台。程序不绑定出版社、年级或固定课程号，所有课程、
+词条和音频都从外部 content pack 加载。
 
-## V2.0.0 冻结版
+## 两个仓库
 
-V2 已冻结为稳定功能基线：43 门课程、814 个知识点、869 个词条音频和 25 个系统
-提示音。冻结后只接受数据安全、严重兼容性和安全漏洞修复。
-
-| 分支 | 用途 | Python 依赖 |
+| 仓库 | 职责 | 版本节奏 |
 |---|---|---|
-| `main` | 唯一功能主线、标准联网部署 | 按固定版本从 PyPI/配置的镜像安装 |
-| `main-offline` | `main` 的机械离线发行分支 | 仓库 wheelhouse，安装时不访问 PyPI |
+| [`zkzchb/dictation`](https://github.com/zkzchb/dictation) | V2/V3 程序、内容包规范、部署与测试 | 稳定、低频 |
+| [`zkzchb/dictation-content`](https://github.com/zkzchb/dictation-content) | 教材 JSON、录音和内容说明 | 独立发布、持续增长 |
 
-教材 JSON 和标准音频是产品内容，两个分支都包含。wheelhouse 只存在于
-`main-offline`；成品压缩包只发布到 GitHub Release。
+程序仓库只带一个 CC0 的小型合成测试 fixture，不发布正式教材或产品录音。部署记录会保存
+程序提交、内容提交、内容版本、pack id 和 dataset SHA-256，便于复现一次具体安装。
 
-## 快速部署 V2
+## 运行版本
 
-### 标准联网版
+| 版本 | 目标 | 数据库 | 静态音频 | 录音工作台 |
+|---|---|---|---|---|
+| V2 | Ubuntu 本地或 VPS | SQLite | 本地磁盘 | 支持 |
+| V3 | Cloudflare Workers | D1 | Workers 静态资源 | 不支持 |
+
+V2 和 V3 使用同一套 content-pack v1 契约与选词规则。V2 的 SQLite 选择器和 V3 的 D1
+选择器有固定随机种子一致性测试。
+
+## 五分钟本地启动
+
+候选版部署固定使用程序与内容标签，避免两个 `main` 在安装期间发生漂移。把两个仓库检出为
+相邻目录：
 
 ```bash
-apt update && apt install -y git
-git clone --branch main https://github.com/zkzchb/dictation.git /opt/dictation
-cd /opt/dictation
-bash deploy/install-v2-online.sh
+mkdir dictation-workspace && cd dictation-workspace
+git clone --branch content-v1.0.0 https://github.com/zkzchb/dictation-content.git
+git clone --branch v2.1.0-rc.1 https://github.com/zkzchb/dictation.git
+cd dictation
+cp deploy/local.env.example deploy/local.env
+bash deploy/local-install.sh --serve
 ```
 
-详细说明：[V2 标准联网部署](docs/V2-DEPLOY-ONLINE.md)。
+默认内容包路径是
+`../dictation-content/packs/zh-cn/primary-3a`，运行状态写入
+`.runtime/local`。浏览器打开 `http://localhost:8889`。
 
-### 离线版
+若使用另一个 pack，只需修改 `deploy/local.env` 中的 `CONTENT_ROOT`。安装器会先验证结构、
+哈希和音频清单，再建立或同步数据库；不兼容的删除、重新编号或 pack 切换会被拒绝。
 
-在可以访问 GitHub 的电脑下载离线 Release 附件，通过 Xftp/SCP 上传到服务器，或
-检出 `main-offline`。然后按照该分支中的 `docs/V2-DEPLOY-OFFLINE.md` 操作。
+## 部署
 
-两种入口都会在运行开始时询问公网 IP、主域名、备用域名、是否立即启用 HTTPS、
-访问账号、密码和录音工作台设置。仓库不保存任何个人域名、IP 或口令。
+- [Ubuntu 本地](DEPLOY-local.md)
+- [Ubuntu VPS](DEPLOY-vps.md)
+- [Cloudflare Workers + D1](DEPLOY-cloudflare.md)
 
-备案期间可只填写公网 IP并暂不启用 HTTPS；备案完成后重新运行同一入口即可加入
-域名并让 Caddy 自动申请证书。
+VPS 推荐布局：
 
-## 三个运行版本
+```text
+/opt/
+├── dictation/                  程序，只读检出
+└── dictation-content/          内容，只读检出
 
-| | V1 | V2 | V3 |
-|---|---|---|---|
-| 部署目标 | Ubuntu VPS | Ubuntu VPS | Cloudflare Workers |
-| 音频方案 | 运行时调用有道 TTS | 预录切片 | 预录切片/CDN |
-| 数据库 | SQLite | SQLite | Cloudflare D1 |
-| 状态 | 保留 | 冻结主线 | 实验/边缘版本 |
+/var/lib/dictation/             SQLite、运行音频、录音台账和部署记录
+```
+
+这样程序更新、内容更新和用户状态互不覆盖。旧部署升级时，安装器会把仓库内的旧数据库与
+运行音频复制到独立状态目录，原文件保留作为回退副本。
+
+## 内容包兼容性
+
+`dataset.json` 是内容包唯一入口。每个知识点都有发布后不可复用的稳定整数 ID；兼容更新
+可以追加课程/知识点，或在保留语义身份时修订原 ID。删除、重新编号以及切换 pack id
+需要独立数据库。
+
+```bash
+python3 shared/content_pack.py ../dictation-content/packs/zh-cn/primary-3a
+python3 shared/sync_content.py \
+  --db .runtime/local/v2/dictation.db \
+  --content-root ../dictation-content/packs/zh-cn/primary-3a
+```
+
+完整契约见 [content-pack v1 规范](docs/CONTENT-PACK-SPEC.md) 和
+[双仓库架构](docs/REPOSITORY-ARCHITECTURE.md)。
+
+## 开发与验证
+
+```bash
+python3 -m venv .testenv
+.testenv/bin/pip install -r v2/requirements.txt
+DICTATION_CONTENT_ROOT=tests/fixtures/demo-content-pack \
+  .testenv/bin/python -m unittest discover -s tests -p 'test_*.py' -v
+python3 -m compileall -q v2 v3 shared tools tests
+for script in deploy/*.sh; do bash -n "$script"; done
+python3 tests/check_inline_js.py
+```
+
+测试 fixture 没有音频；音频打包、校验和铺装测试会在临时目录中生成最小的合成 MP3
+文件，不依赖正式内容仓库。
 
 ## 项目结构
 
 ```text
 dictation/
-├── chinese/3a/       教材 JSON、Studio 清单和纯净标准 TTS
-├── shared/           公共前端、建库、音频与迁移工具
-├── deploy/           本地、VPS、Cloudflare 和同步脚本
-├── docs/             冻结、安装、升级与回滚文档
-├── v1/               运行时 TTS 版本
-├── v2/               冻结的 FastAPI/SQLite 版本
-└── v3/               Cloudflare Workers 版本
+├── v2/                 FastAPI / SQLite API
+├── v3/                 Cloudflare Python Worker / D1
+├── shared/             选词、建库、内容同步、内容包与音频工具
+├── shared/web/         V2/V3 公共前端母本
+├── deploy/             本地、VPS 与 Cloudflare 部署入口
+├── tools/              V2/V3 静态资源铺装
+├── tests/              回归测试与合成 content-pack fixture
+└── docs/               规范、架构、许可与发布文档
 ```
 
-## V2 验收
+历史冻结版仍可通过 `v2.0.0` 标签和 `v2.0-stable` 分支检出；当前产品线只维护 V2/V3。
 
-```bash
-systemctl status dictation-v2 --no-pager
-curl -fsS http://127.0.0.1:8889/api/health
-python3 shared/tools/audio_bundle.py inventory --audio-dir shared/web/audio
-```
-
-## 进一步文档
-
-- [V2 冻结说明](docs/V2-FREEZE.md)
-- [V2 可复现安装规范](docs/V2-REPRODUCIBLE-INSTALL.md)
-- [V2 升级与回滚](docs/V2-UPGRADE-AND-ROLLBACK.md)
-- [本地部署](DEPLOY-local.md)
-- [Cloudflare 部署](DEPLOY-cloudflare.md)
+候选版验收记录保存在 [docs/verification](docs/verification/)；原始机器日志留在对应部署环境，
+公开仓库只保存去除账号、地址、凭据和用户数据后的结论。
 
 ## 许可
 
-GNU AGPL v3.0。允许商业使用；通过网络向用户提供修改版程序时，需要按许可证要求
-向这些用户提供对应源码。闭源发行或不同授权方式需要版权所有者另行许可。
-
+程序采用 [GNU AGPL-3.0](LICENSE)。内容包是独立作品，必须在自己的仓库声明来源、作者、
+许可和音频权利；程序许可证不会自动改变内容包的许可。详见 [NOTICE](NOTICE.md) 与
+[内容许可边界](docs/CONTENT-LICENSING.md)。

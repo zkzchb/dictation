@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Build, verify, and install V2 audio distribution assets.
+"""Build, verify, and install content-pack audio assets.
 
-The Git repository contains the canonical textbook JSON and pure TTS baseline.
-An optional baseline bundle can carry the same TTS for alternate distribution.
-A human bundle carries only files named in the recording ledgers, so it can be
-layered over a clean baseline without importing learning or review history.
+The selected external content pack contains the canonical dataset and optional
+audio baseline. A human bundle carries only files named in the recording
+ledgers, so it can be layered over a clean baseline without importing learning
+or review history.
 """
 
 from __future__ import annotations
@@ -19,14 +19,19 @@ import re
 import sys
 import tarfile
 import tempfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 
 TOOLS_DIR = Path(__file__).resolve().parent
 SHARED_DIR = TOOLS_DIR.parent
 ROOT = SHARED_DIR.parent
-CONTENT_ROOT = Path(os.getenv("DICTATION_CONTENT_ROOT", ROOT / "chinese" / "3a"))
+CONTENT_ROOT = Path(
+    os.getenv(
+        "DICTATION_CONTENT_ROOT",
+        ROOT.parent / "dictation-content" / "packs" / "zh-cn" / "primary-3a",
+    )
+)
 DEFAULT_AUDIO_DIR = CONTENT_ROOT / "tts"
 DATA_FILES = (
     CONTENT_ROOT / "lessons.json",
@@ -35,7 +40,8 @@ DATA_FILES = (
 )
 
 sys.path.insert(0, str(SHARED_DIR))
-from gen_slices import MAX_GROUPS, SYS_PHRASES, collect_targets  # noqa: E402
+from audio_catalog import MAX_GROUPS, SYS_PHRASES, collect_targets  # noqa: E402
+from content_pack import ContentPackError, load_content_pack  # noqa: E402
 
 
 SCHEMA_VERSION = 1
@@ -69,9 +75,9 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def dataset_sha256() -> str:
+def dataset_sha256(paths: tuple[Path, Path, Path] | None = None) -> str:
     digest = hashlib.sha256()
-    for path in DATA_FILES:
+    for path in paths or DATA_FILES:
         digest.update(path.name.encode("utf-8"))
         digest.update(b"\0")
         digest.update(path.read_bytes())
@@ -79,8 +85,9 @@ def dataset_sha256() -> str:
     return digest.hexdigest()
 
 
-def expected_word_files() -> dict[str, str]:
-    items, manifest = collect_targets([str(CONTENT_ROOT / "knowledge_points.json")])
+def expected_word_files(knowledge_points_path: Path | None = None) -> dict[str, str]:
+    source = knowledge_points_path or DATA_FILES[1]
+    items, manifest = collect_targets([str(source)])
     del items
     return {f"audio/w/{item['hash']}.mp3": text for text, item in manifest.items()}
 
@@ -103,6 +110,37 @@ def load_object(path: Path, *, missing_ok: bool = True) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise BundleError(f"{path} 必须是 JSON 对象")
     return value
+
+
+def _safe_pack_path(root: Path, value: Any, field: str) -> Path:
+    """Resolve a pack-relative path without allowing traversal."""
+
+    if not isinstance(value, str) or not value.strip():
+        raise BundleError(f"dataset.json paths.{field} 必须是非空相对路径")
+    posix = PurePosixPath(value)
+    if posix.is_absolute() or ".." in posix.parts:
+        raise BundleError(f"dataset.json paths.{field} 不能越出内容包: {value}")
+    resolved_root = root.resolve()
+    resolved = (resolved_root / Path(*posix.parts)).resolve()
+    if resolved != resolved_root and resolved_root not in resolved.parents:
+        raise BundleError(f"dataset.json paths.{field} 不能越出内容包: {value}")
+    return resolved
+
+
+def _bind_content_data_files(root: Path) -> dict[str, Any]:
+    """Bind the selected pack's structural files for all audio operations."""
+
+    global DATA_FILES
+    metadata = load_object(root / "dataset.json", missing_ok=False)
+    raw_paths = metadata.get("paths")
+    if not isinstance(raw_paths, dict):
+        raise BundleError("dataset.json paths 必须是对象")
+    paths = {
+        field: _safe_pack_path(root, raw_paths.get(field), field)
+        for field in ("lessons", "knowledge_points", "studio_manifest")
+    }
+    DATA_FILES = (paths["lessons"], paths["knowledge_points"], paths["studio_manifest"])
+    return {**raw_paths, **paths}
 
 
 def atomic_write_json(path: Path, value: Any) -> None:
@@ -423,13 +461,31 @@ def inventory(audio_dir: Path) -> None:
 
 
 def build_dataset_manifest(content_root: Path) -> None:
+    content_root = content_root.resolve()
     if content_root.resolve() != CONTENT_ROOT.resolve():
         raise BundleError(
             f"当前进程绑定教材目录 {CONTENT_ROOT}；如需其他目录请设置 DICTATION_CONTENT_ROOT"
         )
-    lessons_path = content_root / "lessons.json"
-    kp_path = content_root / "knowledge_points.json"
-    studio_path = content_root / "studio_manifest.json"
+    existing = load_object(content_root / "dataset.json", missing_ok=False)
+    raw_paths = existing.get("paths")
+    if not isinstance(raw_paths, dict):
+        raise BundleError("dataset.json paths 必须是对象")
+    bound_paths = _bind_content_data_files(content_root)
+    lessons_path = bound_paths["lessons"]
+    kp_path = bound_paths["knowledge_points"]
+    studio_path = bound_paths["studio_manifest"]
+    # A legacy pack may omit the optional audio paths until this command
+    # generates them; use the conventional directory in that case.
+    tts_dir = (
+        _safe_pack_path(content_root, raw_paths["tts"], "tts")
+        if "tts" in raw_paths
+        else content_root / "tts"
+    )
+    checksum_path = (
+        _safe_pack_path(content_root, raw_paths["tts_checksums"], "tts_checksums")
+        if "tts_checksums" in raw_paths
+        else content_root / "tts.sha256"
+    )
     lessons = json.loads(lessons_path.read_text(encoding="utf-8"))
     knowledge_points = json.loads(kp_path.read_text(encoding="utf-8"))
     studio = json.loads(studio_path.read_text(encoding="utf-8"))
@@ -438,14 +494,13 @@ def build_dataset_manifest(content_root: Path) -> None:
 
     audio_files: list[tuple[str, Path]] = []
     for relative in sorted(expected_baseline_files()):
-        path = content_root / "tts" / relative.removeprefix("audio/")
+        path = tts_dir / relative.removeprefix("audio/")
         read_mp3(path)
         audio_files.append((path.relative_to(content_root).as_posix(), path))
 
     checksum_text = "".join(
         f"{sha256_file(path)}  {relative}\n" for relative, path in audio_files
     ).encode("utf-8")
-    checksum_path = content_root / "tts.sha256"
     atomic_write_bytes(checksum_path, checksum_text)
 
     categories: dict[str, int] = {}
@@ -453,20 +508,22 @@ def build_dataset_manifest(content_root: Path) -> None:
         if isinstance(item, dict):
             category = str(item.get("category", ""))
             categories[category] = categories.get(category, 0) + 1
+    required_identity = ("id", "display_name", "language", "subject")
+    if any(not isinstance(existing.get(key), str) or not existing[key].strip()
+           for key in required_identity):
+        raise BundleError("dataset.json 缺少内容包身份字段")
     metadata = {
         "schema_version": 1,
-        "id": "chinese-3a",
-        "display_name": "人教版小学语文三年级上册",
-        "language": "zh-CN",
-        "subject": "chinese",
-        "grade": 3,
-        "semester": "first",
+        "id": existing["id"],
+        "display_name": existing["display_name"],
+        "language": existing["language"],
+        "subject": existing["subject"],
         "paths": {
-            "lessons": "lessons.json",
-            "knowledge_points": "knowledge_points.json",
-            "studio_manifest": "studio_manifest.json",
-            "tts": "tts",
-            "tts_checksums": "tts.sha256",
+            "lessons": raw_paths["lessons"],
+            "knowledge_points": raw_paths["knowledge_points"],
+            "studio_manifest": raw_paths["studio_manifest"],
+            "tts": raw_paths.get("tts", "tts"),
+            "tts_checksums": raw_paths.get("tts_checksums", "tts.sha256"),
         },
         "counts": {
             "lessons": len(lessons),
@@ -476,20 +533,21 @@ def build_dataset_manifest(content_root: Path) -> None:
             "tts_system": len(expected_system_files()),
             "categories": dict(sorted(categories.items())),
         },
-        "tts": {
-            "provider": "youdao",
-            "voice": "youxiaoxun",
-            "speed": 0.6,
-            "format": "mp3",
-        },
         "sha256": {
             "lessons": sha256_file(lessons_path),
             "knowledge_points": sha256_file(kp_path),
             "studio_manifest": sha256_file(studio_path),
             "tts_checksums": sha256_file(checksum_path),
-            "dataset": dataset_sha256(),
+            "dataset": dataset_sha256(DATA_FILES),
         },
     }
+    # Keep pack-owned provenance, license, version and any future extension
+    # fields while replacing only the generated structural sections above.
+    generated_fields = {"schema_version", "id", "display_name", "language", "subject",
+                        "paths", "counts", "sha256"}
+    for key, value in existing.items():
+        if key not in generated_fields and key not in metadata:
+            metadata[key] = value
     atomic_write_json(content_root / "dataset.json", metadata)
     print(
         f"[OK] 教材清单: {content_root / 'dataset.json'} "
@@ -498,41 +556,32 @@ def build_dataset_manifest(content_root: Path) -> None:
 
 
 def verify_dataset_manifest(content_root: Path) -> None:
+    global DATA_FILES
+    content_root = content_root.resolve()
     if content_root.resolve() != CONTENT_ROOT.resolve():
         raise BundleError(
             f"当前进程绑定教材目录 {CONTENT_ROOT}；如需其他目录请设置 DICTATION_CONTENT_ROOT"
         )
-    metadata = load_object(content_root / "dataset.json", missing_ok=False)
-    if (
-        metadata.get("schema_version") != 1
-        or metadata.get("id") != "chinese-3a"
-        or metadata.get("language") != "zh-CN"
-        or metadata.get("subject") != "chinese"
-        or metadata.get("grade") != 3
-        or metadata.get("semester") != "first"
-    ):
-        raise BundleError("dataset.json 格式或教材 ID 错误")
+    try:
+        pack = load_content_pack(content_root)
+    except ContentPackError as exc:
+        raise BundleError(str(exc)) from exc
+    DATA_FILES = tuple(
+        pack.paths[name] for name in ("lessons", "knowledge_points", "studio_manifest")
+    )
+    metadata = pack.metadata
+    tts_dir = pack.paths.get("tts")
+    checksum_path = pack.paths.get("tts_checksums")
+    if tts_dir is None or checksum_path is None:
+        raise BundleError("内容包未声明 paths.tts 和 paths.tts_checksums")
 
-    lessons_path = content_root / "lessons.json"
-    kp_path = content_root / "knowledge_points.json"
-    studio_path = content_root / "studio_manifest.json"
-    checksum_path = content_root / "tts.sha256"
-    actual_hashes = {
-        "lessons": sha256_file(lessons_path),
-        "knowledge_points": sha256_file(kp_path),
-        "studio_manifest": sha256_file(studio_path),
-        "tts_checksums": sha256_file(checksum_path),
-        "dataset": dataset_sha256(),
-    }
-    if metadata.get("sha256") != actual_hashes:
-        raise BundleError("dataset.json 中的教材 SHA-256 与文件不一致")
-
+    tts_prefix = tts_dir.relative_to(content_root).as_posix()
     expected_paths = {
-        f"tts/{name.removeprefix('audio/')}" for name in expected_baseline_files()
+        f"{tts_prefix}/{name.removeprefix('audio/')}" for name in expected_baseline_files()
     }
     actual_paths = {
         path.relative_to(content_root).as_posix()
-        for path in (content_root / "tts").rglob("*.mp3")
+        for path in tts_dir.rglob("*.mp3")
         if path.is_file()
     }
     if actual_paths != expected_paths:
@@ -554,48 +603,21 @@ def verify_dataset_manifest(content_root: Path) -> None:
         if sha256_file(path) != checksum:
             raise BundleError(f"TTS 校验失败: {relative}")
 
-    lessons = json.loads(lessons_path.read_text(encoding="utf-8"))
-    knowledge_points = json.loads(kp_path.read_text(encoding="utf-8"))
-    studio = json.loads(studio_path.read_text(encoding="utf-8"))
-    if not all(isinstance(value, list) for value in (lessons, knowledge_points, studio)):
-        raise BundleError("教材 JSON 顶层必须都是数组")
-    categories: dict[str, int] = {}
-    for item in knowledge_points:
-        if not isinstance(item, dict):
-            raise BundleError("knowledge_points.json 的项目必须是对象")
-        category = str(item.get("category", ""))
-        categories[category] = categories.get(category, 0) + 1
-
     counts = metadata.get("counts", {})
-    expected_counts = {
-        "lessons": 43,
-        "knowledge_points": 814,
-        "studio_words": 869,
-        "tts_words": 869,
-        "tts_system": 25,
-        "categories": {"多音字": 38, "易错字": 108, "生字": 250, "词语": 418},
-    }
-    actual_counts = {
-        "lessons": len(lessons),
-        "knowledge_points": len(knowledge_points),
-        "studio_words": len(studio),
+    audio_counts = {
         "tts_words": len(expected_word_files()),
         "tts_system": len(expected_system_files()),
-        "categories": dict(sorted(categories.items())),
     }
-    if (
-        not isinstance(counts, dict)
-        or counts != expected_counts
-        or actual_counts != expected_counts
-    ):
-        raise BundleError("dataset.json 的冻结数量不正确")
+    if any(counts.get(key) != value for key, value in audio_counts.items()):
+        raise BundleError("dataset.json 的音频数量不正确")
     print(
         f"[OK] 教材包完整: {metadata.get('display_name')} "
-        f"({len(listed)} 音频, dataset={actual_hashes['dataset'][:12]})"
+        f"({len(listed)} 音频, dataset={pack.dataset_sha256[:12]})"
     )
 
 
 def main() -> int:
+    global CONTENT_ROOT, DATA_FILES
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -624,7 +646,21 @@ def main() -> int:
     verify_dataset.add_argument("--content-root", type=Path, default=CONTENT_ROOT)
 
     args = parser.parse_args()
+    # ``--content-root`` is a real CLI override, not merely documentation. The
+    # helper functions intentionally share these globals so tests can patch a
+    # synthetic pack and command-line callers can select another pack without
+    # having to export DICTATION_CONTENT_ROOT first.
+    if hasattr(args, "content_root"):
+        CONTENT_ROOT = args.content_root.resolve()
+        DATA_FILES = tuple(
+            CONTENT_ROOT / name
+            for name in ("lessons.json", "knowledge_points.json", "studio_manifest.json")
+        )
     try:
+        # Every command hashes or enumerates the selected pack. Bind its
+        # declared structural paths before dispatch so custom pack layouts work
+        # for inventory and bundle operations too.
+        _bind_content_data_files(CONTENT_ROOT)
         if args.command == "pack-baseline":
             pack_baseline(args.audio_dir, args.output)
         elif args.command == "pack-human":

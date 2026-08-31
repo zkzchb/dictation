@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 import shutil
 import sqlite3
 import subprocess
@@ -11,6 +12,8 @@ from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
+PACK = ROOT / "tests" / "fixtures" / "demo-content-pack"
+os.environ.setdefault("DICTATION_CONTENT_ROOT", str(PACK))
 MODULE_PATH = ROOT / "shared" / "tools" / "audio_bundle.py"
 SPEC = importlib.util.spec_from_file_location("audio_bundle", MODULE_PATH)
 audio_bundle = importlib.util.module_from_spec(SPEC)
@@ -33,22 +36,94 @@ class V2DistributionTests(unittest.TestCase):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(FAKE_MP3)
 
-    def test_canonical_dataset_counts_are_frozen(self):
-        self.assertEqual(len(audio_bundle.expected_word_files()), 869)
+    def test_audio_inventory_is_derived_from_selected_pack(self):
+        self.assertEqual(len(audio_bundle.expected_word_files()), 18)
         self.assertEqual(len(audio_bundle.expected_system_files()), 25)
-        self.assertEqual(len(audio_bundle.expected_baseline_files()), 894)
+        self.assertEqual(len(audio_bundle.expected_baseline_files()), 43)
 
-    def test_distribution_json_matches_legacy_shared_sources(self):
-        pairs = (
-            (ROOT / "chinese" / "3a" / "lessons.json", ROOT / "shared" / "data" / "lessons_grade3.json"),
-            (ROOT / "chinese" / "3a" / "knowledge_points.json", ROOT / "shared" / "data" / "kp_grade3.json"),
-            (ROOT / "chinese" / "3a" / "studio_manifest.json", ROOT / "shared" / "web" / "studio_manifest.json"),
-        )
-        for distribution, legacy in pairs:
-            self.assertEqual(distribution.read_bytes(), legacy.read_bytes())
+    def test_synthetic_pack_can_build_and_verify_audio_manifest(self):
+        with tempfile.TemporaryDirectory() as temp:
+            content = Path(temp) / "pack"
+            shutil.copytree(PACK, content)
+            self.make_complete_audio(content / "tts")
+            data_files = (
+                content / "lessons.json",
+                content / "knowledge_points.json",
+                content / "studio_manifest.json",
+            )
+            with (
+                mock.patch.object(audio_bundle, "CONTENT_ROOT", content),
+                mock.patch.object(audio_bundle, "DATA_FILES", data_files),
+            ):
+                metadata_path = content / "dataset.json"
+                metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+                metadata["version"] = "1.2.3"
+                metadata["author"] = "pack author"
+                metadata_path.write_text(
+                    json.dumps(metadata, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+                audio_bundle.build_dataset_manifest(content)
+                refreshed = json.loads(metadata_path.read_text(encoding="utf-8"))
+                self.assertEqual(refreshed["version"], "1.2.3")
+                self.assertEqual(refreshed["author"], "pack author")
+                audio_bundle.verify_dataset_manifest(content)
 
-    def test_repository_dataset_manifest_and_audio_are_valid(self):
-        audio_bundle.verify_dataset_manifest(ROOT / "chinese" / "3a")
+    def test_dataset_manifest_honors_pack_relative_paths(self):
+        with tempfile.TemporaryDirectory() as temp:
+            content = Path(temp) / "pack"
+            shutil.copytree(PACK, content)
+            data_dir = content / "data"
+            audio_dir = content / "audio-baseline"
+            data_dir.mkdir()
+            shutil.move(str(content / "lessons.json"), data_dir / "lessons.json")
+            shutil.move(str(content / "knowledge_points.json"), data_dir / "knowledge_points.json")
+            shutil.move(str(content / "studio_manifest.json"), data_dir / "studio_manifest.json")
+            self.make_complete_audio(content / "tts")
+            shutil.move(str(content / "tts"), audio_dir)
+
+            metadata_path = content / "dataset.json"
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            metadata["paths"] = {
+                "lessons": "data/lessons.json",
+                "knowledge_points": "data/knowledge_points.json",
+                "studio_manifest": "data/studio_manifest.json",
+                "tts": "audio-baseline",
+                "tts_checksums": "generated/tts.sha256",
+            }
+            metadata_path.write_text(
+                json.dumps(metadata, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            data_files = (
+                data_dir / "lessons.json",
+                data_dir / "knowledge_points.json",
+                data_dir / "studio_manifest.json",
+            )
+            with (
+                mock.patch.object(audio_bundle, "CONTENT_ROOT", content),
+                mock.patch.object(audio_bundle, "DATA_FILES", data_files),
+            ):
+                audio_bundle.build_dataset_manifest(content)
+                audio_bundle.verify_dataset_manifest(content)
+            refreshed = json.loads(metadata_path.read_text(encoding="utf-8"))
+            self.assertEqual(refreshed["paths"]["tts"], "audio-baseline")
+            self.assertTrue((content / "generated" / "tts.sha256").is_file())
+            with (
+                mock.patch.object(audio_bundle, "CONTENT_ROOT", content),
+                mock.patch.object(audio_bundle, "DATA_FILES", data_files),
+                mock.patch.object(
+                    sys,
+                    "argv",
+                    [
+                        "audio_bundle.py",
+                        "inventory",
+                        "--audio-dir",
+                        str(audio_dir),
+                    ],
+                ),
+            ):
+                self.assertEqual(audio_bundle.main(), 0)
 
     def test_baseline_bundle_round_trip_and_dataset_binding(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -61,7 +136,7 @@ class V2DistributionTests(unittest.TestCase):
             audio_bundle.pack_baseline(source, bundle)
             manifest, files = audio_bundle.read_bundle(bundle, audio_bundle.BASELINE_KIND)
             self.assertEqual(manifest["dataset_sha256"], audio_bundle.dataset_sha256())
-            self.assertEqual(len(files), 894)
+            self.assertEqual(len(files), 43)
 
             audio_bundle.install_bundle(
                 bundle, target, audio_bundle.BASELINE_KIND, reset_review_state=False
@@ -161,8 +236,9 @@ class V2DistributionTests(unittest.TestCase):
 
     def test_dataset_manifest_rejects_unlisted_mp3(self):
         with tempfile.TemporaryDirectory() as temp:
-            content = Path(temp) / "3a"
-            shutil.copytree(ROOT / "chinese" / "3a", content)
+            content = Path(temp) / "pack"
+            shutil.copytree(PACK, content)
+            self.make_complete_audio(content / "tts")
             (content / "tts" / "sys" / "unlisted.mp3").write_bytes(FAKE_MP3)
             data_files = (
                 content / "lessons.json",
@@ -173,6 +249,7 @@ class V2DistributionTests(unittest.TestCase):
                 mock.patch.object(audio_bundle, "CONTENT_ROOT", content),
                 mock.patch.object(audio_bundle, "DATA_FILES", data_files),
             ):
+                audio_bundle.build_dataset_manifest(content)
                 with self.assertRaises(audio_bundle.BundleError):
                     audio_bundle.verify_dataset_manifest(content)
 
@@ -206,6 +283,69 @@ class V2DistributionTests(unittest.TestCase):
                 ["sys", "sys/intro.mp3", "w", "w/word.mp3"],
             )
 
+    def test_public_stage_keeps_previous_tree_if_copy_fails(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "source"
+            target = root / "target"
+            (source / "w").mkdir(parents=True)
+            (source / "sys").mkdir(parents=True)
+            (target / "w").mkdir(parents=True)
+            (target / "w" / "old.mp3").write_bytes(FAKE_MP3)
+            (source / "w" / "new.mp3").write_bytes(FAKE_MP3)
+
+            with mock.patch.object(stage.shutil, "copy2", side_effect=OSError("copy failed")):
+                with self.assertRaisesRegex(OSError, "copy failed"):
+                    stage.stage_audio(str(source), str(target))
+            self.assertEqual((target / "w" / "old.mp3").read_bytes(), FAKE_MP3)
+            self.assertFalse((target / "w" / "new.mp3").exists())
+
+    def test_runtime_stage_preserves_registered_recording_and_removes_stale_baseline(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "source"
+            target = root / "target"
+            (source / "w").mkdir(parents=True)
+            (source / "sys").mkdir(parents=True)
+            (target / "w").mkdir(parents=True)
+            (target / "sys").mkdir(parents=True)
+            (source / "w" / "111111111111.mp3").write_bytes(b"baseline")
+            (source / "sys" / "intro.mp3").write_bytes(b"prompt")
+            (target / "w" / "111111111111.mp3").write_bytes(b"human")
+            (target / "w" / "stale.mp3").write_bytes(b"stale")
+            (target / ".recorded.json").write_text(
+                '{"111111111111": {"text": "词"}}', encoding="utf-8"
+            )
+            (target / ".recorded_sys.json").write_text("{}", encoding="utf-8")
+
+            copied = stage.install_runtime_audio(source, target)
+
+            self.assertEqual(copied, 2)
+            self.assertEqual((target / "w" / "111111111111.mp3").read_bytes(), b"human")
+            self.assertEqual((target / "sys" / "intro.mp3").read_bytes(), b"prompt")
+            self.assertFalse((target / "w" / "stale.mp3").exists())
+
+    def test_runtime_stage_rejects_orphaned_registered_recording_before_changes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "source"
+            target = root / "target"
+            (source / "w").mkdir(parents=True)
+            (source / "sys").mkdir(parents=True)
+            (source / "w" / "111111111111.mp3").write_bytes(b"baseline")
+            (source / "w" / "222222222222.mp3").write_bytes(b"new baseline")
+            (target / "w").mkdir(parents=True)
+            (target / "w" / "stale.mp3").write_bytes(b"human")
+            (target / ".recorded.json").write_text(
+                '{"aaaaaaaaaaaa": {"text": "旧词"}}', encoding="utf-8"
+            )
+            (target / ".recorded_sys.json").write_text("{}", encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "当前内容包之外"):
+                stage.install_runtime_audio(source, target)
+            self.assertTrue((target / "w" / "stale.mp3").exists())
+            self.assertFalse((target / "w" / "222222222222.mp3").exists())
+
     def test_fresh_database_has_only_static_seed_data(self):
         with tempfile.TemporaryDirectory() as temp:
             db = Path(temp) / "dictation.db"
@@ -216,7 +356,7 @@ class V2DistributionTests(unittest.TestCase):
                     "--db",
                     str(db),
                     "--content-root",
-                    str(ROOT / "chinese" / "3a"),
+                    str(PACK),
                 ],
                 check=True,
                 capture_output=True,
@@ -224,9 +364,9 @@ class V2DistributionTests(unittest.TestCase):
             )
             conn = sqlite3.connect(db)
             try:
-                self.assertEqual(conn.execute("SELECT COUNT(*) FROM lessons").fetchone()[0], 43)
+                self.assertEqual(conn.execute("SELECT COUNT(*) FROM lessons").fetchone()[0], 5)
                 self.assertEqual(
-                    conn.execute("SELECT COUNT(*) FROM knowledge_points").fetchone()[0], 814
+                    conn.execute("SELECT COUNT(*) FROM knowledge_points").fetchone()[0], 17
                 )
                 for table in (
                     "user_memory",

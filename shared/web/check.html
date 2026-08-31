@@ -28,8 +28,8 @@
       <p class="text-xs text-slate-500 mt-1">原速播放 · 词间隔 2000ms</p>
     </div>
     <div class="flex items-center gap-3 text-sm">
-      <a href="/studio.html" class="text-slate-400 hover:text-white">录音台</a>
-      <a x-show="listInfo.count>listInfo.done" x-cloak href="/studio2.html"
+      <a href="./studio.html" class="text-slate-400 hover:text-white">录音台</a>
+      <a x-show="listInfo.count>listInfo.done" x-cloak href="./studio2.html"
          class="text-[#07C160] font-bold whitespace-nowrap">重录 <span x-text="listInfo.done"></span>/<span x-text="listInfo.count"></span></a>
     </div>
   </header>
@@ -55,7 +55,7 @@
     <i class="fas fa-microphone-slash text-5xl text-slate-600 mb-4"></i>
     <h2 class="text-xl font-bold mb-2">还没有人工录音</h2>
     <p class="text-sm text-slate-400 mb-5">质检页只播放录音台账中已保存的真人录音。</p>
-    <a href="/studio.html" class="inline-block btn bg-[#07C160] px-6 py-3">前往录音台</a>
+    <a href="./studio.html" class="inline-block btn bg-[#07C160] px-6 py-3">前往录音台</a>
   </div>
 
   <main x-show="['ready','playing','paused'].includes(state)" x-cloak class="flex-1 flex flex-col">
@@ -140,7 +140,7 @@
           <i class="fas" :class="savingList ? 'fa-spinner fa-spin' : 'fa-floppy-disk'"></i>
           <span x-text="savingList ? '正在保存…' : '保存重录词表'"></span>
         </button>
-        <a x-show="listInfo.count>listInfo.done" href="/studio2.html"
+        <a x-show="listInfo.count>listInfo.done" href="./studio2.html"
            class="btn bg-[#07C160] text-white px-6 py-3">进入重录工作台</a>
         <button @click="start(true)" class="btn bg-slate-700 text-white px-6 py-3">从头开始</button>
       </div>
@@ -188,7 +188,7 @@ function checker() {
       this.stopAudio();
       this.state = 'loading'; this.errorMsg = ''; this.notice = '';
       try {
-        const r = await fetch('/api/check/words', {cache: 'no-store'});
+        const r = await fetch('./api/check/words', {cache: 'no-store'});
         if (!r.ok) throw new Error(`HTTP ${r.status}：${(await r.text()).slice(0, 200)}`);
         const data = await r.json();
         this.words = Array.isArray(data.words) ? data.words : [];
@@ -318,7 +318,7 @@ function checker() {
       if (!word || this.savingDecision) return false;
       this.savingDecision = true; this.notice = '';
       try {
-        const r = await fetch('/api/check/mark', {
+        const r = await fetch('./api/check/mark', {
           method:'POST', headers:{'Content-Type':'application/json'},
           body:JSON.stringify({hash: word.hash, status}), keepalive:true,
         });
@@ -353,7 +353,7 @@ function checker() {
       if (this.pendingCount || !this.rerecordCount) return;
       this.savingList = true; this.notice = '';
       try {
-        const r = await fetch('/api/check/save_rerecord', {method:'POST'});
+        const r = await fetch('./api/check/save_rerecord', {method:'POST'});
         if (!r.ok) throw new Error(`HTTP ${r.status}：${(await r.text()).slice(0,180)}`);
         const data = await r.json();
         this.listInfo = {count:data.count || 0, done:0, created_at:new Date().toISOString()};

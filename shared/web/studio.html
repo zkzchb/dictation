@@ -396,7 +396,7 @@ function studio() {
     silenceThresh: -40,    // 静音阈值 dBFS
     minSilenceLen: 500,    // 静音判定最短时长 ms
     batchSize: 10,         // 每组词数
-    API: '',               // 同源
+    API: '.',              // 同源；兼容根路径与反代子路径
 
     // ── 状态 ──
     // loading|error|grid|ready|countdown|recording|splitting|saving|save-failed|saved
@@ -467,7 +467,7 @@ function studio() {
     },
 
     // 进度只认台账，不看文件是否存在 —— TTS 占位与真人录音同名同路径，
-    // 用 /api/studio/check 判断会把 869 个占位全算成「已录」。
+    // 用 /api/studio/check 判断会把内容包中的全部基线音频都算成「已录」。
     get totalRecorded() {
       let n = 0;
       for (const w of this.words) if (this.recorded[w.hash]) n++;
@@ -777,7 +777,7 @@ function studio() {
         this.hintLevel = 'warn';
         this.hint = window.isSecureContext
           ? '此浏览器不支持录音（缺少 mediaDevices API）'
-          : `浏览器禁止在非安全来源录音。请改用 http://localhost:${location.port || 8889}/studio 在本机录制，或走 HTTPS 域名访问。`;
+          : `浏览器禁止在非安全来源录音。请在部署主机改用 http://127.0.0.1${location.port ? ':' + location.port : ''}${location.pathname}，或走 HTTPS 域名访问。`;
         this.state = 'ready';
         return;
       }

@@ -1,11 +1,7 @@
-"""听写小助手 V2 API —— 预录音切片版，Ubuntu 部署。
+"""听写小助手 V2 API —— FastAPI、SQLite 与预录音频版本。
 
-与 V1 的核心区别：
-  * 运行时不再调用 TTS，也不再使用 ffmpeg 拼接音频；
-  * 音频切片由 shared/gen_slices.py 预生成，以静态文件形式服务；
-  * /api/generate_daily 直接在每个词上附带切片 URL；
-  * /api/generate_audio 接口已移除；
-  * 前端用播放列表驱动 <audio>，选好词表即可直接播放。
+运行时不调用外部 TTS。课程由外部 content pack 提供，词条和系统提示音以
+静态文件服务；前端通过播放列表直接播放每个词的 ``audio_url``。
 """
 import os, re, sys, json, hashlib, sqlite3, random, shutil, tempfile, threading
 from datetime import datetime, timedelta
@@ -23,7 +19,6 @@ import selector  # noqa: E402
 BASE_DIR         = os.path.dirname(os.path.abspath(__file__))
 DB_PATH          = os.getenv("DICTATION_DB", os.path.join(BASE_DIR, "dictation.db"))
 USER_ID          = 1
-DAILY_TARGET     = 30
 EXCLUDE_CATEGORY = "易混淆字"
 APP_TIMEZONE      = os.getenv("APP_TIMEZONE", "Asia/Shanghai")
 
@@ -61,7 +56,7 @@ def word_hash(text: str) -> str:
     return hashlib.md5(text.encode("utf-8")).hexdigest()[:12]
 
 def audio_url_for(text: str) -> str:
-    return f"/audio/w/{word_hash(text)}.mp3"
+    return f"./audio/w/{word_hash(text)}.mp3"
 
 def _now() -> datetime:
     """应用业务时间；与打卡日期和录音台账保持同一时区。"""
@@ -96,10 +91,10 @@ def _ensure_v2_schema(conn) -> None:
 # ── 接口 ─────────────────────────────────────────────────────────────────
 
 def _lesson_row(r):
-    """把 lessons 行转成前端直接可用的结构（与 V1/V3 保持一致）。
+    """把 lessons 行转成前端直接可用的结构（与 V3 保持一致）。
 
     补两个字段，避免前端自己拼字符串、也避免它暴露内部编号：
-      is_review  lesson_seq 末位为 0 即单元复习课，前端据此把两个下拉菜单分开
+      is_review  由内容包声明是否为复习课，前端据此把两个下拉菜单分开
       label      给人看的名字，三种情形：
                    复习课            第一单元 单元复习
                    title 已含在 name 语文园地一
@@ -110,10 +105,7 @@ def _lesson_row(r):
     title = (d.get("lesson_title") or "").strip()
     name = (d.get("lesson_name") or "").strip()
     unit = (d.get("unit_name") or "").strip()
-    # 与 selector.is_review_lesson() 保持一致：末位 0 是复习课，但 3000
-    # 是冷启动填充池（二年级总复习），选词时按正式课走，不能算复习课。
-    # 不排除的话它会落进「单元复习」下拉，而后端按正式课出题 —— 前后端判定打架。
-    d["is_review"] = seq % 10 == 0 and seq != 3000
+    d["is_review"] = selector.is_review_lesson(seq)
     if d["is_review"]:
         d["label"] = f"{unit} {name}".strip()
     elif title and title not in name:
@@ -130,9 +122,12 @@ def get_lessons():
         rows = conn.execute(
             "SELECT lesson_seq, unit_id AS unit_seq, unit_name, lesson_name, "
             "       COALESCE(lesson_title, '') AS lesson_title "
-            "FROM lessons WHERE lesson_seq >= 3100 ORDER BY lesson_seq"
+            "FROM lessons ORDER BY lesson_seq"
         ).fetchall()
-        return [_lesson_row(r) for r in rows]
+        return [
+            _lesson_row(r) for r in rows
+            if r["lesson_seq"] != selector.COLD_START_LESSON
+        ]
     finally:
         conn.close()
 
@@ -158,8 +153,8 @@ def generate_daily(lesson_seq: int, mode: str = "daily"):
     """生成词表。
 
     梯队算法在 shared/selector.py 中实现（见设计文档 §5）：
-      * 正式课（lid 末位非 0）：30 词，7 级梯队，附 2 个多音字段落
-      * 复习课（lid 末位为 0）：50 词，3 级梯队，无多音字
+      * 正式课：使用内容包的 daily_target，7 级梯队，可附多音字段落
+      * 复习课：使用内容包的 review_target，3 级梯队，无多音字
     模式由 lesson_seq 自动判定；mode 仅用于拒绝前端课程/模式错配。
     """
     if mode not in ("daily", "unit"):
@@ -339,7 +334,7 @@ def get_dictation_history(start_date: str, end_date: str):
 
 
 # ================= 🎬 录音工作台 =================
-# 切片保存到 shared/web/audio/w/，与 gen_slices.py 输出一致，可互换
+# 录音保存到所选运行数据目录的 audio/w/。
 STUDIO_AUDIO_DIR = os.getenv(
     "STUDIO_AUDIO_DIR",
     os.path.join(BASE_DIR, "..", "shared", "web", "audio", "w"),
@@ -369,7 +364,7 @@ def _require_studio():
 
 # 真人录音台账。
 # 为什么需要它：切片文件名是 md5(词面)[:12]，真人录音和 TTS 占位「同名同路径」，
-# 磁盘上无从区分。只看文件存在与否的话，gen_slices.py 生成完 869 个占位后
+# 磁盘上无从区分。只看文件存在与否的话，装入完整基线后
 # 「哪些还没录」永远是空集，工作台会直接显示「全部录制完成」。
 # 放在 audio/ 下是有意的：rsync 同步切片时它会一起走，本地与 VPS 对录音进度
 # 的认知保持一致。
@@ -518,7 +513,7 @@ async def studio_page():
 def studio_words():
     """录音台词表 —— 直接从题库生成，不需要手动上传 JSON。
 
-    取词规则与 shared/gen_slices.py 的 collect_targets 保持一致，这样算出的
+    取词规则与内容包录音清单保持一致，这样算出的
     hash 才能和已有切片文件名对上：
       * 多音字取「单字」本身（前端播的就是单字，组词只是给家长看的参考）
       * 其余类别取 options_json 里所有候选组词
@@ -527,13 +522,10 @@ def studio_words():
 
     排序在纯课序之外做了两处调整，都是为了让老师照课本顺序录：
 
-      1. COLD_START_LESSON(3000，二年级总复习) 只是第一门正式课的填充池，极少
-         真正播到。它的课序最小，若按原序会排在最前，老师一开工录的全是填充词。
-      2. 复习课 lid 末位为 0（3110、3120…），数字上小于本单元正课（3111…），
-         按原序会排在本单元之前。老师手里的课本是先正课后复习。
+      1. 内容包的冷启动池只是首门正式课的填充来源，排到最后，避免优先录制填充词。
+      2. 内容包显式声明的复习课排在同单元正式课之后，符合教材使用顺序。
 
-    两处都用 SQLite 布尔表达式返回 0/1 的特性做排序键：命中的行键为 1，自然沉到
-    同级末尾。整数除法 kp.lesson_seq / 10 取单元号（3110 与 3111 同属 311）。
+    排序在 Python 中使用内容包配置，不再从课程编号的末位推断课程类型。
 
     注意排序同时决定「词归哪一课」——去重只保留首次出现，所以复习课后置会把
     与正课重复的词改判到正课名下（实测 38 个词），词表总数与 hash 集合不变。
@@ -543,16 +535,23 @@ def studio_words():
     try:
         rows = conn.execute(
             "SELECT kp.id, kp.lesson_seq, kp.target, kp.category, kp.options_json, "
+            "       COALESCE(l.unit_id, 0) AS unit_id, "
             "       COALESCE(l.lesson_title,'') AS lesson_title, "
             "       COALESCE(l.lesson_name,'')  AS lesson_name "
             "FROM knowledge_points kp "
             "LEFT JOIN lessons l ON l.lesson_seq = kp.lesson_seq "
-            "ORDER BY (kp.lesson_seq = ?), "        # 冷启动填充课整体沉到末尾
-            "         kp.lesson_seq / 10, "          # 再按单元
-            "         (kp.lesson_seq % 10 = 0), "    # 单元内正课在前、复习课在后
-            "         kp.lesson_seq, kp.id",
-            (selector.COLD_START_LESSON,)
+            "ORDER BY kp.lesson_seq, kp.id"
         ).fetchall()
+        rows = sorted(
+            rows,
+            key=lambda row: (
+                row["lesson_seq"] == selector.COLD_START_LESSON,
+                row["unit_id"],
+                selector.is_review_lesson(row["lesson_seq"]),
+                row["lesson_seq"],
+                row["id"],
+            ),
+        )
     finally:
         conn.close()
 
@@ -637,7 +636,7 @@ def _check_words_data():
         status = state.get("status") if isinstance(state, dict) else None
         item["status"] = status if status in ("checked", "rerecord") else "pending"
         # 重录会覆盖同一路径；用真人录音时间生成版本参数，避开浏览器七天音频缓存。
-        item["audio_url"] = f"/audio/w/{h}.mp3?v={word_hash(str(rec.get('at', '')))}"
+        item["audio_url"] = f"./audio/w/{h}.mp3?v={word_hash(str(rec.get('at', '')))}"
         words.append(item)
     return words
 
@@ -718,7 +717,7 @@ async def check_save_rerecord():
             "words": selected,
         }
         _save_json(STUDIO_RERECORD_LIST, data)
-    return {"status": "success", "count": len(selected), "studio_url": "/studio2.html"}
+    return {"status": "success", "count": len(selected), "studio_url": "./studio2.html"}
 
 
 @app.get("/api/studio2/words")
@@ -902,7 +901,7 @@ SYS_LEDGER    = os.path.join(STUDIO_AUDIO_DIR, "..", ".recorded_sys.json")
 
 def _sys_keys():
     """要录的系统音清单。poly_intro 已弃用（新前端不播），不列入。"""
-    from gen_slices import MAX_GROUPS
+    from audio_catalog import MAX_GROUPS
     return (["intro", "poly_prefix", "poly_suffix", "outro"]
             + [f"g{n}" for n in range(1, MAX_GROUPS + 1)])
 
@@ -917,14 +916,14 @@ def _load_sys_ledger() -> dict:
 @app.get("/api/studio/syswords")
 def studio_syswords():
     """系统提示音清单 + 每条是否已有真人录音。"""
-    from gen_slices import SYS_PHRASES
+    from audio_catalog import SYS_PHRASES
     _require_studio()
     led = _load_sys_ledger()
     words = [{
         "key": k,
         "text": SYS_PHRASES.get(k, ""),
         "recorded": k in led,
-        "url": f"/audio/sys/{k}.mp3",
+        "url": f"./audio/sys/{k}.mp3",
     } for k in _sys_keys()]
     return {"words": words, "total": len(words)}
 
@@ -935,7 +934,7 @@ async def studio_save_sys(payload: dict):
     import base64 as b64
     import io
     from pydub import AudioSegment
-    from gen_slices import SYS_PHRASES
+    from audio_catalog import SYS_PHRASES
     _require_studio()
     key = (payload.get("key") or "").strip()
     if key not in _sys_keys():                      # 白名单，防路径穿越
@@ -997,9 +996,8 @@ def health():
 
 # ================= 📁 静态文件 =================
 # 必须放在所有 API 路由（含 /studio）之后 —— 根路径挂载是 catch-all。
-# 直接挂 shared/web/ 而非 stage 后的副本，好处是 /studio 录进
-# shared/web/audio/w/ 的切片立刻可播，无需重新 stage。
-# VPS 部署时这部分由 Caddy 负责；本地直连时由 uvicorn 自己发。
+# 直接挂运行时 WEB_ROOT，/studio 保存的新录音可立即播放。
+# VPS 部署时静态文件由 Caddy 服务；本地直连时由 uvicorn 服务。
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 
 _WEB_DIR = os.getenv("WEB_ROOT", os.path.join(BASE_DIR, "..", "shared", "web"))

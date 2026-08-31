@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""shared/init_db.py —— 从教材包建库（V1/V2 共用）
+"""shared/init_db.py —— 从内容包建立 V2 SQLite 数据库
 
 用法:
     python shared/init_db.py --db v2/dictation.db            # 建新库
@@ -19,9 +19,13 @@ import argparse
 import tempfile
 from datetime import datetime
 
+try:
+    from .content_pack import ContentPackError, DEFAULT_CONTENT_ROOT, load_content_pack
+except ImportError:  # direct execution: python shared/init_db.py
+    from content_pack import ContentPackError, DEFAULT_CONTENT_ROOT, load_content_pack
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
-DEFAULT_CONTENT_ROOT = os.path.join(ROOT, "chinese", "3a")
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS lessons (
@@ -43,7 +47,7 @@ CREATE TABLE IF NOT EXISTS knowledge_points (
 
 CREATE TABLE IF NOT EXISTS user_progress (
     user_id            INTEGER PRIMARY KEY,
-    current_lesson_seq INTEGER DEFAULT 3111,
+    current_lesson_seq INTEGER DEFAULT 0,
     updated_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -86,6 +90,15 @@ CREATE TABLE IF NOT EXISTS submission_receipts (
     created_at    TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS content_runtime (
+    singleton       INTEGER PRIMARY KEY CHECK (singleton = 1),
+    pack_id         TEXT    NOT NULL,
+    display_name    TEXT    NOT NULL,
+    content_version TEXT,
+    dataset_sha256  TEXT    NOT NULL,
+    synced_at       TEXT    NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_kp_lesson ON knowledge_points(lesson_seq, category);
 CREATE INDEX IF NOT EXISTS idx_items_history ON dictation_items(history_id);
 CREATE INDEX IF NOT EXISTS idx_items_kp ON dictation_items(kp_id, is_correct);
@@ -97,8 +110,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", required=True, help="目标数据库路径")
     ap.add_argument(
-        "--content-root", default=DEFAULT_CONTENT_ROOT,
-        help="教材包目录（默认 chinese/3a）",
+        "--content-root", default=str(DEFAULT_CONTENT_ROOT),
+        help="内容包目录（默认相邻 dictation-content 仓库中的 primary-3a）",
     )
     ap.add_argument("--force", action="store_true", help="已存在则备份后重建")
     args = ap.parse_args()
@@ -116,18 +129,13 @@ def main():
         print(f"[OK] 已备份原库 -> {os.path.basename(bak)}")
 
     content_root = os.path.abspath(args.content_root)
-    p_lessons = os.path.join(content_root, "lessons.json")
-    p_kp = os.path.join(content_root, "knowledge_points.json")
-    for p in (p_lessons, p_kp):
-        if not os.path.exists(p):
-            print(f"[X] 缺少数据文件: {p}")
-            print("    请确认完整克隆了教材包，或运行 shared/tools/convert_wordlist.py")
-            sys.exit(1)
-
-    with open(p_lessons, encoding="utf-8") as f:
-        lessons = json.load(f)
-    with open(p_kp, encoding="utf-8") as f:
-        kps = json.load(f)
+    try:
+        pack = load_content_pack(content_root)
+    except ContentPackError as exc:
+        print(f"[X] 内容包校验失败: {exc}")
+        sys.exit(1)
+    lessons = pack.lessons
+    kps = pack.knowledge_points
 
     db_dir = os.path.dirname(db)
     os.makedirs(db_dir, exist_ok=True)
@@ -148,11 +156,26 @@ def main():
               l.get("lesson_title", ""), l["lesson_name"]) for l in lessons]
         )
         conn.executemany(
-            "INSERT INTO knowledge_points (lesson_seq, target, category, options_json) VALUES (?,?,?,?)",
-            [(k["lesson_seq"], k["target"], k["category"],
+            "INSERT INTO knowledge_points (id, lesson_seq, target, category, options_json) "
+            "VALUES (?,?,?,?,?)",
+            [(k["id"], k["lesson_seq"], k["target"], k["category"],
               json.dumps(k["options_json"], ensure_ascii=False)) for k in kps]
         )
-        conn.execute("INSERT INTO user_progress (user_id, current_lesson_seq) VALUES (1, 3111)")
+        conn.execute(
+            "INSERT INTO user_progress (user_id, current_lesson_seq) VALUES (1, ?)",
+            (pack.runtime.initial_lesson,),
+        )
+        conn.execute(
+            "INSERT INTO content_runtime "
+            "(singleton, pack_id, display_name, content_version, dataset_sha256, synced_at) "
+            "VALUES (1, ?, ?, ?, ?, datetime('now'))",
+            (
+                pack.id,
+                pack.display_name,
+                pack.metadata.get("version"),
+                pack.dataset_sha256,
+            ),
+        )
         conn.commit()
 
         n_les = conn.execute("SELECT COUNT(*) FROM lessons").fetchone()[0]
@@ -174,6 +197,7 @@ def main():
             os.remove(tmp_db)
 
     print(f"[OK] 建库完成: {db}")
+    print(f"     内容包 {pack.display_name} ({pack.id})")
     print(f"     课程 {n_les} 门, 知识点 {n_kp} 条")
     for c, n in cats:
         print(f"       {c}: {n}")
