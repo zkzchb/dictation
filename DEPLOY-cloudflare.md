@@ -13,9 +13,13 @@ V3 在 Cloudflare Python Workers 上运行 API，在 D1 保存学习记录，并
 ```bash
 mkdir dictation-workspace && cd dictation-workspace
 git clone --branch content-v1.0.0 https://github.com/zkzchb/dictation-content.git
-git clone --branch v2.1.0-rc.1 https://github.com/zkzchb/dictation.git
+git clone https://github.com/zkzchb/dictation.git
+git -C dictation switch --detach 586ffecf23efb514fdf7094d603081814963dc33
 cd dictation
 ```
+
+以上固定提交是 Draft PR #30 当前通过 CI 的 Workers 全新部署入口；冻结的
+`v2.1.0-rc.1` 标签保持不变，不包含本页新增的 `--fresh` 防误覆盖流程。
 
 部署脚本会先安装仓库锁定的 Wrangler，再检查登录状态；未登录时才打开浏览器授权。
 
@@ -110,7 +114,7 @@ V3 程序本身没有登录鉴权。公开部署需要访问控制时，可在 C
 
 ```bash
 git fetch --tags
-git switch --detach v2.1.0-rc.1
+git switch --detach 586ffecf23efb514fdf7094d603081814963dc33
 git -C ../dictation-content fetch --tags
 git -C ../dictation-content switch --detach content-v1.0.0
 bash deploy/cloudflare-deploy.sh
