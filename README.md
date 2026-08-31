@@ -1,5 +1,9 @@
 # Dictation
 
+[English](README.en.md) | 简体中文
+
+当前稳定程序版本为 [`v2.1.0`](https://github.com/zkzchb/dictation/releases/tag/v2.1.0)，兼容内容版本为 [`content-v1.0.0`](https://github.com/zkzchb/dictation-content/releases/tag/content-v1.0.0)。
+
 面向中文听写练习的自托管程序。它提供每日听写、单元复习、错词回流、多音字轮换、
 学习记录，以及本地/VPS 录音工作台。程序不绑定出版社、年级或固定课程号，所有课程、
 词条和音频都从外部 content pack 加载。
@@ -26,13 +30,13 @@ V2 和 V3 使用同一套 content-pack v1 契约与选词规则。V2 的 SQLite 
 
 ## 五分钟本地启动
 
-候选版部署固定使用程序与内容标签，避免两个 `main` 在安装期间发生漂移。把两个仓库检出为
+正式版部署固定使用程序与内容标签，避免两个 `main` 在安装期间发生漂移。把两个仓库检出为
 相邻目录：
 
 ```bash
 mkdir dictation-workspace && cd dictation-workspace
 git clone --branch content-v1.0.0 https://github.com/zkzchb/dictation-content.git
-git clone --branch v2.1.0-rc.1 https://github.com/zkzchb/dictation.git
+git clone --branch v2.1.0 https://github.com/zkzchb/dictation.git
 cd dictation
 cp deploy/local.env.example deploy/local.env
 bash deploy/local-install.sh --serve
@@ -111,7 +115,7 @@ dictation/
 
 历史冻结版仍可通过 `v2.0.0` 标签和 `v2.0-stable` 分支检出；当前产品线只维护 V2/V3。
 
-候选版验收记录保存在 [docs/verification](docs/verification/)；原始机器日志留在对应部署环境，
+v2.1 验收记录保存在 [docs/verification](docs/verification/) 与对应发布 PR 中；原始机器日志留在对应部署环境，
 公开仓库只保存去除账号、地址、凭据和用户数据后的结论。
 
 ## 许可
