@@ -23,7 +23,7 @@ audioop-lts==0.2.1; python_version >= "3.13"
 annotated-doc==0.0.5
 annotated-types==0.8.0
 anyio==4.14.2
-click==8.4.2
+click==8.5.0
 h11==0.16.0
 idna==3.19
 pydantic-core==2.46.4
