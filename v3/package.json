@@ -1,0 +1,7 @@
+{
+  "name": "dictation-v3-deploy",
+  "private": true,
+  "devDependencies": {
+    "wrangler": "4.127.1"
+  }
+}

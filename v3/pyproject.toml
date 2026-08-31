@@ -13,5 +13,5 @@ dependencies = [
 # 没有这一段时 `uv run pywrangler` 会报 Failed to spawn: `pywrangler`。
 [dependency-groups]
 dev = [
-    "workers-py",
+    "workers-py==1.17.0",
 ]

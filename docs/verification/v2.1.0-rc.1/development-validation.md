@@ -47,6 +47,7 @@ deployment configuration were included in the program tree.
 | Python compilation | PASS | `v2`, `v3`, `shared`, tools and tests compiled |
 | Browser inline JavaScript parsing | PASS | All checked application pages parsed successfully |
 | Deployment shell syntax | PASS | Every script under `deploy/` passed `bash -n` |
+| Workers deployment toolchain | PASS | Wrangler 4.127.1, workers-py 1.17.0 and Pyodide dependencies were locked; npm audit reported no known vulnerabilities |
 | YAML/JSON and release-file parsing | PASS | Workflow, configuration and content metadata parsed |
 | Regression suite | PASS | 43 program/content regression tests passed in the reviewed baseline |
 | Content-pack validation | PASS | Schema, stable IDs, paths, metadata and checksums validated |
@@ -58,8 +59,8 @@ deployment configuration were included in the program tree.
 | Invalid-pack write protection | PASS | Validation failure left the existing target tree unchanged |
 
 The regression count above is the count for the reviewed release baseline. After
-VPS deployment hardening was added, the Draft PR head ran 50 regression tests on
-Python 3.12 and 3.13. The CI result attached to the final candidate takes
+VPS and Workers deployment hardening was added, the Draft PR head ran 51 regression
+tests on Python 3.12 and 3.13. The CI result attached to the final candidate takes
 precedence over this historical count.
 
 ## Design decisions covered by the validation

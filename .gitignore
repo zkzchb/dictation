@@ -47,6 +47,10 @@ v3/public/audio/
 # ── V3 stage 产物（由 tools/stage.py 生成，不提交）─────────────────
 # v3/public/index.html 来自 shared/web/，wrangler 部署前需先运行 stage
 v3/public/
+v3/python_modules/
+v3/.venv-workers/
+v3/.wrangler/
+v3/node_modules/
 
 # ── 日志与调试临时文件 ─────────────────────────────────────────────
 api.log
