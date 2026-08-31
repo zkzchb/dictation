@@ -16,7 +16,7 @@ python-multipart==0.0.32
 
 # Python 3.13 起标准库移除了 audioop，而 pydub 依赖它。
 # audioop-lts 是官方替代实现，仅在 3.13+ 上安装。
-audioop-lts==0.2.1; python_version >= "3.13"
+audioop-lts==0.2.2; python_version >= "3.13"
 
 # 冻结时在 Python 3.12 解析出的运行时传递依赖。显式列出，避免未来重新安装
 # 时 FastAPI/uvicorn 的宽范围依赖漂移；升级必须走完整回归测试。
