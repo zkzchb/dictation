@@ -83,9 +83,8 @@ def collect_targets(kp_files: Iterable[str | Path]):
         digest = word_hash(text)
         items.append((f"{text}。", os.path.join("audio", "w", f"{digest}.mp3")))
         manifest[text] = {
-            "url": f"/audio/w/{digest}.mp3",
+            "url": f"./audio/w/{digest}.mp3",
             "pinyin": pinyin,
             "hash": digest,
         }
     return items, manifest
-

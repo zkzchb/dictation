@@ -339,7 +339,8 @@ document.addEventListener('alpine:init', () => {
     // 浏览器拦下了自动连播，需要用户点一下解锁。这不是"用户想暂停"，
     // 所以单独记一个标记，不去动 playerState。
     playbackBlocked: false, playbackError: '', scoreSubmissionId: '',
-    API_BASE: '',
+    // 相对地址同时兼容站点根路径与 Caddy handle_path 子路径部署。
+    API_BASE: '.',
     AUDIO_REV: 'v2-freeze-20260820',
 
     // 多音字段落（仅播报，不判分、核对页不列出）
@@ -360,7 +361,7 @@ document.addEventListener('alpine:init', () => {
     async loadConfig() {
       // 1) 默认值文件
       try {
-        const r = await fetch('/playback_config.json');
+        const r = await fetch('./playback_config.json');
         if (r.ok) {
           const j = await r.json();
           for (const k in this.cfg) if (k in j) this.cfg[k] = j[k];
@@ -521,12 +522,12 @@ document.addEventListener('alpine:init', () => {
       const c = this.cfg, items = [], words = this.selectedWords;
       const gs = c.group_size, rt = c.repeat_times;
 
-      items.push({ url: '/audio/sys/intro.mp3', word: null, gapMs: c.gap_intro_ms });
+      items.push({ url: './audio/sys/intro.mp3', word: null, gapMs: c.gap_intro_ms });
 
       for (let i = 0; i < words.length; i += gs) {
         const group = words.slice(i, i + gs);
         const gNum  = Math.floor(i / gs) + 1;
-        items.push({ url: `/audio/sys/g${gNum}.mp3`, word: null, gapMs: c.gap_group_head_ms });
+        items.push({ url: `./audio/sys/g${gNum}.mp3`, word: null, gapMs: c.gap_group_head_ms });
 
         for (let pass = 0; pass < rt; pass++) {
           group.forEach((w, k) => {
@@ -548,16 +549,16 @@ document.addEventListener('alpine:init', () => {
       // 前两段之间不留间隔（gapMs: 0），听感才连贯；只在末段后留书写时间。
       // 老师录的是本课那一个读音，所以题目只针对这个音组词。
       for (const p of this.polyphonic) {
-        items.push({ url: '/audio/sys/poly_prefix.mp3', word: null, gapMs: 0 });
+        items.push({ url: './audio/sys/poly_prefix.mp3', word: null, gapMs: 0 });
         items.push({
           url: p.audio_url || null,
           word: { text: p.character, pinyin: p.pron || '', polyphonic: true },
           gapMs: 0,
         });
-        items.push({ url: '/audio/sys/poly_suffix.mp3', word: null, gapMs: c.gap_polyphonic_ms });
+        items.push({ url: './audio/sys/poly_suffix.mp3', word: null, gapMs: c.gap_polyphonic_ms });
       }
 
-      items.push({ url: '/audio/sys/outro.mp3', word: null, gapMs: 0 });
+      items.push({ url: './audio/sys/outro.mp3', word: null, gapMs: 0 });
       return items;
     },
 

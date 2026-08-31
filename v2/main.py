@@ -56,7 +56,7 @@ def word_hash(text: str) -> str:
     return hashlib.md5(text.encode("utf-8")).hexdigest()[:12]
 
 def audio_url_for(text: str) -> str:
-    return f"/audio/w/{word_hash(text)}.mp3"
+    return f"./audio/w/{word_hash(text)}.mp3"
 
 def _now() -> datetime:
     """应用业务时间；与打卡日期和录音台账保持同一时区。"""
@@ -636,7 +636,7 @@ def _check_words_data():
         status = state.get("status") if isinstance(state, dict) else None
         item["status"] = status if status in ("checked", "rerecord") else "pending"
         # 重录会覆盖同一路径；用真人录音时间生成版本参数，避开浏览器七天音频缓存。
-        item["audio_url"] = f"/audio/w/{h}.mp3?v={word_hash(str(rec.get('at', '')))}"
+        item["audio_url"] = f"./audio/w/{h}.mp3?v={word_hash(str(rec.get('at', '')))}"
         words.append(item)
     return words
 
@@ -717,7 +717,7 @@ async def check_save_rerecord():
             "words": selected,
         }
         _save_json(STUDIO_RERECORD_LIST, data)
-    return {"status": "success", "count": len(selected), "studio_url": "/studio2.html"}
+    return {"status": "success", "count": len(selected), "studio_url": "./studio2.html"}
 
 
 @app.get("/api/studio2/words")
@@ -923,7 +923,7 @@ def studio_syswords():
         "key": k,
         "text": SYS_PHRASES.get(k, ""),
         "recorded": k in led,
-        "url": f"/audio/sys/{k}.mp3",
+        "url": f"./audio/sys/{k}.mp3",
     } for k in _sys_keys()]
     return {"words": words, "total": len(words)}
 

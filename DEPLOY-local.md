@@ -87,7 +87,41 @@ journalctl -u dictation-local-v2 -f
 bash deploy/local-install.sh --uninstall-service
 ```
 
-## 5. 更新
+## 5. 通过 Caddy 挂载到子路径
+
+应用继续绑定 `127.0.0.1`，由 Caddy 在 80 端口统一提供入口。以下配置把 Dictation
+挂载到 `/dictation/`，同时保留其他路径供以后部署别的本地网站：
+
+```caddyfile
+:80 {
+    redir /dictation /dictation/ 308
+
+    handle_path /dictation/* {
+        reverse_proxy 127.0.0.1:8889
+    }
+
+    handle {
+        respond "Not Found" 404
+    }
+}
+```
+
+把配置合并进现有 `/etc/caddy/Caddyfile` 后，先验证再重载：
+
+```bash
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+```
+
+`handle_path` 会在转发前移除 `/dictation`，应用中的相对 API、音频和页面地址仍会由
+浏览器解析到 `/dictation/` 下。Caddy 的 `:80` 默认监听所有网络接口；`0.0.0.0` 是
+监听含义，不是浏览器访问地址。应使用 `http://127.0.0.1/dictation/`、局域网 IP 或
+ZeroTier IP 访问。
+
+普通 HTTP IP 地址不属于浏览器麦克风安全上下文。页面浏览与音频播放不受影响；需要
+录音时请在部署主机使用 `http://127.0.0.1/dictation/studio`，或为远程入口配置 HTTPS。
+
+## 6. 更新
 
 程序和内容分别检出已审核的新标签，然后重跑安装器：
 
@@ -102,7 +136,7 @@ bash deploy/local-install.sh --install-service
 更新内容时，安装器会保留已登记的真人录音，并只用内容包基线覆盖未登记的音频。若新内容
 移除了已有知识点 ID，或会让已有录音失去对应词条，更新会停止并给出错误，不会静默删数据。
 
-## 6. 录音工作台
+## 7. 录音工作台
 
 在本机浏览器访问 `http://localhost:8889/studio`。`localhost` 属于浏览器允许麦克风的
 安全上下文；通过普通 HTTP 局域网 IP 访问时，浏览器通常会拒绝麦克风权限。
@@ -110,7 +144,7 @@ bash deploy/local-install.sh --install-service
 录音写入 `.runtime/local/web/audio`，不自动提交到内容仓库。确认录音后，应把对应 MP3
 导入 `dictation-content`，更新 `tts.sha256` 和 `dataset.json`，再发布新的内容版本。
 
-## 7. 数据位置
+## 8. 数据位置
 
 | 路径 | 内容 |
 |---|---|

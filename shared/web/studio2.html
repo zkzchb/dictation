@@ -105,7 +105,7 @@
       <i class="fas fa-microphone text-[#07C160]"></i> 重录工作台
     </h1>
     <div class="flex items-center gap-4 text-sm text-slate-400">
-      <a href="/check.html" class="hover:text-white"><i class="fas fa-arrow-left"></i> 返回质检</a>
+      <a href="./check.html" class="hover:text-white"><i class="fas fa-arrow-left"></i> 返回质检</a>
       <span x-show="words.length" x-cloak>
         已重录 <span class="text-[#07C160] font-bold" x-text="totalRecorded"></span> / <span x-text="words.length"></span>
         <template x-if="currentBatch >= 0 && state !== 'grid'">
@@ -385,7 +385,7 @@
               class="bg-slate-700 text-white font-bold py-3 px-6 rounded-xl active:scale-95 transition">
         <i class="fas fa-th-large"></i> 返回分组
       </button>
-      <a href="/check.html"
+      <a href="./check.html"
          class="bg-slate-700 text-white font-bold py-3 px-6 rounded-xl active:scale-95 transition">
         <i class="fas fa-headphones"></i> 返回质检
       </a>
@@ -401,7 +401,7 @@ function studio() {
     silenceThresh: -40,    // 静音阈值 dBFS
     minSilenceLen: 500,    // 静音判定最短时长 ms
     batchSize: 10,         // 每组词数
-    API: '',               // 同源
+    API: '.',              // 同源；兼容根路径与反代子路径
 
     // ── 状态 ──
     // loading|error|grid|ready|countdown|recording|splitting|saving|save-failed|saved
@@ -781,7 +781,7 @@ function studio() {
         this.hintLevel = 'warn';
         this.hint = window.isSecureContext
           ? '此浏览器不支持录音（缺少 mediaDevices API）'
-          : `浏览器禁止在非安全来源录音。请改用 http://localhost:${location.port || 8889}/studio 在本机录制，或走 HTTPS 域名访问。`;
+          : `浏览器禁止在非安全来源录音。请在部署主机改用 http://127.0.0.1${location.port ? ':' + location.port : ''}${location.pathname}，或走 HTTPS 域名访问。`;
         this.state = 'ready';
         return;
       }

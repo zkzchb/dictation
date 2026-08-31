@@ -44,7 +44,7 @@ def word_hash(text: str) -> str:
     return hashlib.md5(text.encode("utf-8")).hexdigest()[:12]
 
 def audio_url_for(text: str) -> str:
-    return f"/audio/w/{word_hash(text)}.mp3"
+    return f"./audio/w/{word_hash(text)}.mp3"
 
 def extract_word_info(target, options_json):
     text, pinyin = target, ""
