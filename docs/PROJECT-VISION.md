@@ -80,6 +80,6 @@ Dictation 从中文听写出发，但项目的边界不止于一套固定教材�
 - 参考学习包：[dictation-content content-v1.0.0](https://github.com/zkzchb/dictation-content/releases/tag/content-v1.0.0)
 - 三类部署与发布验收记录：[PR #30](https://github.com/zkzchb/dictation/pull/30)
 - 仓库边界说明：[Repository Architecture](REPOSITORY-ARCHITECTURE.md)
-- 学习包规范：[Content Pack Spec v1](CONTENT-PACK-SPEC-v1.md)
+- 学习包规范：[Content Pack Spec v1](CONTENT-PACK-SPEC.md)
 
 中文听写是第一个被完整实现和验证的模块。项目长期要解决的问题，是让学习材料不仅能被阅读或下载，还能够被可靠地运行、验证、版本化和迁移，同时把教学决定与数据归属留在家庭、教师和学习者一侧。
