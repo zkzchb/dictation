@@ -40,13 +40,17 @@ The `/dictation/` subpath was verified behind a real Caddy listener on port 80 w
 
 The companion `dictation-content` repository publishes the reference learning pack independently. `content-v1.0.0` contains 43 lessons, 814 knowledge points, and 894 MP3 files. Manifests, checksums, and a dataset digest fix its content identity. It is a runnable reference pack, not the only curriculum that the runtime may use.
 
-## Intended users
+## Product editions and intended users
 
-- **Families** who want a low-cost, self-hosted tool and control over materials, voices, and records;
-- **Teachers and content maintainers** who want to prepare their own course packs, record audio, and perform human quality checks;
-- **Developers and researchers** who want a reusable, auditable learning runtime, content format, and deployment baseline.
+V2/V3 are technical runtimes. The Editions below are user-facing product profiles. The two naming systems operate at different levels and do not map one-to-one.
 
-The current release covers the core paths for personal use and teacher-led content work. Full multi-user support, classroom management, and mature classroom collaboration remain future work and must not be read as current features.
+| Product edition | Status | Primary users | Current deployment and boundary |
+| --- | --- | --- | --- |
+| Personal Edition | Available | Individuals and families | V3 on Workers/D1 is the low-operations reference, while V2 local/VPS is also usable. It is not yet equivalent to a fully authenticated multi-user service |
+| Teacher Studio Edition | Core workflow available | Teachers and content maintainers | Currently based on V2 local/VPS, with recording, re-recording, and human quality review. A fuller material-import, editing, and publishing experience remains future work |
+| Classroom Edition | Planned | Classes, schools, and self-hosting organizations | Intended for a self-hosted VPS or school server. Classes, students, assignments, multiple materials, and teaching feedback are not current v2.1.0 capabilities |
+
+Developers and researchers can also reuse the auditable runtime, content format, and deployment baseline directly. The current release covers the core paths for personal practice and teacher-led content work; full multi-user authentication and classroom collaboration must remain roadmap claims.
 
 ## Current capabilities and roadmap boundary
 
