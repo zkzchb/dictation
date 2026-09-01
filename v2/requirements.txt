@@ -4,7 +4,7 @@
 # V2 冻结版直接依赖。main 按此固定清单在线安装；main-offline 使用经过
 # SHA-256 校验的 wheelhouse。升级必须走完整回归测试，不安装“当时最新版”。
 fastapi==0.141.1
-uvicorn==0.52.3
+uvicorn==0.52.4
 pydantic==2.13.4
 pydub==0.25.1
 
