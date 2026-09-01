@@ -21,14 +21,28 @@ See [Project vision](docs/PROJECT-VISION.en.md) / [项目愿景](docs/PROJECT-VI
 
 The application repository contains only a small CC0 synthetic test fixture. It does not publish the production curriculum or product recordings. Deployment records capture the program commit, content commit, content release, pack ID, and dataset SHA-256 so an installation can be reproduced.
 
-## Runtime targets
+## Runtimes and product editions
 
-| Runtime | Target | Database | Static audio | Recording studio |
+V2/V3 and the three Editions describe different dimensions. **V2/V3 are technical runtimes and deployment targets; an Edition is a user-facing product profile, not another code version or branch.** One Edition may run on different runtimes, and one V2 deployment may provide both personal practice and the content Studio.
+
+### Technical runtimes
+
+| Runtime | Target | Database | Static audio | Recording Studio |
 |---|---|---|---|---|
 | V2 | Local Ubuntu or Ubuntu VPS | SQLite | Local filesystem | Supported |
 | V3 | Cloudflare Workers | D1 | Worker static assets | Not supported |
 
-V2 and V3 share the same content-pack v1 contract and selection rules. Seeded parity tests verify that the SQLite and D1 selectors produce matching results.
+V2 and V3 share the content-pack v1 contract and selection rules. Seeded parity tests verify their SQLite and D1 selectors, so the same learning pack can be staged for either runtime.
+
+### Product editions
+
+| Product edition | Current status | Runtime and deployment relationship | Current scope and boundary |
+|---|---|---|---|
+| Personal Edition | Available | V3 on Workers/D1 is the low-operations reference; V2 local/VPS is also usable and additionally provides Studio | Personal or family dictation, review, and learning records. V3 has no Studio. This is not yet a fully authenticated multi-user service; access protection remains the operator’s responsibility |
+| Teacher Studio Edition | Core workflow available | Currently uses V2 on local Ubuntu or VPS; it combines the V2 learning runtime with Studio workflows | Recording, re-recording, and human quality review are available, and maintained learning packs can be consumed by V2 or V3. A fuller import, editing, and publishing experience remains roadmap work |
+| Classroom Edition | Planned | Intended for a self-hosted VPS or school server; the final runtime has not been selected | Classes, students, assignments, multiple materials, progress, and teaching feedback are future work. v2.1.0 does not include complete multi-user authentication or classroom collaboration |
+
+In short: **V2/V3 answer “how the program runs”; the Editions answer “who uses it and for what.” They are not a one-to-one mapping.**
 
 ## Five-minute local start
 
