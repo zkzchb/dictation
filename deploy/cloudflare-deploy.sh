@@ -58,6 +58,8 @@ case "$DICTATION_VOICE_REPO_URL" in
   https://github.com/zkzchb/dictation_voice|https://github.com/zkzchb/dictation_voice.git) ;;
   *) die "真人录音仓库只接受: https://github.com/zkzchb/dictation_voice" ;;
 esac
+[[ "$REQUIRE_VOICE" != "yes" || -n "$DICTATION_VOICE_REPO_URL" ]] \
+  || die "--require-voice 要求输入真人录音仓库 URL"
 
 # ── 读取配置 ─────────────────────────────────────────────────────────────
 step "读取配置"
@@ -72,6 +74,40 @@ fi
 : "${D1_DATABASE_NAME:=}"
 : "${CONTENT_ROOT:=../dictation-content/packs/zh-cn/primary-3a}"
 : "${V3_DOMAIN:=}"
+
+DEFAULT_CONTENT_ROOT="$(realpath -m "$REPO_ROOT/../dictation-content/packs/zh-cn/primary-3a")"
+REQUESTED_CONTENT_ROOT="$CONTENT_ROOT"
+[[ "$REQUESTED_CONTENT_ROOT" == /* ]] \
+  || REQUESTED_CONTENT_ROOT="$REPO_ROOT/$REQUESTED_CONTENT_ROOT"
+REQUESTED_CONTENT_ROOT="$(realpath -m "$REQUESTED_CONTENT_ROOT")"
+if [[ "$REQUESTED_CONTENT_ROOT" == "$DEFAULT_CONTENT_ROOT" ]]; then
+  step "抓取公开课程仓库"
+  command -v git >/dev/null 2>&1 || die "缺少 git，无法抓取课程仓库"
+  CONTENT_REPO_DIR="$REPO_ROOT/../dictation-content"
+  if [[ -e "$CONTENT_REPO_DIR" && ! -d "$CONTENT_REPO_DIR/.git" ]]; then
+    die "目标路径已存在但不是 Git 仓库: $CONTENT_REPO_DIR"
+  fi
+  if [[ -d "$CONTENT_REPO_DIR/.git" ]]; then
+    CONTENT_ORIGIN="$(git -C "$CONTENT_REPO_DIR" remote get-url origin 2>/dev/null || true)"
+    case "$CONTENT_ORIGIN" in
+      https://github.com/zkzchb/dictation-content|https://github.com/zkzchb/dictation-content.git|git@github.com:zkzchb/dictation-content|git@github.com:zkzchb/dictation-content.git) ;;
+      *) die "现有 dictation-content 的 origin 不匹配: $CONTENT_ORIGIN" ;;
+    esac
+    [[ -z "$(git -C "$CONTENT_REPO_DIR" status --porcelain)" ]] \
+      || die "dictation-content 工作树有未提交修改，拒绝自动拉取"
+    [[ "$(git -C "$CONTENT_REPO_DIR" branch --show-current)" == "main" ]] \
+      || die "dictation-content 当前不在 main 分支，拒绝自动切换"
+    git -C "$CONTENT_REPO_DIR" pull --ff-only origin main \
+      || die "无法更新公开课程仓库"
+    ok "公开课程仓库已更新"
+  else
+    git clone --depth 1 https://github.com/zkzchb/dictation-content \
+      "$CONTENT_REPO_DIR" \
+      || die "无法抓取公开课程仓库"
+    ok "公开课程仓库已抓取"
+  fi
+  CONTENT_ROOT="$DEFAULT_CONTENT_ROOT"
+fi
 
 VOICE_PACK_ROOT=""
 if [[ -n "$DICTATION_VOICE_REPO_URL" ]]; then
@@ -101,8 +137,6 @@ if [[ -n "$DICTATION_VOICE_REPO_URL" ]]; then
     ok "真人录音仓库已抓取"
   fi
   VOICE_PACK_ROOT="$VOICE_REPO_DIR/packs/zh-cn/primary-3a"
-elif [[ "$REQUIRE_VOICE" == "yes" ]]; then
-  die "--require-voice 要求输入真人录音仓库 URL"
 fi
 
 valid_worker_name() {

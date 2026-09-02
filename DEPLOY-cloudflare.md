@@ -8,17 +8,17 @@ V3 在 Cloudflare Python Workers 上运行 API，在 D1 保存学习记录，并
 - Node.js 22 或更新版本；
 - `npx wrangler login` 已登录 Cloudflare，或提供合适权限的 API Token；
 - `uv >= 0.12.3`（脚本缺少时会安装；版本过低时先升级）；
-- 相邻检出的 `dictation` 与 `dictation-content` 仓库；
+- `dictation` 程序仓库；脚本会自动抓取或更新相邻的公开 `dictation-content`；
 - 可选：有权限读取私有 `dictation_voice` 仓库的 GitHub 账户，用于部署真人录音。
 
 ```bash
 mkdir dictation-workspace && cd dictation-workspace
-git clone https://github.com/zkzchb/dictation-content.git
 git clone https://github.com/zkzchb/dictation.git
 cd dictation
 ```
 
-部署脚本会先安装仓库锁定的 Wrangler，再检查登录状态；未登录时才打开浏览器授权。
+部署脚本会先抓取公开课程仓库、安装仓库锁定的 Wrangler，再检查登录状态；未登录时
+才打开浏览器授权。
 脚本启动后首先询问语音来源：直接回车部署课程包自带的 TTS；输入
 `https://github.com/zkzchb/dictation_voice` 时，脚本会在相邻目录 clone 或
 fast-forward 更新私有录音仓库。没有该仓库权限时会在登录 Cloudflare 之前停止。
@@ -127,7 +127,6 @@ V3 程序本身没有登录鉴权。公开部署需要访问控制时，可在 C
 
 ```bash
 git pull --ff-only
-git -C ../dictation-content pull --ff-only
 bash deploy/cloudflare-deploy.sh
 ```
 

@@ -26,6 +26,8 @@ class DeployContentRootTests(unittest.TestCase):
 
     def test_cloudflare_voice_source_is_explicit_optional_and_verified(self):
         script = (ROOT / "deploy" / "cloudflare-deploy.sh").read_text(encoding="utf-8")
+        self.assertIn("https://github.com/zkzchb/dictation-content", script)
+        self.assertIn("公开课程仓库已抓取", script)
         self.assertIn("直接回车：使用公开课程包自带的 TTS（默认）", script)
         self.assertIn("https://github.com/zkzchb/dictation_voice", script)
         self.assertLess(script.index("语音来源"), script.index("读取配置"))
