@@ -8,22 +8,24 @@ V3 在 Cloudflare Python Workers 上运行 API，在 D1 保存学习记录，并
 - Node.js 22 或更新版本；
 - `npx wrangler login` 已登录 Cloudflare，或提供合适权限的 API Token；
 - `uv >= 0.12.3`（脚本缺少时会安装；版本过低时先升级）；
-- 相邻检出的 `dictation` 与 `dictation-content` 仓库。
+- 相邻检出的 `dictation` 与 `dictation-content` 仓库；
+- 可选：有权限读取私有 `dictation_voice` 仓库的 GitHub 账户，用于部署真人录音。
 
 ```bash
 mkdir dictation-workspace && cd dictation-workspace
-git clone --branch content-v1.0.0 https://github.com/zkzchb/dictation-content.git
+git clone https://github.com/zkzchb/dictation-content.git
 git clone https://github.com/zkzchb/dictation.git
-git -C dictation switch --detach 586ffecf23efb514fdf7094d603081814963dc33
 cd dictation
 ```
 
-以上固定提交是 Draft PR #30 当前通过 CI 的 Workers 全新部署入口；冻结的
-`v2.1.0-rc.1` 标签保持不变，不包含本页新增的 `--fresh` 防误覆盖流程。
-
 部署脚本会先安装仓库锁定的 Wrangler，再检查登录状态；未登录时才打开浏览器授权。
+脚本启动后首先询问语音来源：直接回车部署课程包自带的 TTS；输入
+`https://github.com/zkzchb/dictation_voice` 时，脚本会在相邻目录 clone 或
+fast-forward 更新私有录音仓库。没有该仓库权限时会在登录 Cloudflare 之前停止。
 
 ## 2. 配置
+
+首次全新部署可以跳过本节，由脚本交互询问。只有更新固定 Worker/D1 时才需要保存配置：
 
 ```bash
 cp deploy/cloudflare.env.example deploy/cloudflare.env
@@ -44,11 +46,19 @@ nano deploy/cloudflare.env
 
 ## 3. 部署
 
-创建全新的 Worker 与同名 D1：
+配置文件不是首次部署的必需项。创建全新的 Worker 与同名 D1：
 
 ```bash
 bash deploy/cloudflare-deploy.sh --fresh
 ```
+
+脚本开头的语音选项：
+
+- 直接回车：部署 TTS，完全使用公开的 `dictation-content`；
+- 输入 `https://github.com/zkzchb/dictation_voice`：抓取并严格校验真人录音，
+  再覆盖同名 TTS；
+- 自动化场景可设置 `DICTATION_VOICE_REPO_URL`，并配合 `--require-voice`
+  防止意外回退到 TTS。
 
 脚本会依次询问 Worker 名称和可选的 Custom Domain，并要求输入
 `CREATE <Worker 名称>`。`--fresh` 会在任何远端写入前确认同名 Worker 和 D1
@@ -66,13 +76,15 @@ bash deploy/cloudflare-deploy.sh
 脚本会：
 
 1. 验证 content pack、JSON 哈希、`tts.sha256` 与所有 MP3；
-2. 把前端、音频和 `deployment.json` 铺装到忽略的 `v3/public`；
-3. 临时写入 Worker 名称、D1 绑定和可选 Custom Domain；
-4. 创建或选择 D1；
-5. 生成课程/知识点 upsert SQL 和 content runtime SQL；
-6. 应用 schema 迁移，再同步当前内容；
-7. 部署 Worker 和静态资源；
-8. 验证课程 API 与开场音频。
+2. 把前端、TTS 音频和 `deployment.json` 铺装到忽略的 `v3/public`；
+3. 如选择真人录音，核对 pack id、内容版本、dataset、Studio 清单和 bundle 哈希，
+   再覆盖音频并记录 voice ref；
+4. 临时写入 Worker 名称、D1 绑定和可选 Custom Domain；
+5. 创建或选择 D1；
+6. 生成课程/知识点 upsert SQL 和 content runtime SQL；
+7. 应用 schema 迁移，再同步当前内容；
+8. 部署 Worker 和静态资源；
+9. 验证课程 API 与开场音频。
 
 脚本退出时会恢复仓库中的 `v3/wrangler.jsonc`，不会把 D1 UUID、Worker 名称
 或私有域名留在工作树中。`v3/package-lock.json` 固定 Wrangler，`v3/uv.lock`
@@ -97,7 +109,8 @@ curl -fsSI "$BASE_URL/audio/sys/intro.mp3" | head
 curl -fsS "$BASE_URL/deployment.json"
 ```
 
-`deployment.json` 应包含本次程序提交、内容提交、内容版本、pack id 和 dataset SHA-256。
+`deployment.json` 应包含本次程序提交、内容提交、内容版本、pack id 和 dataset SHA-256；
+选择真人录音时还应包含 voice ref、voice pack id、bundle SHA-256 和真人录音数量。
 
 ## 5. 自定义域名与访问控制
 
@@ -113,10 +126,8 @@ V3 程序本身没有登录鉴权。公开部署需要访问控制时，可在 C
 ## 6. 更新与回滚
 
 ```bash
-git fetch --tags
-git switch --detach 586ffecf23efb514fdf7094d603081814963dc33
-git -C ../dictation-content fetch --tags
-git -C ../dictation-content switch --detach content-v1.0.0
+git pull --ff-only
+git -C ../dictation-content pull --ff-only
 bash deploy/cloudflare-deploy.sh
 ```
 

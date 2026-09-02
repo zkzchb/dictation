@@ -3,16 +3,16 @@
 # 听写小助手 V3 —— Cloudflare Workers + D1 一键部署
 #
 # 用法：
-#   cp deploy/cloudflare.env.example deploy/cloudflare.env
-#   nano deploy/cloudflare.env        # 填 Cloudflare 配置与外部内容包路径
-#   chmod 600 deploy/cloudflare.env
 #   bash deploy/cloudflare-deploy.sh --fresh
+#
+# 可选：更新已有部署前，可复制 deploy/cloudflare.env.example 保存固定配置。
 #
 # 全程在本地执行，不需要服务器。默认更新模式幂等；--fresh 仅用于新建。
 #
 # 可选参数：
 #   --dev           不上线，改为启动本地预览（pywrangler dev）
 #   --fresh         交互创建全新的 Worker 与同名 D1；拒绝覆盖已有资源
+#   --require-voice 缺少或无法校验真人录音包时停止，不回退到纯 TTS
 # ============================================================================
 set -euo pipefail
 
@@ -30,28 +30,80 @@ die()  { echo "${C_ERR}  [X] $*${C_OFF}" >&2; exit 1; }
 
 DEV_MODE=no
 FRESH_MODE=no
+REQUIRE_VOICE=no
 for arg in "$@"; do
   case "$arg" in
     --dev)         DEV_MODE=yes ;;
     --fresh)       FRESH_MODE=yes ;;
-    -h|--help)     sed -n '2,21p' "$0"; exit 0 ;;
+    --require-voice) REQUIRE_VOICE=yes ;;
+    -h|--help)     sed -n '2,24p' "$0"; exit 0 ;;
     *)             die "未知参数: $arg" ;;
   esac
 done
 [[ "$DEV_MODE" != "yes" || "$FRESH_MODE" != "yes" ]] \
   || die "--dev 与 --fresh 不能同时使用"
 
+# ── 选择语音来源 ─────────────────────────────────────────────────────────
+DICTATION_VOICE_REPO_URL="${DICTATION_VOICE_REPO_URL:-}"
+if [[ -t 0 ]]; then
+  echo
+  echo "${C_HEAD}语音来源${C_OFF}"
+  echo "  直接回车：使用公开课程包自带的 TTS（默认）"
+  echo "  真人录音：输入 https://github.com/zkzchb/dictation_voice"
+  IFS= read -r -p "真人录音仓库 URL（默认留空）: " DICTATION_VOICE_REPO_URL
+fi
+
+case "$DICTATION_VOICE_REPO_URL" in
+  "") ;;
+  https://github.com/zkzchb/dictation_voice|https://github.com/zkzchb/dictation_voice.git) ;;
+  *) die "真人录音仓库只接受: https://github.com/zkzchb/dictation_voice" ;;
+esac
+
 # ── 读取配置 ─────────────────────────────────────────────────────────────
 step "读取配置"
-[[ -f "$ENV_FILE" ]] || die "缺少 $ENV_FILE
-  请先执行：cp deploy/cloudflare.env.example deploy/cloudflare.env 并填写"
-
-set -a; . "$ENV_FILE"; set +a
+if [[ -f "$ENV_FILE" ]]; then
+  set -a; . "$ENV_FILE"; set +a
+  ok "已读取 $ENV_FILE"
+else
+  warn "未找到 cloudflare.env，使用相邻仓库与交互式默认配置"
+fi
 
 : "${V3_WORKER_NAME:=}"
 : "${D1_DATABASE_NAME:=}"
 : "${CONTENT_ROOT:=../dictation-content/packs/zh-cn/primary-3a}"
 : "${V3_DOMAIN:=}"
+
+VOICE_PACK_ROOT=""
+if [[ -n "$DICTATION_VOICE_REPO_URL" ]]; then
+  step "抓取真人录音仓库"
+  command -v git >/dev/null 2>&1 || die "缺少 git，无法抓取真人录音仓库"
+  VOICE_REPO_DIR="$REPO_ROOT/../dictation_voice"
+  if [[ -e "$VOICE_REPO_DIR" && ! -d "$VOICE_REPO_DIR/.git" ]]; then
+    die "目标路径已存在但不是 Git 仓库: $VOICE_REPO_DIR"
+  fi
+  if [[ -d "$VOICE_REPO_DIR/.git" ]]; then
+    VOICE_ORIGIN="$(git -C "$VOICE_REPO_DIR" remote get-url origin 2>/dev/null || true)"
+    case "$VOICE_ORIGIN" in
+      https://github.com/zkzchb/dictation_voice|https://github.com/zkzchb/dictation_voice.git|git@github.com:zkzchb/dictation_voice|git@github.com:zkzchb/dictation_voice.git) ;;
+      *) die "现有 dictation_voice 的 origin 不匹配: $VOICE_ORIGIN" ;;
+    esac
+    [[ -z "$(git -C "$VOICE_REPO_DIR" status --porcelain)" ]] \
+      || die "dictation_voice 工作树有未提交修改，拒绝自动拉取"
+    [[ "$(git -C "$VOICE_REPO_DIR" branch --show-current)" == "main" ]] \
+      || die "dictation_voice 当前不在 main 分支，拒绝自动切换"
+    GIT_TERMINAL_PROMPT=1 git -C "$VOICE_REPO_DIR" pull --ff-only origin main \
+      || die "无法更新真人录音仓库；请确认当前 GitHub 账户有私有仓库权限"
+    ok "真人录音仓库已更新"
+  else
+    GIT_TERMINAL_PROMPT=1 git clone --depth 1 \
+      "$DICTATION_VOICE_REPO_URL" "$VOICE_REPO_DIR" \
+      || die "无法抓取真人录音仓库；请先配置 GitHub 登录并确认私有仓库权限"
+    ok "真人录音仓库已抓取"
+  fi
+  VOICE_PACK_ROOT="$VOICE_REPO_DIR/packs/zh-cn/primary-3a"
+elif [[ "$REQUIRE_VOICE" == "yes" ]]; then
+  die "--require-voice 要求输入真人录音仓库 URL"
+fi
 
 valid_worker_name() {
   local value="$1"
@@ -224,6 +276,105 @@ python3 "$REPO_ROOT/shared/content_pack.py" "$CONTENT_ROOT" \
 python3 "$AUDIO_TOOL" verify-dataset --content-root "$CONTENT_ROOT" \
   || die "内容包音频未通过校验"
 python3 "$REPO_ROOT/tools/stage.py" v3 --content-root "$CONTENT_ROOT"
+
+if [[ -n "$VOICE_PACK_ROOT" ]]; then
+  [[ "$VOICE_PACK_ROOT" == /* ]] || VOICE_PACK_ROOT="$REPO_ROOT/$VOICE_PACK_ROOT"
+  VOICE_PACK_ROOT="$(cd "$VOICE_PACK_ROOT" 2>/dev/null && pwd -P)" \
+    || die "找不到真人录音包目录: $VOICE_PACK_ROOT"
+  VOICE_META="$VOICE_PACK_ROOT/voice-pack.json"
+  VOICE_BUNDLE="$VOICE_PACK_ROOT/human-recordings.tar.gz"
+  [[ -f "$VOICE_META" ]] || die "真人录音包缺少 voice-pack.json: $VOICE_META"
+  [[ -f "$VOICE_BUNDLE" ]] || die "真人录音包缺少 human-recordings.tar.gz: $VOICE_BUNDLE"
+
+  python3 - "$CONTENT_ROOT" "$VOICE_META" "$VOICE_BUNDLE" <<'PYEOF' \
+    || die "真人录音包与当前内容包不兼容"
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+content_root, meta_path, bundle_path = map(Path, sys.argv[1:])
+dataset = json.loads((content_root / "dataset.json").read_text(encoding="utf-8"))
+studio_path = content_root / dataset["paths"]["studio_manifest"]
+studio = json.loads(studio_path.read_text(encoding="utf-8"))
+voice = json.loads(meta_path.read_text(encoding="utf-8"))
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+checks = {
+    "content pack id": voice.get("content_pack_id") == dataset.get("id"),
+    "content pack version": voice.get("content_pack_version") == dataset.get("version"),
+    "dataset digest": voice.get("compatibility", {}).get("source_dataset_sha256")
+        == dataset.get("sha256", {}).get("dataset"),
+    "Studio manifest": voice.get("compatibility", {}).get("studio_manifest_sha256")
+        == sha256(studio_path),
+    "bundle filename": voice.get("bundle", {}).get("file") == bundle_path.name,
+    "bundle kind": voice.get("bundle", {}).get("kind") == "human-recordings",
+    "bundle checksum": voice.get("bundle", {}).get("sha256") == sha256(bundle_path),
+    "Studio word count": voice.get("recordings", {}).get("studio_words") == len(studio),
+    "human word count": voice.get("recordings", {}).get("human_words") == len(studio),
+}
+failed = [name for name, passed in checks.items() if not passed]
+if failed:
+    raise SystemExit("不匹配项目: " + ", ".join(failed))
+
+print(
+    "[OK] 真人录音元数据: "
+    f"{voice.get('id')} / {len(studio)} 词条 / "
+    f"{voice.get('recordings', {}).get('human_system')} 系统提示"
+)
+PYEOF
+
+  DICTATION_CONTENT_ROOT="$CONTENT_ROOT" \
+    python3 "$AUDIO_TOOL" verify \
+      --bundle "$VOICE_BUNDLE" --kind human-recordings \
+    || die "真人录音 bundle 未通过严格校验"
+  DICTATION_CONTENT_ROOT="$CONTENT_ROOT" \
+    python3 "$AUDIO_TOOL" install \
+      --bundle "$VOICE_BUNDLE" \
+      --audio-dir "$V3_DIR/public/audio" \
+      --kind human-recordings \
+    || die "无法把真人录音覆盖到 Workers 静态资源"
+
+  VOICE_REF=""
+  if VOICE_REPO_ROOT="$(git -C "$VOICE_PACK_ROOT" rev-parse --show-toplevel 2>/dev/null)"; then
+    VOICE_REF="$(git -C "$VOICE_REPO_ROOT" rev-parse HEAD 2>/dev/null || true)"
+  fi
+  python3 - "$V3_DIR/public/deployment.json" "$VOICE_META" "$VOICE_REF" <<'PYEOF'
+import json
+import sys
+from pathlib import Path
+
+record_path, meta_path = map(Path, sys.argv[1:3])
+voice_ref = sys.argv[3] or None
+record = json.loads(record_path.read_text(encoding="utf-8"))
+voice = json.loads(meta_path.read_text(encoding="utf-8"))
+record.update({
+    "voice_ref": voice_ref,
+    "voice_pack_id": voice.get("id"),
+    "voice_bundle_sha256": voice.get("bundle", {}).get("sha256"),
+    "human_words": voice.get("recordings", {}).get("human_words"),
+    "human_system": voice.get("recordings", {}).get("human_system"),
+})
+record_path.write_text(
+    json.dumps(record, ensure_ascii=False, indent=2) + "\n",
+    encoding="utf-8",
+)
+PYEOF
+  ok "真人录音已覆盖 TTS，三仓版本已写入 deployment.json"
+elif [[ "$REQUIRE_VOICE" == "yes" ]]; then
+  die "未找到真人录音包；请重新运行并输入 dictation_voice 仓库 URL"
+else
+  warn "未配置真人录音包，本次将部署纯 TTS 版本"
+fi
+
 [[ -f "$V3_DIR/public/index.html" ]] || die "stage 失败：缺少 v3/public/index.html"
 PUB_SLICES="$(find "$V3_DIR/public/audio" -name '*.mp3' 2>/dev/null | wc -l | tr -d ' ')"
 ok "V3 静态资源与 $PUB_SLICES 个音频已就位"
