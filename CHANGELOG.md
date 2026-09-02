@@ -6,6 +6,7 @@
 
 ### Changed
 
+- 移除新前端与录音工作台均已弃用的 `poly_intro` 系统提示音。
 - 程序仓库收敛为 V2/V3，正式内容迁移到独立 `dictation-content` 仓库。
 - V2 本地/VPS 运行状态移出程序检出目录。
 - V2/V3 统一使用外部 content-pack v1、稳定知识点 ID 与组合版本记录。

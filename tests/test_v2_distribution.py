@@ -38,8 +38,8 @@ class V2DistributionTests(unittest.TestCase):
 
     def test_audio_inventory_is_derived_from_selected_pack(self):
         self.assertEqual(len(audio_bundle.expected_word_files()), 18)
-        self.assertEqual(len(audio_bundle.expected_system_files()), 25)
-        self.assertEqual(len(audio_bundle.expected_baseline_files()), 43)
+        self.assertEqual(len(audio_bundle.expected_system_files()), 24)
+        self.assertEqual(len(audio_bundle.expected_baseline_files()), 42)
 
     def test_synthetic_pack_can_build_and_verify_audio_manifest(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -136,7 +136,7 @@ class V2DistributionTests(unittest.TestCase):
             audio_bundle.pack_baseline(source, bundle)
             manifest, files = audio_bundle.read_bundle(bundle, audio_bundle.BASELINE_KIND)
             self.assertEqual(manifest["dataset_sha256"], audio_bundle.dataset_sha256())
-            self.assertEqual(len(files), 43)
+            self.assertEqual(len(files), 42)
 
             audio_bundle.install_bundle(
                 bundle, target, audio_bundle.BASELINE_KIND, reset_review_state=False

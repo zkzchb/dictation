@@ -21,8 +21,6 @@ SYS_PHRASES = {
     "outro": "听写完毕，请检查后交卷。",
     "poly_prefix": "多音字：",
     "poly_suffix": "，请组词并默写，标注拼音。",
-    # Kept for compatibility with old packs; current frontends do not play it.
-    "poly_intro": "下面是多音字。请写出不同读音的组词，并标上拼音。",
     **{f"g{n}": f"第{n}组。" for n in range(1, MAX_GROUPS + 1)},
 }
 
