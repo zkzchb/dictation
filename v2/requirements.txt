@@ -27,6 +27,6 @@ click==8.4.2
 h11==0.16.0
 idna==3.19
 pydantic-core==2.46.4
-starlette==1.6.0
+starlette==1.7.0
 typing-extensions==4.16.0
 typing-inspection==0.4.4
