@@ -22,7 +22,7 @@ audioop-lts==0.2.1; python_version >= "3.13"
 # 时 FastAPI/uvicorn 的宽范围依赖漂移；升级必须走完整回归测试。
 annotated-doc==0.0.5
 annotated-types==0.8.0
-anyio==4.14.2
+anyio==4.15.1
 click==8.4.2
 h11==0.16.0
 idna==3.19
